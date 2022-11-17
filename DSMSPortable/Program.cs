@@ -1,9 +1,7 @@
-﻿using System.CodeDom;
-using System.Collections;
+﻿using System.Collections;
 using System.Globalization;
 using StudioCore;
 using StudioCore.Editor;
-using StudioCore.MsbEditor;
 using StudioCore.ParamEditor;
 
 namespace DSMSPortable
@@ -28,7 +26,7 @@ namespace DSMSPortable
             { 
                 ProcessArgs(args);
             }
-            catch(ArgumentException e)
+            catch(Exception e)
             {
                 System.Console.Error.WriteLine(e.Message);
                 return;
@@ -91,7 +89,7 @@ namespace DSMSPortable
             {
                 ParamBank.PrimaryBank.SaveParams(false, false);
             }
-            catch (SavingFailedException e)
+            catch (Exception e)
             {
                 try
                 {   // Try to stick the landing if SaveParams finds itself unable to overwrite the param file
@@ -123,7 +121,7 @@ namespace DSMSPortable
                     }
                     else File.Copy(inputFile, outputFile);
                 }
-                catch (IOException ioe)
+                catch (Exception ioe)
                 {
                     System.Console.Error.WriteLine(ioe.Message);
                 }
@@ -186,7 +184,7 @@ namespace DSMSPortable
                             Help();
                             break;
                         default:
-                            throw new ArgumentException("Invalid switch: " + param);
+                            throw new Exception("Invalid switch: " + param);
                     }
                 }
                 else
@@ -205,7 +203,7 @@ namespace DSMSPortable
                             break;
                         case ParamMode.OUTPUT:
                             if (outputFile != null)
-                                throw new ArgumentException("Multiple output paths specified at once: " + outputFile + " and " + param);
+                                throw new Exception("Multiple output paths specified at once: " + outputFile + " and " + param);
                             outputFile = param;
                             mode = ParamMode.NONE;
                             break;
@@ -266,7 +264,7 @@ namespace DSMSPortable
                                 break;
                             }
                             if (inputFile != null)
-                                throw new ArgumentException("Multiple input files specified at once: " + inputFile + " and " + param);
+                                throw new Exception("Multiple input files specified at once: " + inputFile + " and " + param);
                             if (gameType != GameType.EldenRing || Path.GetFileName(param).ToLower().Equals("regulation.bin") || File.Exists(param+"\\regulation.bin")) inputFile = param;
                             else System.Console.Error.WriteLine("WARNING: Invalid input regulation.bin given: " + param);
                             break;
@@ -304,6 +302,7 @@ namespace DSMSPortable
             System.Console.Out.WriteLine("  -O outputpath");
             System.Console.Out.WriteLine("             Path where the resulting regulation.bin (or equivalent param file) will be saved.");
             System.Console.Out.WriteLine("             If this is not specified, the input file will be overwritten, and a backup will be made if possible.");
+            Environment.Exit(0);
         }
         // Indicates what the last read switch was
         private enum ParamMode
