@@ -93,6 +93,7 @@ namespace DSMSPortable
             {
                 opstring = File.ReadAllText(csvfile);
                 meresult = MassParamEditCSV.PerformMassEdit(ParamBank.PrimaryBank, opstring, new StudioCore.Editor.ActionManager(), Path.GetFileNameWithoutExtension(csvfile), true, false, ',');
+                MassParamEditOther.SortRows(ParamBank.PrimaryBank, Path.GetFileNameWithoutExtension(csvfile)).Execute();
                 if (meresult.Type == MassEditResultType.SUCCESS) Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
                 if (meresult.Information.Contains(" 0 rows added")) Console.Out.WriteLine("WARNING: Use MASSEDIT scripts for modifying existing params to avoid conflicts\n");
