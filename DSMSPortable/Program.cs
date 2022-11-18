@@ -122,6 +122,30 @@ namespace DSMSPortable
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
+                if (masseditAddition)
+                {
+                    StringReader reader = new(opstring);
+                    string line;
+                    string param;
+                    int id;
+                    while ((line=reader.ReadLine()) != null)
+                    {
+                        param = Regex.Match(line, $@"(?i)(?<=\bparam \b)(.[^:]*)(?=:)").Value;
+                        id = int.Parse(Regex.Match(line.ToLower(), $@"(?<=id )(.[^:]*)(?=:)").Value);
+                        if (!ParamBank.PrimaryBank.Params.TryGetValue(param, out FSParam.Param value))
+                        {
+                            Console.Error.WriteLine("Warning: Could not find param by name of " + param);
+                            continue;
+                        }
+                        if (value[id] == null)
+                        {
+                            FSParam.Param.Row newrow = new(value.Rows.FirstOrDefault());
+                            newrow.ID = id;
+                            value.AddRow(newrow);
+                            if (!sortingRows.Contains(param)) sortingRows.Add(param);
+                        }
+                    }
+                }
                 (meresult, ActionManager tmp) = MassParamEditRegex.PerformMassEdit(ParamBank.PrimaryBank, opstring, new ParamEditorSelectionState());
                 if (meresult.Type == MassEditResultType.SUCCESS) Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
