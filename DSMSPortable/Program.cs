@@ -1,5 +1,9 @@
 ﻿using System.Collections;
 using System.Globalization;
+using System.Runtime.InteropServices;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization;
+using System.Text.RegularExpressions;
 using StudioCore;
 using StudioCore.Editor;
 using StudioCore.ParamEditor;
@@ -17,13 +21,16 @@ namespace DSMSPortable
         static GameType gameType = GameType.EldenRing;
         static string outputFile = null;
         static string inputFile = null;
+        static string workingDirectory = null;
+        static bool masseditAddition = false;
         static void Main(string[] args)
         {
+            ArrayList sortingRows = new();
             masseditFiles = new ArrayList();
             csvFiles = new ArrayList();
             string exePath = null;
             // Save the current working directory
-            string workingDirectory = Directory.GetCurrentDirectory();
+            workingDirectory = Directory.GetCurrentDirectory();
             try
             {
                 ProcessArgs(args);
@@ -43,16 +50,21 @@ namespace DSMSPortable
                 }
                 else
                 {
-                    Console.Error.WriteLine("Error: could not find param definition assets in current directory");
-                    Environment.Exit(1);
+                    Console.Error.WriteLine("ERROR: Could not find param definition assets in current directory");
+                    Environment.Exit(2);
                 }
             }
             FindGamepath();
+            if (gamepath == null)
+            {
+                Console.Error.WriteLine("ERROR: Could not find game directory");
+                Environment.Exit(3);
+            }
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             if (inputFile == null)
             {
                 Console.Error.WriteLine("ERROR: No regulation.bin file specified as input");
-                return;
+                Environment.Exit(4);
             }
             ProjectSettings settings = new()
             {
@@ -67,6 +79,7 @@ namespace DSMSPortable
                 loadDefaultNames = false,
                 directory = new FileInfo(inputFile).Directory.FullName
             };
+            ActionManager manager = new();
             AssetLocator locator = new();
             locator.SetFromProjectSettings(settings, new FileInfo(inputFile).Directory.FullName);
             ParamBank.PrimaryBank.SetAssetLocator(locator);
@@ -92,9 +105,13 @@ namespace DSMSPortable
             foreach (string csvfile in csvFiles)
             {
                 opstring = File.ReadAllText(csvfile);
-                meresult = MassParamEditCSV.PerformMassEdit(ParamBank.PrimaryBank, opstring, new StudioCore.Editor.ActionManager(), Path.GetFileNameWithoutExtension(csvfile), true, false, ',');
-                MassParamEditOther.SortRows(ParamBank.PrimaryBank, Path.GetFileNameWithoutExtension(csvfile)).Execute();
-                if (meresult.Type == MassEditResultType.SUCCESS) Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
+                meresult = MassParamEditCSV.PerformMassEdit(ParamBank.PrimaryBank, opstring, manager, Path.GetFileNameWithoutExtension(csvfile), true, false, ',');
+                if (meresult.Type == MassEditResultType.SUCCESS)
+                {
+                    if(!sortingRows.Contains(Path.GetFileNameWithoutExtension(csvfile))) 
+                        sortingRows.Add(Path.GetFileNameWithoutExtension(csvfile));
+                    Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
+                }
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
                 if (meresult.Information.Contains(" 0 rows added")) Console.Out.WriteLine("WARNING: Use MASSEDIT scripts for modifying existing params to avoid conflicts\n");
             }
@@ -105,9 +122,13 @@ namespace DSMSPortable
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
-                (meresult, StudioCore.Editor.ActionManager tmp) = MassParamEditRegex.PerformMassEdit(ParamBank.PrimaryBank, opstring, new ParamEditorSelectionState());
+                (meresult, ActionManager tmp) = MassParamEditRegex.PerformMassEdit(ParamBank.PrimaryBank, opstring, new ParamEditorSelectionState());
                 if (meresult.Type == MassEditResultType.SUCCESS) Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
+            }
+            foreach (string s in sortingRows)
+            {
+                MassParamEditOther.SortRows(ParamBank.PrimaryBank, s).Execute();
             }
             try
             {
@@ -153,27 +174,43 @@ namespace DSMSPortable
         }
         private static void FindGamepath()
         {
-            if(gamepath == null && File.Exists(GAMEPATH_FILE)) 
+            // Check working directory for gamepath.txt, if it wasn't specified on the command line
+            if (gamepath == null && File.Exists($@"{workingDirectory}\{GAMEPATH_FILE}"))
+                gamepath = File.ReadAllText($@"{workingDirectory}\{GAMEPATH_FILE}");
+            // Check default path for gamepath.txt (which will be the exe directory here)
+            else if (gamepath == null && File.Exists(GAMEPATH_FILE)) 
                 gamepath = File.ReadAllText(GAMEPATH_FILE);
-            if(gameType == GameType.EldenRing)
+            // If the game is Elden Ring, we can make more thorough checks
+            if (gameType == GameType.EldenRing)
             {
+                // If the gamepath we have already works, return
                 if (gamepath != null && File.Exists($@"{gamepath}\EldenRing.exe")) return;
-                if (File.Exists($@"{Environment.GetEnvironmentVariable("ProgramFiles")}\{DEFAULT_ER_GAMEPATH}\EldenRing.exe"))
-                {
-                    gamepath = $@"{Environment.GetEnvironmentVariable("ProgramFiles")}\{DEFAULT_ER_GAMEPATH}";
-                    return;
-                }
-                if (File.Exists($@"{Environment.GetEnvironmentVariable("ProgramFiles(x86)")}\{DEFAULT_ER_GAMEPATH}\EldenRing.exe"))
-                {
-                    gamepath = $@"{Environment.GetEnvironmentVariable("ProgramFiles(x86)")}\{DEFAULT_ER_GAMEPATH}";
-                    return;
-                }
+                // Double check to make sure the top level gamepath wasn't specified
                 if (gamepath != null && File.Exists($@"{gamepath}\Game\EldenRing.exe"))
                 {
                     gamepath = $@"{gamepath}\Game";
                     File.WriteAllText(GAMEPATH_FILE, gamepath);
                     return;
                 }
+                // Check the input file just incase we were given the game folder's regulation.bin
+                if (File.Exists($@"{new FileInfo(inputFile).Directory.FullName}\EldenRing.exe"))
+                {
+                    gamepath = new FileInfo(inputFile).Directory.FullName;
+                    return;
+                }
+                // Check Program Files
+                if (File.Exists($@"{Environment.GetEnvironmentVariable("ProgramFiles")}\{DEFAULT_ER_GAMEPATH}\EldenRing.exe"))
+                {
+                    gamepath = $@"{Environment.GetEnvironmentVariable("ProgramFiles")}\{DEFAULT_ER_GAMEPATH}";
+                    return;
+                }
+                // Check Program Files(x86)
+                if (File.Exists($@"{Environment.GetEnvironmentVariable("ProgramFiles(x86)")}\{DEFAULT_ER_GAMEPATH}\EldenRing.exe"))
+                {
+                    gamepath = $@"{Environment.GetEnvironmentVariable("ProgramFiles(x86)")}\{DEFAULT_ER_GAMEPATH}";
+                    return;
+                }
+                // We have no idea what the gamepath is
                 gamepath = null;
             }
         }
@@ -193,6 +230,7 @@ namespace DSMSPortable
                             break;
                         case 'M':
                             mode = ParamMode.MASSEDIT;
+                            if (param.Length>2 && param[2]=='+') masseditAddition = true;
                             break;
                         case 'O':
                             mode = ParamMode.OUTPUT;
