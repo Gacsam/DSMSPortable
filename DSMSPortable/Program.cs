@@ -21,20 +21,37 @@ namespace DSMSPortable
         {
             masseditFiles = new ArrayList();
             csvFiles = new ArrayList();
-            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-            try 
-            { 
+            string exePath = null;
+            // Save the current working directory
+            string workingDirectory = Directory.GetCurrentDirectory();
+            try
+            {
                 ProcessArgs(args);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                System.Console.Error.WriteLine(e.Message);
+                Console.Error.WriteLine(e.Message);
                 return;
             }
+            // Navigate to wherever our dependencies are and make that the working directory while we initialize
+            if (!File.Exists("Assets\\GameOffsets\\ER\\ParamOffsets.txt"))
+            {
+                exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                if (File.Exists($@"{exePath}\Assets\GameOffsets\ER\ParamOffsets.txt"))
+                {
+                    Directory.SetCurrentDirectory(exePath);
+                }
+                else
+                {
+                    Console.Error.WriteLine("Error: could not find param definition assets in current directory");
+                    Environment.Exit(1);
+                }
+            }
             FindGamepath();
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             if (inputFile == null)
             {
-                System.Console.Error.WriteLine("ERROR: No regulation.bin file specified as input");
+                Console.Error.WriteLine("ERROR: No regulation.bin file specified as input");
                 return;
             }
             ProjectSettings settings = new()
@@ -56,13 +73,19 @@ namespace DSMSPortable
             ParamBank.VanillaBank.SetAssetLocator(locator);
             // This operation takes time in a separate thread, so just wait and poll it
             ParamBank.ReloadParams(settings, options);
-            System.Console.Out.Write("Loading Params");
+            Console.Out.Write("Loading Params");
             while (ParamBank.PrimaryBank.IsLoadingParams)
             {
-                System.Threading.Thread.Sleep(500);
-                System.Console.Out.Write(".");
+                Thread.Sleep(500);
+                Console.Out.Write(".");
             }
-            System.Console.Out.Write("\n");
+            // Switch back to the original working directory
+            if (exePath != null)
+            {
+                Directory.SetCurrentDirectory(workingDirectory);
+                locator.SetFromProjectSettings(settings, new FileInfo(inputFile).Directory.FullName);
+            }
+            Console.Out.Write("\n");
             MassEditResult meresult;
             string opstring;
             // Process CSV edits first
@@ -70,9 +93,9 @@ namespace DSMSPortable
             {
                 opstring = File.ReadAllText(csvfile);
                 meresult = MassParamEditCSV.PerformMassEdit(ParamBank.PrimaryBank, opstring, new StudioCore.Editor.ActionManager(), Path.GetFileNameWithoutExtension(csvfile), true, false, ',');
-                if (meresult.Type == MassEditResultType.SUCCESS) System.Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
-                else System.Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
-                if (meresult.Information.Contains(" 0 rows added")) System.Console.Out.WriteLine("WARNING: Use MASSEDIT scripts for modifying existing params to avoid conflicts\n");
+                if (meresult.Type == MassEditResultType.SUCCESS) Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
+                else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
+                if (meresult.Information.Contains(" 0 rows added")) Console.Out.WriteLine("WARNING: Use MASSEDIT scripts for modifying existing params to avoid conflicts\n");
             }
             // Then process massedit scripts
             foreach (string mefile in masseditFiles)
@@ -82,8 +105,8 @@ namespace DSMSPortable
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
                 (meresult, StudioCore.Editor.ActionManager tmp) = MassParamEditRegex.PerformMassEdit(ParamBank.PrimaryBank, opstring, new ParamEditorSelectionState());
-                if (meresult.Type == MassEditResultType.SUCCESS) System.Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
-                else System.Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
+                if (meresult.Type == MassEditResultType.SUCCESS) Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
+                else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
             }
             try
             {
@@ -101,8 +124,8 @@ namespace DSMSPortable
                 }
                 catch (Exception)
                 {
-                    System.Console.Error.WriteLine(e.Message);
-                    System.Console.Error.WriteLine(e.StackTrace);
+                    Console.Error.WriteLine(e.Message);
+                    Console.Error.WriteLine(e.StackTrace);
                 }
             }
             if (outputFile != null)
@@ -123,7 +146,7 @@ namespace DSMSPortable
                 }
                 catch (Exception ioe)
                 {
-                    System.Console.Error.WriteLine(ioe.Message);
+                    Console.Error.WriteLine(ioe.Message);
                 }
             }
         }
@@ -134,14 +157,14 @@ namespace DSMSPortable
             if(gameType == GameType.EldenRing)
             {
                 if (gamepath != null && File.Exists($@"{gamepath}\EldenRing.exe")) return;
-                if (File.Exists($@"{System.Environment.GetEnvironmentVariable("ProgramFiles")}\{DEFAULT_ER_GAMEPATH}\EldenRing.exe"))
+                if (File.Exists($@"{Environment.GetEnvironmentVariable("ProgramFiles")}\{DEFAULT_ER_GAMEPATH}\EldenRing.exe"))
                 {
-                    gamepath = $@"{System.Environment.GetEnvironmentVariable("ProgramFiles")}\{DEFAULT_ER_GAMEPATH}";
+                    gamepath = $@"{Environment.GetEnvironmentVariable("ProgramFiles")}\{DEFAULT_ER_GAMEPATH}";
                     return;
                 }
-                if (File.Exists($@"{System.Environment.GetEnvironmentVariable("ProgramFiles(x86)")}\{DEFAULT_ER_GAMEPATH}\EldenRing.exe"))
+                if (File.Exists($@"{Environment.GetEnvironmentVariable("ProgramFiles(x86)")}\{DEFAULT_ER_GAMEPATH}\EldenRing.exe"))
                 {
-                    gamepath = $@"{System.Environment.GetEnvironmentVariable("ProgramFiles(x86)")}\{DEFAULT_ER_GAMEPATH}";
+                    gamepath = $@"{Environment.GetEnvironmentVariable("ProgramFiles(x86)")}\{DEFAULT_ER_GAMEPATH}";
                     return;
                 }
                 if (gamepath != null && File.Exists($@"{gamepath}\Game\EldenRing.exe"))
@@ -194,12 +217,12 @@ namespace DSMSPortable
                         case ParamMode.CSV:
                             if (File.Exists(param) && (param.ToLower().EndsWith("csv") || param.ToLower().EndsWith("txt")))
                                 csvFiles.Add(param);
-                            else System.Console.Out.WriteLine("WARNING: Invalid CSV filename given: " + param);
+                            else Console.Out.WriteLine("WARNING: Invalid CSV filename given: " + param);
                             break;
                         case ParamMode.MASSEDIT:
                             if (File.Exists(param) && (param.ToLower().EndsWith("txt") || param.ToLower().EndsWith("massedit")))
                                 masseditFiles.Add(param);
-                            else System.Console.Out.WriteLine("WARNING: Invalid MASSEDIT filename given: " + param);
+                            else Console.Out.WriteLine("WARNING: Invalid MASSEDIT filename given: " + param);
                             break;
                         case ParamMode.OUTPUT:
                             if (outputFile != null)
@@ -266,7 +289,7 @@ namespace DSMSPortable
                             if (inputFile != null)
                                 throw new Exception("Multiple input files specified at once: " + inputFile + " and " + param);
                             if (gameType != GameType.EldenRing || Path.GetFileName(param).ToLower().Equals("regulation.bin") || File.Exists(param+"\\regulation.bin")) inputFile = param;
-                            else System.Console.Error.WriteLine("WARNING: Invalid input regulation.bin given: " + param);
+                            else Console.Error.WriteLine("WARNING: Invalid input regulation.bin given: " + param);
                             break;
                     }
                 }
@@ -275,33 +298,33 @@ namespace DSMSPortable
 
         private static void Help()
         {
-            System.Console.Out.WriteLine("DSMS Portable by mountlover.");
-            System.Console.Out.WriteLine("Lightweight utility for patching FromSoft param files. Free to distribute with other mods, but not for sale.");
-            System.Console.Out.WriteLine("DS Map Studio Core developed and maintained by the SoulsMods team: https://github.com/soulsmods/DSMapStudio\n");
-            System.Console.Out.WriteLine("Usage: DSMSPortable [paramfile] [-M masseditfile1 masseditfile2 ...] [-C csvfile1 csvfile2 ...] [-G gametype]");
-            System.Console.Out.WriteLine("                                [-P gamepath] [-O outputpath]\n");
-            System.Console.Out.WriteLine("  paramfile  Path to regulation.bin file (or respective param file for other FromSoft games) to modify");
-            System.Console.Out.WriteLine("  -M masseditfile1 masseditfile2 ...");
-            System.Console.Out.WriteLine("             List of text files (.TXT or .MASSEDIT) containing a script of DS Map Studio MASSEDIT commands.");
-            System.Console.Out.WriteLine("             It is highly recommended to use massedit scripts to modify existing params to avoid conflicting edits.");
-            System.Console.Out.WriteLine("             Edit scripts of the same type are processed in the order in which they are specified.");
-            System.Console.Out.WriteLine("  -C csvfile1 csvfile2 ...");
-            System.Console.Out.WriteLine("             List of csv files (.TXT or .CSV) containing entire rows of params to add.");
-            System.Console.Out.WriteLine("             Each file's name must perfectly match the param it is modifying (i.e. SpEffectParam.csv).");
-            System.Console.Out.WriteLine("             CSV input must used in order to add new rows.");
-            System.Console.Out.WriteLine("             CSV edits will be always be processed before massedit scripts.");
-            System.Console.Out.WriteLine("  -G gametype");
-            System.Console.Out.WriteLine("             Code indicating which game is being modified. The default is Elden Ring. Options are as follows:");
-            System.Console.Out.WriteLine("             DS1R  Dark Souls Remastered    DS2  Dark Souls 2    DS3     Dark Souls 3");
-            System.Console.Out.WriteLine("             ER    Elden Ring               BB   Bloodborne      SEKIRO  Sekiro");
-            System.Console.Out.WriteLine("             DS1   Dark Souls PTDE          DES  Demon's Souls");
-            System.Console.Out.WriteLine("  -P gamepath");
-            System.Console.Out.WriteLine("             Path to the vanilla install directory for the selected game.");
-            System.Console.Out.WriteLine("             If this is the default install directory in Program Files, this will be autodetected.");
-            System.Console.Out.WriteLine("             The gamepath can also be implicitly specified in a gamepath.txt file in the working directory.");
-            System.Console.Out.WriteLine("  -O outputpath");
-            System.Console.Out.WriteLine("             Path where the resulting regulation.bin (or equivalent param file) will be saved.");
-            System.Console.Out.WriteLine("             If this is not specified, the input file will be overwritten, and a backup will be made if possible.");
+            Console.Out.WriteLine("DSMS Portable by mountlover.");
+            Console.Out.WriteLine("Lightweight utility for patching FromSoft param files. Free to distribute with other mods, but not for sale.");
+            Console.Out.WriteLine("DS Map Studio Core developed and maintained by the SoulsMods team: https://github.com/soulsmods/DSMapStudio\n");
+            Console.Out.WriteLine("Usage: DSMSPortable [paramfile] [-M masseditfile1 masseditfile2 ...] [-C csvfile1 csvfile2 ...] [-G gametype]");
+            Console.Out.WriteLine("                                [-P gamepath] [-O outputpath]\n");
+            Console.Out.WriteLine("  paramfile  Path to regulation.bin file (or respective param file for other FromSoft games) to modify");
+            Console.Out.WriteLine("  -M masseditfile1 masseditfile2 ...");
+            Console.Out.WriteLine("             List of text files (.TXT or .MASSEDIT) containing a script of DS Map Studio MASSEDIT commands.");
+            Console.Out.WriteLine("             It is highly recommended to use massedit scripts to modify existing params to avoid conflicting edits.");
+            Console.Out.WriteLine("             Edit scripts of the same type are processed in the order in which they are specified.");
+            Console.Out.WriteLine("  -C csvfile1 csvfile2 ...");
+            Console.Out.WriteLine("             List of csv files (.TXT or .CSV) containing entire rows of params to add.");
+            Console.Out.WriteLine("             Each file's name must perfectly match the param it is modifying (i.e. SpEffectParam.csv).");
+            Console.Out.WriteLine("             CSV input must used in order to add new rows.");
+            Console.Out.WriteLine("             CSV edits will be always be processed before massedit scripts.");
+            Console.Out.WriteLine("  -G gametype");
+            Console.Out.WriteLine("             Code indicating which game is being modified. The default is Elden Ring. Options are as follows:");
+            Console.Out.WriteLine("             DS1R  Dark Souls Remastered    DS2  Dark Souls 2    DS3     Dark Souls 3");
+            Console.Out.WriteLine("             ER    Elden Ring               BB   Bloodborne      SEKIRO  Sekiro");
+            Console.Out.WriteLine("             DS1   Dark Souls PTDE          DES  Demon's Souls");
+            Console.Out.WriteLine("  -P gamepath");
+            Console.Out.WriteLine("             Path to the vanilla install directory for the selected game.");
+            Console.Out.WriteLine("             If this is the default install directory in Program Files, this will be autodetected.");
+            Console.Out.WriteLine("             The gamepath can also be implicitly specified in a gamepath.txt file in the working directory.");
+            Console.Out.WriteLine("  -O outputpath");
+            Console.Out.WriteLine("             Path where the resulting regulation.bin (or equivalent param file) will be saved.");
+            Console.Out.WriteLine("             If this is not specified, the input file will be overwritten, and a backup will be made if possible.");
             Environment.Exit(0);
         }
         // Indicates what the last read switch was
