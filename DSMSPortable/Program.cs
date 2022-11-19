@@ -1,8 +1,5 @@
 ﻿using System.Collections;
 using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using StudioCore;
 using StudioCore.Editor;
@@ -17,6 +14,7 @@ namespace DSMSPortable
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
         static string gamepath = null;
         static ArrayList csvFiles;
+        static ArrayList c2mFiles;
         static Dictionary<string,bool> masseditFiles;
         static GameType gameType = GameType.EldenRing;
         static string outputFile = null;
@@ -27,6 +25,7 @@ namespace DSMSPortable
             ArrayList sortingRows = new();
             masseditFiles = new();
             csvFiles = new ArrayList();
+            c2mFiles = new ArrayList();
             string exePath = null;
             // Set culture to invariant, so doubles don't try to parse with floating commas
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
@@ -63,7 +62,7 @@ namespace DSMSPortable
             }
             if (inputFile == null)
             {
-                Console.Error.WriteLine("ERROR: No regulation.bin file specified as input");
+                Console.Error.WriteLine("ERROR: No param file specified as input");
                 Environment.Exit(4);
             }
             ProjectSettings settings = new()
@@ -256,10 +255,11 @@ namespace DSMSPortable
                     switch (param.ToUpper()[1])
                     {
                         case 'C':
-                            mode = ParamMode.CSV;
+                            if (param.Length > 3 && (param[1..].ToLower() == "c2m" || param[1..].ToLower() == "convert")) mode = ParamMode.C2M;
+                            else mode = ParamMode.CSV;
                             break;
                         case 'M':
-                            if (param.Length>2 && param[2]=='+') mode = ParamMode.MASSEDITPLUS;
+                            if (param.Length > 2 && param[2] == '+') mode = ParamMode.MASSEDITPLUS;
                             else mode = ParamMode.MASSEDIT;
                             break;
                         case 'O':
@@ -276,7 +276,9 @@ namespace DSMSPortable
                             Help();
                             break;
                         default:
-                            throw new Exception("Invalid switch: " + param);
+                            Console.Error.WriteLine("ERROR: Invalid switch: " + param);
+                            Environment.Exit(5);
+                            break;
                     }
                 }
                 else
@@ -286,17 +288,22 @@ namespace DSMSPortable
                         case ParamMode.CSV:
                             if (File.Exists(param) && (param.ToLower().EndsWith("csv") || param.ToLower().EndsWith("txt")))
                                 csvFiles.Add(param);
-                            else Console.Out.WriteLine("WARNING: Invalid CSV filename given: " + param);
+                            else Console.Out.WriteLine("Warning: Invalid CSV filename given: " + param);
+                            break;
+                        case ParamMode.C2M:
+                            if (File.Exists(param) && (param.ToLower().EndsWith("csv") || param.ToLower().EndsWith("txt")))
+                                csvFiles.Add(param);
+                            else Console.Out.WriteLine("Warning: Invalid CSV filename given: " + param);
                             break;
                         case ParamMode.MASSEDIT:
                             if (File.Exists(param) && (param.ToLower().EndsWith("txt") || param.ToLower().EndsWith("massedit")))
                                 masseditFiles.Add(param, false);
-                            else Console.Out.WriteLine("WARNING: Invalid MASSEDIT filename given: " + param);
+                            else Console.Out.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
                             break;
                         case ParamMode.MASSEDITPLUS:
                             if (File.Exists(param) && (param.ToLower().EndsWith("txt") || param.ToLower().EndsWith("massedit")))
                                 masseditFiles.Add(param, true);
-                            else Console.Out.WriteLine("WARNING: Invalid MASSEDIT filename given: " + param);
+                            else Console.Out.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
                             break;
                         case ParamMode.OUTPUT:
                             if (outputFile != null)
@@ -362,8 +369,12 @@ namespace DSMSPortable
                             }
                             if (inputFile != null)
                                 throw new Exception("Multiple input files specified at once: " + inputFile + " and " + param);
-                            if (gameType != GameType.EldenRing || Path.GetFileName(param).ToLower().Equals("regulation.bin") || File.Exists(param+"\\regulation.bin")) inputFile = param;
-                            else Console.Error.WriteLine("WARNING: Invalid input regulation.bin given: " + param);
+                            if (gameType != GameType.EldenRing || Path.GetFileName(param).ToLower().Equals("regulation.bin") || File.Exists(param + "\\regulation.bin")) inputFile = param;
+                            else
+                            {
+                                Console.Error.WriteLine("ERROR: Invalid input regulation.bin given: " + param);
+                                Environment.Exit(4);
+                            }
                             break;
                     }
                 }
@@ -405,6 +416,7 @@ namespace DSMSPortable
         private enum ParamMode
         {
             CSV,
+            C2M,
             MASSEDIT,
             MASSEDITPLUS,
             OUTPUT,
