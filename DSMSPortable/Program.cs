@@ -17,16 +17,15 @@ namespace DSMSPortable
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
         static string gamepath = null;
         static ArrayList csvFiles;
-        static ArrayList masseditFiles;
+        static Dictionary<string,bool> masseditFiles;
         static GameType gameType = GameType.EldenRing;
         static string outputFile = null;
         static string inputFile = null;
         static string workingDirectory = null;
-        static bool masseditAddition = false;
         static void Main(string[] args)
         {
             ArrayList sortingRows = new();
-            masseditFiles = new ArrayList();
+            masseditFiles = new();
             csvFiles = new ArrayList();
             string exePath = null;
             // Set culture to invariant, so doubles don't try to parse with floating commas
@@ -115,16 +114,17 @@ namespace DSMSPortable
                     Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
                 }
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
-                if (meresult.Information.Contains(" 0 rows added")) Console.Out.WriteLine("WARNING: Use MASSEDIT scripts for modifying existing params to avoid conflicts\n");
+                if (meresult.Information.Contains(" 0 rows added")) Console.Out.WriteLine("Warning: Use MASSEDIT scripts for modifying existing params to avoid conflicts\n");
             }
             // Then process massedit scripts
-            foreach (string mefile in masseditFiles)
+            foreach (string mefile in masseditFiles.Keys)
             {
                 opstring = File.ReadAllText(mefile).ReplaceLineEndings("\n").Trim();
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
-                // Look ahead to see if any ID's need to be added first
+                // If this was added with the M+ switch, look ahead to see if any ID's need to be added first
+                masseditFiles.TryGetValue(mefile, out bool masseditAddition);
                 if (masseditAddition)
                 {
                     StringReader reader = new(opstring);
@@ -151,6 +151,7 @@ namespace DSMSPortable
                         }
                     }
                 }
+                // Perform the massedit operation
                 (meresult, ActionManager tmp) = MassParamEditRegex.PerformMassEdit(ParamBank.PrimaryBank, opstring, new ParamEditorSelectionState());
                 if (meresult.Type == MassEditResultType.SUCCESS) Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
@@ -258,8 +259,8 @@ namespace DSMSPortable
                             mode = ParamMode.CSV;
                             break;
                         case 'M':
-                            mode = ParamMode.MASSEDIT;
-                            if (param.Length>2 && param[2]=='+') masseditAddition = true;
+                            if (param.Length>2 && param[2]=='+') mode = ParamMode.MASSEDITPLUS;
+                            else mode = ParamMode.MASSEDIT;
                             break;
                         case 'O':
                             mode = ParamMode.OUTPUT;
@@ -289,7 +290,12 @@ namespace DSMSPortable
                             break;
                         case ParamMode.MASSEDIT:
                             if (File.Exists(param) && (param.ToLower().EndsWith("txt") || param.ToLower().EndsWith("massedit")))
-                                masseditFiles.Add(param);
+                                masseditFiles.Add(param, false);
+                            else Console.Out.WriteLine("WARNING: Invalid MASSEDIT filename given: " + param);
+                            break;
+                        case ParamMode.MASSEDITPLUS:
+                            if (File.Exists(param) && (param.ToLower().EndsWith("txt") || param.ToLower().EndsWith("massedit")))
+                                masseditFiles.Add(param, true);
                             else Console.Out.WriteLine("WARNING: Invalid MASSEDIT filename given: " + param);
                             break;
                         case ParamMode.OUTPUT:
@@ -400,6 +406,7 @@ namespace DSMSPortable
         {
             CSV,
             MASSEDIT,
+            MASSEDITPLUS,
             OUTPUT,
             SETGAMETYPE,
             SETGAMEPATH,
