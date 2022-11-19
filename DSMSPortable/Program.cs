@@ -465,6 +465,7 @@ namespace DSMSPortable
                                 Console.Error.WriteLine("Multiple input files specified at once: " + inputFile + " and " + param);
                                 Environment.Exit(4);
                             }
+                            inputFile = param;
                             break;
                     }
                 }
