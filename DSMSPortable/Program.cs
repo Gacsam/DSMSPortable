@@ -1,5 +1,7 @@
 ﻿using System.Collections;
+using System.Data;
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using StudioCore;
 using StudioCore.Editor;
@@ -100,6 +102,80 @@ namespace DSMSPortable
             Console.Out.Write("\n");
             MassEditResult meresult;
             string opstring;
+            // Perform conversions
+            foreach (string c2mfile in c2mFiles)
+            {
+                string mfile = "";
+                bool addition = false;
+                opstring = File.ReadAllText(c2mfile);
+                string paramName = Path.GetFileNameWithoutExtension(c2mfile);
+                // Save a copy of the current param for comparison
+                FSParam.Param oldParam = new(ParamBank.PrimaryBank.GetParamFromName(paramName));
+                foreach (FSParam.Param.Row r in ParamBank.PrimaryBank.GetParamFromName(paramName).Rows)
+                    oldParam.AddRow(new(r, oldParam));
+                // Apply the given CSV edit
+                meresult = MassParamEditCSV.PerformMassEdit(ParamBank.PrimaryBank, opstring, manager, paramName, true, false, ',');
+                // Get the new param
+                FSParam.Param newParam = ParamBank.PrimaryBank.GetParamFromName(paramName);
+                if (meresult.Type == MassEditResultType.SUCCESS)
+                {
+                    // Compare every row for changes
+                    foreach (FSParam.Param.Row row in newParam.Rows)
+                    {
+                        if (row == null) continue;
+                        FSParam.Param.Row oldRow;
+                        // Try to get the old param's contents at this ID
+                        oldRow = oldParam[row.ID];
+                        // if this row was newly added, use the default row for comparison
+                        if (oldRow == null)
+                        {
+                            oldRow = new(oldParam.Rows.FirstOrDefault());
+                            for (int i = 0; i < oldRow.CellHandles.Count; i++)
+                            {
+                                try
+                                {
+                                    oldRow.CellHandles[i].SetValue(oldRow.CellHandles[i].Def.Default);
+                                }
+                                catch (Exception) { }
+                            }
+                            addition = true;
+                        }
+                        // Compare the whole row
+                        if (!row.DataEquals(oldRow))
+                        {
+                            // if something is different, check each cell for changes
+                            for (int i=0; i<row.CellHandles.Count; i++)
+                            {
+                                // Convert each individual change to massedit format
+                                if (row.CellHandles[i].Value.GetType() == typeof(byte[]))
+                                {
+                                    string value = ParamUtils.Dummy8Write((byte[])row.CellHandles[i].Value);
+                                    string oldvalue = ParamUtils.Dummy8Write((byte[])oldRow.CellHandles[i].Value);
+                                    if(!value.Equals(oldvalue))
+                                        mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {value};" + "\n";
+                                }
+                                else if (!row.CellHandles[i].Value.Equals(oldRow.CellHandles[i].Value))
+                                    mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {row.CellHandles[i].Value};"+"\n";
+                            }
+                        }
+                    }
+                    // Write the output in the same directory as the CSV file provided, but change the extension
+                    string outputFile = $@"{new FileInfo(c2mfile).Directory.FullName}\{paramName}.MASSEDIT";
+                    try
+                    {
+                        File.WriteAllText(outputFile, mfile);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.Error.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} FAILED: {e.Message}");
+                    }
+                    Console.Out.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}: {outputFile}");
+                    if (addition) Console.Out.WriteLine("Note: Row additions detected, use the -M+ switch when loading this script.");
+                    // Undo the edits we made to the param file
+                    manager.UndoAction();
+                }
+                else Console.Error.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}: {meresult.Information}");
+            }
             // Process CSV edits first
             foreach (string csvfile in csvFiles)
             {
@@ -143,6 +219,14 @@ namespace DSMSPortable
                         if (value[id] == null)
                         {
                             FSParam.Param.Row newrow = new(value.Rows.FirstOrDefault());
+                            for (int i = 0; i < newrow.CellHandles.Count; i++)
+                            {
+                                try
+                                {
+                                    newrow.CellHandles[i].SetValue(newrow.CellHandles[i].Def.Default);
+                                }
+                                catch (Exception) { }
+                            }
                             newrow.ID = id;
                             value.AddRow(newrow);
                             // We added a row, flag this Param to be sorted later
@@ -255,7 +339,7 @@ namespace DSMSPortable
                     switch (param.ToUpper()[1])
                     {
                         case 'C':
-                            if (param.Length > 3 && (param[1..].ToLower() == "c2m" || param[1..].ToLower() == "convert")) mode = ParamMode.C2M;
+                            if (param.Length > 3 && (param[1..].ToUpper() == "C2M" || param[1..].ToLower() == "convert")) mode = ParamMode.C2M;
                             else mode = ParamMode.CSV;
                             break;
                         case 'M':
@@ -292,7 +376,7 @@ namespace DSMSPortable
                             break;
                         case ParamMode.C2M:
                             if (File.Exists(param) && (param.ToLower().EndsWith("csv") || param.ToLower().EndsWith("txt")))
-                                csvFiles.Add(param);
+                                c2mFiles.Add(param);
                             else Console.Out.WriteLine("Warning: Invalid CSV filename given: " + param);
                             break;
                         case ParamMode.MASSEDIT:
@@ -396,9 +480,12 @@ namespace DSMSPortable
             Console.Out.WriteLine("             If -M+ is specified, any individual ID's found that do not exist in the param file will be created and");
             Console.Out.WriteLine("             populated with default values (usually whatever is in the first entry of the param).");
             Console.Out.WriteLine("  -C csvfile1 csvfile2 ...");
-            Console.Out.WriteLine("             List of csv files (.TXT or .CSV) containing entire rows of params to add.");
+            Console.Out.WriteLine("             List of CSV files (.TXT or .CSV) containing entire rows of params to add.");
             Console.Out.WriteLine("             Each file's name must perfectly match the param it is modifying (i.e. SpEffectParam.csv).");
             Console.Out.WriteLine("             CSV edits will be always be processed before massedit scripts.");
+            Console.Out.WriteLine("  -C2M csvfile1 csvfile2 ...");
+            Console.Out.WriteLine("             Converts the specified CSV files into .MASSEDIT scripts.");
+            Console.Out.WriteLine("             Resulting files are saved in the same directories as the CSV's provided.");
             Console.Out.WriteLine("  -G gametype");
             Console.Out.WriteLine("             Code indicating which game is being modified. The default is Elden Ring. Options are as follows:");
             Console.Out.WriteLine("             DS1R  Dark Souls Remastered    DS2  Dark Souls 2    DS3     Dark Souls 3");
