@@ -40,7 +40,13 @@ namespace DSMSPortable
             catch (Exception e)
             {
                 Console.Error.WriteLine(e.Message);
-                return;
+                Environment.Exit(2);
+            }
+            // Check the input file given
+            if (gameType == GameType.EldenRing && !(Path.GetFileName(inputFile).ToLower().Equals("regulation.bin") || File.Exists(inputFile + "\\regulation.bin")))
+            {
+                Console.Error.WriteLine("ERROR: Invalid regulation.bin given");
+                Environment.Exit(4);
             }
             // Navigate to wherever our dependencies are and make that the working directory while we initialize
             if (!File.Exists("Assets\\GameOffsets\\ER\\ParamOffsets.txt"))
@@ -323,9 +329,12 @@ namespace DSMSPortable
                     gamepath = $@"{Environment.GetEnvironmentVariable("ProgramFiles(x86)")}\{DEFAULT_ER_GAMEPATH}";
                     return;
                 }
-                // We have no idea what the gamepath is
+                // We have no idea what the gamepath is, return null and throw an error
                 gamepath = null;
+                return;
             }
+            // No gamepath specified, set it to the input file's directory as a fallback plan
+            gamepath ??= new FileInfo(inputFile).Directory.FullName;
         }
         private static void ProcessArgs(string[] args)
         {
@@ -452,11 +461,8 @@ namespace DSMSPortable
                                 break;
                             }
                             if (inputFile != null)
-                                throw new Exception("Multiple input files specified at once: " + inputFile + " and " + param);
-                            if (gameType != GameType.EldenRing || Path.GetFileName(param).ToLower().Equals("regulation.bin") || File.Exists(param + "\\regulation.bin")) inputFile = param;
-                            else
                             {
-                                Console.Error.WriteLine("ERROR: Invalid input regulation.bin given: " + param);
+                                Console.Error.WriteLine("Multiple input files specified at once: " + inputFile + " and " + param);
                                 Environment.Exit(4);
                             }
                             break;
