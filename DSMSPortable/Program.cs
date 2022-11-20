@@ -1,7 +1,5 @@
 ﻿using System.Collections;
-using System.Data;
 using System.Globalization;
-using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using StudioCore;
 using StudioCore.Editor;
@@ -108,6 +106,7 @@ namespace DSMSPortable
             Console.Out.Write("\n");
             MassEditResult meresult;
             string opstring;
+            Console.Out.WriteLine("Patching Params...");
             // Perform conversions
             foreach (string c2mfile in c2mFiles)
             {
@@ -116,7 +115,16 @@ namespace DSMSPortable
                 opstring = File.ReadAllText(c2mfile);
                 string paramName = Path.GetFileNameWithoutExtension(c2mfile);
                 // Save a copy of the current param for comparison
-                FSParam.Param oldParam = new(ParamBank.PrimaryBank.GetParamFromName(paramName));
+                FSParam.Param oldParam = null;
+                try
+                {
+                    oldParam = new(ParamBank.PrimaryBank.GetParamFromName(paramName));
+                }
+                catch (NullReferenceException)
+                {
+                    Console.Error.WriteLine($@"ERROR: '{paramName}' does not correspond to any params in {inputFile}");
+                    Environment.Exit(5);
+                }
                 foreach (FSParam.Param.Row r in ParamBank.PrimaryBank.GetParamFromName(paramName).Rows)
                     oldParam.AddRow(new(r, oldParam));
                 // Apply the given CSV edit
@@ -149,6 +157,11 @@ namespace DSMSPortable
                         // Compare the whole row
                         if (!row.DataEquals(oldRow))
                         {
+                            // Grab the new name if needed
+                            if(!row.Name.Equals(oldRow.Name))
+                            {
+                                mfile += $@"param {paramName}: id {row.ID}: Name: = {row.Name};" + "\n";
+                            }
                             // if something is different, check each cell for changes
                             for (int i=0; i<row.CellHandles.Count; i++)
                             {
@@ -211,12 +224,14 @@ namespace DSMSPortable
                     StringReader reader = new(opstring);
                     string line;
                     string param;
-                    int id;
+                    int id = 0;
                     while ((line=reader.ReadLine()) != null)
                     {
                         // Strip the param name and ID from the entry (who doesn't love regexes?)
                         param = Regex.Match(line, $@"(?i)(?<=\bparam \b)(.[^:]*)(?=:)").Value;
-                        id = int.Parse(Regex.Match(line.ToLower(), $@"(?<=id )(.[^:]*)(?=:)").Value);
+                        Match idMatch = Regex.Match(line.ToLower(), $@"(?<=: id )(.[^:]*)(?=:)");
+                        if (!idMatch.Success) continue;
+                        id = int.Parse(idMatch.Value);
                         if (!ParamBank.PrimaryBank.Params.TryGetValue(param, out FSParam.Param value))
                         {
                             Console.Error.WriteLine("Warning: Could not find param by name of " + param);
@@ -245,10 +260,12 @@ namespace DSMSPortable
                 if (meresult.Type == MassEditResultType.SUCCESS) Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
             }
+            Console.Out.WriteLine("Sorting Rows...");
             foreach (string s in sortingRows)
             {
                 MassParamEditOther.SortRows(ParamBank.PrimaryBank, s).Execute();
             }
+            Console.Out.WriteLine("Saving param file...");
             try
             {
                 ParamBank.PrimaryBank.SaveParams(false, false);
@@ -290,6 +307,7 @@ namespace DSMSPortable
                     Console.Error.WriteLine(ioe.Message);
                 }
             }
+            Console.Out.WriteLine("Success!");
         }
         private static void FindGamepath()
         {
