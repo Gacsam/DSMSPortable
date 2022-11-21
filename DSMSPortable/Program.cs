@@ -127,7 +127,7 @@ namespace DSMSPortable
                 }
                 catch (NullReferenceException)
                 {
-                    Console.Error.WriteLine($@"ERROR: '{paramName}' does not correspond to any params in {inputFile}");
+                    Console.Error.WriteLine($@"ERROR: '{paramName}' does not correspond to any params in {inputFile} (be mindful of case sensitivity)");
                     Environment.Exit(5);
                 }
                 foreach (FSParam.Param.Row r in ParamBank.PrimaryBank.GetParamFromName(paramName).Rows)
@@ -151,7 +151,7 @@ namespace DSMSPortable
                             oldRow = new(oldParam.Rows.FirstOrDefault());
                             for (int i = 0; i < oldRow.CellHandles.Count; i++)
                             {   // There is definitely a more elegant way to handle this casting
-                                oldRow.CellHandles[i].SetValue(Convert.ChangeType(oldRow.CellHandles[i].Def.Default, oldRow.CellHandles[i].Value.GetType()));
+                                if(oldRow.CellHandles[i].Def.Default != null) oldRow.CellHandles[i].SetValue(Convert.ChangeType(oldRow.CellHandles[i].Def.Default, oldRow.CellHandles[i].Value.GetType()));
                             }
                             addition = true;
                         }
@@ -189,8 +189,8 @@ namespace DSMSPortable
                     {
                         Console.Error.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} FAILED: {e.Message}");
                     }
-                    Console.Out.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}: {outputFile}");
-                    if (addition) Console.Out.WriteLine("Note: Row additions detected, use the -M+ switch when loading this script.");
+                    Console.Out.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}:\n\t{outputFile}");
+                    if (addition) Console.Out.WriteLine("\tNote: Row additions detected, use the -M+ switch when loading this script.");
                     // Undo the edits we made to the param file
                     manager.UndoAction();
                 }
@@ -210,7 +210,7 @@ namespace DSMSPortable
                     Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
                 }
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
-                if (meresult.Information.Contains(" 0 rows added")) Console.Out.WriteLine("Warning: Use MASSEDIT scripts for modifying existing params to avoid conflicts\n");
+                if (meresult.Information.Contains(" 0 rows added")) Console.Out.WriteLine("\tWarning: Use MASSEDIT scripts for modifying existing params to avoid conflicts");
             }
             if (masseditpFiles.Count > 0) Console.Out.WriteLine("Processing MASSEDIT scripts with row additions...");
             // Then process massedit+ scripts
@@ -239,13 +239,13 @@ namespace DSMSPortable
                     }
                     if (value[id] == null)
                     {
-                        FSParam.Param.Row newrow = new(value.Rows.FirstOrDefault());
-                        for (int i = 0; i < newrow.CellHandles.Count; i++)
+                        FSParam.Param.Row newRow = new(value.Rows.FirstOrDefault());
+                        for (int i = 0; i < newRow.CellHandles.Count; i++)
                         {   // There is definitely a more elegant way to handle this casting
-                            newrow.CellHandles[i].SetValue(Convert.ChangeType(newrow.CellHandles[i].Def.Default, newrow.CellHandles[i].Value.GetType()));
+                            if (newRow.CellHandles[i].Def.Default != null) newRow.CellHandles[i].SetValue(Convert.ChangeType(newRow.CellHandles[i].Def.Default, newRow.CellHandles[i].Value.GetType()));
                         }
-                        newrow.ID = id;
-                        value.AddRow(newrow);
+                        newRow.ID = id;
+                        value.AddRow(newRow);
                         // We added a row, flag this Param to be sorted later
                         if (!sortingRows.Contains(param)) sortingRows.Add(param);
                     }
