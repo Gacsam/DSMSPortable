@@ -150,12 +150,8 @@ namespace DSMSPortable
                         {
                             oldRow = new(oldParam.Rows.FirstOrDefault());
                             for (int i = 0; i < oldRow.CellHandles.Count; i++)
-                            {
-                                try
-                                {
-                                    oldRow.CellHandles[i].SetValue(oldRow.CellHandles[i].Def.Default);
-                                }
-                                catch (Exception) { }
+                            {   // There is definitely a more elegant way to handle this casting
+                                oldRow.CellHandles[i].SetValue(Convert.ChangeType(oldRow.CellHandles[i].Def.Default, oldRow.CellHandles[i].Value.GetType()));
                             }
                             addition = true;
                         }
@@ -245,12 +241,8 @@ namespace DSMSPortable
                     {
                         FSParam.Param.Row newrow = new(value.Rows.FirstOrDefault());
                         for (int i = 0; i < newrow.CellHandles.Count; i++)
-                        {
-                            try // for some reason the defaults aren't always the same type as the SetValue call is expecting
-                            {
-                                newrow.CellHandles[i].SetValue(newrow.CellHandles[i].Def.Default);
-                            }
-                            catch (Exception) { }
+                        {   // There is definitely a more elegant way to handle this casting
+                            newrow.CellHandles[i].SetValue(Convert.ChangeType(newrow.CellHandles[i].Def.Default, newrow.CellHandles[i].Value.GetType()));
                         }
                         newrow.ID = id;
                         value.AddRow(newrow);
