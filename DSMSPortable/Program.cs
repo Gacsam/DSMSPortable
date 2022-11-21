@@ -41,35 +41,21 @@ namespace DSMSPortable
                 Environment.Exit(2);
             }
             // Check the input file given
+            if (inputFile == null)
+            {
+                Console.Error.WriteLine("ERROR: No param file specified as input");
+                Environment.Exit(4);
+            }
             if (gameType == GameType.EldenRing && !(Path.GetFileName(inputFile).ToLower().Equals("regulation.bin") || File.Exists(inputFile + "\\regulation.bin")))
             {
                 Console.Error.WriteLine("ERROR: Invalid regulation.bin given");
                 Environment.Exit(4);
-            }
-            // Navigate to wherever our dependencies are and make that the working directory while we initialize
-            if (!File.Exists("Assets\\GameOffsets\\ER\\ParamOffsets.txt"))
-            {
-                exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                if (File.Exists($@"{exePath}\Assets\GameOffsets\ER\ParamOffsets.txt"))
-                {
-                    Directory.SetCurrentDirectory(exePath);
-                }
-                else
-                {
-                    Console.Error.WriteLine("ERROR: Could not find param definition assets in current directory");
-                    Environment.Exit(2);
-                }
             }
             FindGamepath();
             if (gamepath == null)
             {
                 Console.Error.WriteLine("ERROR: Could not find game directory");
                 Environment.Exit(3);
-            }
-            if (inputFile == null)
-            {
-                Console.Error.WriteLine("ERROR: No param file specified as input");
-                Environment.Exit(4);
             }
             ProjectSettings settings = new()
             {
@@ -89,6 +75,20 @@ namespace DSMSPortable
             locator.SetFromProjectSettings(settings, new FileInfo(inputFile).Directory.FullName);
             ParamBank.PrimaryBank.SetAssetLocator(locator);
             ParamBank.VanillaBank.SetAssetLocator(locator);
+            // Navigate to wherever our dependencies are and make that the working directory while we initialize
+            if (!File.Exists("Assets\\GameOffsets\\ER\\ParamOffsets.txt"))
+            {
+                exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                if (File.Exists($@"{exePath}\Assets\GameOffsets\ER\ParamOffsets.txt"))
+                {
+                    Directory.SetCurrentDirectory(exePath);
+                }
+                else
+                {
+                    Console.Error.WriteLine("ERROR: Could not find param definition assets in current directory");
+                    Environment.Exit(2);
+                }
+            }
             // This operation takes time in a separate thread, so just wait and poll it
             ParamBank.ReloadParams(settings, options);
             Console.Out.Write("Loading Params");
@@ -105,11 +105,7 @@ namespace DSMSPortable
                 Console.Out.Write(".");
             }
             // Switch back to the original working directory
-            if (exePath != null)
-            {
-                Directory.SetCurrentDirectory(workingDirectory);
-                locator.SetFromProjectSettings(settings, new FileInfo(inputFile).Directory.FullName);
-            }
+            if (exePath != null) Directory.SetCurrentDirectory(workingDirectory);
             Console.Out.WriteLine("Done!");
             MassEditResult meresult;
             string opstring;
@@ -249,7 +245,7 @@ namespace DSMSPortable
                             FSParam.Param.Row newrow = new(value.Rows.FirstOrDefault());
                             for (int i = 0; i < newrow.CellHandles.Count; i++)
                             {
-                                try
+                                try // for some reason the defaults aren't always the same type as the SetValue call is expecting
                                 {
                                     newrow.CellHandles[i].SetValue(newrow.CellHandles[i].Def.Default);
                                 }
