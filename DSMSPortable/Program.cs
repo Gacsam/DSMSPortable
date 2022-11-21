@@ -119,6 +119,14 @@ namespace DSMSPortable
                 bool addition = false;
                 opstring = File.ReadAllText(c2mfile);
                 string paramName = Path.GetFileNameWithoutExtension(c2mfile);
+                foreach(string p in ParamBank.PrimaryBank.Params.Keys)
+                {
+                    if(paramName.ToLower() == p.ToLower())
+                    {
+                        paramName = p;
+                        break;
+                    }
+                }
                 // Save a copy of the current param for comparison
                 FSParam.Param oldParam = null;
                 try
@@ -189,7 +197,7 @@ namespace DSMSPortable
                     {
                         Console.Error.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} FAILED: {e.Message}");
                     }
-                    Console.Out.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}:\n\t{outputFile}");
+                    Console.Out.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}:"+"\n\t" + outputFile);
                     if (addition) Console.Out.WriteLine("\tNote: Row additions detected, use the -M+ switch when loading this script.");
                     // Undo the edits we made to the param file
                     manager.UndoAction();
@@ -201,15 +209,24 @@ namespace DSMSPortable
             foreach (string csvfile in csvFiles)
             {
                 opstring = File.ReadAllText(csvfile);
-                meresult = MassParamEditCSV.PerformMassEdit(ParamBank.PrimaryBank, opstring, manager, Path.GetFileNameWithoutExtension(csvfile), true, false, ',');
+                string paramName = Path.GetFileNameWithoutExtension(csvfile);
+                foreach (string p in ParamBank.PrimaryBank.Params.Keys)
+                {
+                    if (paramName.ToLower() == p.ToLower())
+                    {
+                        paramName = p;
+                        break;
+                    }
+                }
+                meresult = MassParamEditCSV.PerformMassEdit(ParamBank.PrimaryBank, opstring, manager, paramName, true, false, ',');
                 if (meresult.Type == MassEditResultType.SUCCESS)
                 {
                     // Remember this Param to sort later
-                    if(!sortingRows.Contains(Path.GetFileNameWithoutExtension(csvfile))) 
-                        sortingRows.Add(Path.GetFileNameWithoutExtension(csvfile));
-                    Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
+                    if(!sortingRows.Contains(paramName)) 
+                        sortingRows.Add(paramName);
+                    Console.Out.WriteLine($@"{paramName} {meresult.Type}: {meresult.Information}");
                 }
-                else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
+                else Console.Error.WriteLine($@"{paramName} {meresult.Type}: {meresult.Information}");
                 if (meresult.Information.Contains(" 0 rows added")) Console.Out.WriteLine("\tWarning: Use MASSEDIT scripts for modifying existing params to avoid conflicts");
             }
             if (masseditpFiles.Count > 0) Console.Out.WriteLine("Processing MASSEDIT scripts with row additions...");
