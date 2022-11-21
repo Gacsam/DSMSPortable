@@ -92,8 +92,15 @@ namespace DSMSPortable
             // This operation takes time in a separate thread, so just wait and poll it
             ParamBank.ReloadParams(settings, options);
             Console.Out.Write("Loading Params");
+            int timeout = 0;
             while (ParamBank.PrimaryBank.IsLoadingParams)
             {
+                timeout++;
+                if (timeout > 20)
+                {
+                    Console.Out.WriteLine("Failed due to timeout, ensure param file is valid and that the gamepath is specified.");
+                    Environment.Exit(7);
+                }
                 Thread.Sleep(500);
                 Console.Out.Write(".");
             }
@@ -103,7 +110,7 @@ namespace DSMSPortable
                 Directory.SetCurrentDirectory(workingDirectory);
                 locator.SetFromProjectSettings(settings, new FileInfo(inputFile).Directory.FullName);
             }
-            Console.Out.Write("\n");
+            Console.Out.WriteLine("Done!");
             MassEditResult meresult;
             string opstring;
             Console.Out.WriteLine("Patching Params...");
@@ -307,7 +314,6 @@ namespace DSMSPortable
                     Console.Error.WriteLine(ioe.Message);
                 }
             }
-            Console.Out.WriteLine("Success!");
         }
         private static void FindGamepath()
         {
