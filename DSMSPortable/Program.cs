@@ -15,7 +15,8 @@ namespace DSMSPortable
         static string gamepath = null;
         static ArrayList csvFiles;
         static ArrayList c2mFiles;
-        static Dictionary<string,bool> masseditFiles;
+        static ArrayList masseditFiles;
+        static ArrayList masseditpFiles;
         static GameType gameType = GameType.EldenRing;
         static string outputFile = null;
         static string inputFile = null;
@@ -24,8 +25,9 @@ namespace DSMSPortable
         {
             ArrayList sortingRows = new();
             masseditFiles = new();
-            csvFiles = new ArrayList();
-            c2mFiles = new ArrayList();
+            masseditpFiles = new();
+            csvFiles = new();
+            c2mFiles = new();
             string exePath = null;
             // Set culture to invariant, so doubles don't try to parse with floating commas
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
@@ -109,7 +111,7 @@ namespace DSMSPortable
             Console.Out.WriteLine("Done!");
             MassEditResult meresult;
             string opstring;
-            Console.Out.WriteLine("Patching Params...");
+            if(c2mFiles.Count > 0) Console.Out.WriteLine("Converting CSV files to MASSEDIT...");
             // Perform conversions
             foreach (string c2mfile in c2mFiles)
             {
@@ -198,6 +200,7 @@ namespace DSMSPortable
                 }
                 else Console.Error.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}: {meresult.Information}");
             }
+            if (csvFiles.Count > 0) Console.Out.WriteLine("Performing CSV edits...");
             // Process CSV edits first
             foreach (string csvfile in csvFiles)
             {
@@ -213,60 +216,71 @@ namespace DSMSPortable
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(csvfile)} {meresult.Type}: {meresult.Information}");
                 if (meresult.Information.Contains(" 0 rows added")) Console.Out.WriteLine("Warning: Use MASSEDIT scripts for modifying existing params to avoid conflicts\n");
             }
-            // Then process massedit scripts
-            foreach (string mefile in masseditFiles.Keys)
+            if (masseditpFiles.Count > 0) Console.Out.WriteLine("Processing MASSEDIT scripts with row additions...");
+            // Then process massedit+ scripts
+            foreach (string mepfile in masseditpFiles)
+            {
+                opstring = File.ReadAllText(mepfile).ReplaceLineEndings("\n").Trim();
+                // MassEdit throws errors if there are any empty lines
+                while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
+                opstring = opstring.Replace("\n\n", "\n");
+                // Row addition logic
+                StringReader reader = new(opstring);
+                string line;
+                string param;
+                int id = 0;
+                while ((line=reader.ReadLine()) != null)
+                {
+                    // Strip the param name and ID from the entry (who doesn't love regexes?)
+                    param = Regex.Match(line, $@"(?i)(?<=\bparam \b)(.[^:]*)(?=:)").Value;
+                    Match idMatch = Regex.Match(line.ToLower(), $@"(?<=: id )(.[^:]*)(?=:)");
+                    if (!idMatch.Success) continue;
+                    id = int.Parse(idMatch.Value);
+                    if (!ParamBank.PrimaryBank.Params.TryGetValue(param, out FSParam.Param value))
+                    {
+                        Console.Error.WriteLine("Warning: Could not find param by name of " + param);
+                        continue;
+                    }
+                    if (value[id] == null)
+                    {
+                        FSParam.Param.Row newrow = new(value.Rows.FirstOrDefault());
+                        for (int i = 0; i < newrow.CellHandles.Count; i++)
+                        {
+                            try // for some reason the defaults aren't always the same type as the SetValue call is expecting
+                            {
+                                newrow.CellHandles[i].SetValue(newrow.CellHandles[i].Def.Default);
+                            }
+                            catch (Exception) { }
+                        }
+                        newrow.ID = id;
+                        value.AddRow(newrow);
+                        // We added a row, flag this Param to be sorted later
+                        if (!sortingRows.Contains(param)) sortingRows.Add(param);
+                    }
+                }
+                // Perform the massedit operation
+                (meresult, ActionManager tmp) = MassParamEditRegex.PerformMassEdit(ParamBank.PrimaryBank, opstring, new ParamEditorSelectionState());
+                if (meresult.Type == MassEditResultType.SUCCESS) Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(mepfile)} {meresult.Type}: {meresult.Information}");
+                else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mepfile)} {meresult.Type}: {meresult.Information}");
+            }
+            // Then sort all our row additions
+            if(sortingRows.Count > 0) Console.Out.WriteLine("Sorting Added Rows...");
+            foreach (string s in sortingRows)
+            {
+                MassParamEditOther.SortRows(ParamBank.PrimaryBank, s).Execute();
+            }
+            if (masseditFiles.Count > 0) Console.Out.WriteLine("Processing MASSEDIT scripts...");
+            // Then process normal massedit scripts
+            foreach (string mefile in masseditFiles)
             {
                 opstring = File.ReadAllText(mefile).ReplaceLineEndings("\n").Trim();
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
-                // If this was added with the M+ switch, look ahead to see if any ID's need to be added first
-                masseditFiles.TryGetValue(mefile, out bool masseditAddition);
-                if (masseditAddition)
-                {
-                    StringReader reader = new(opstring);
-                    string line;
-                    string param;
-                    int id = 0;
-                    while ((line=reader.ReadLine()) != null)
-                    {
-                        // Strip the param name and ID from the entry (who doesn't love regexes?)
-                        param = Regex.Match(line, $@"(?i)(?<=\bparam \b)(.[^:]*)(?=:)").Value;
-                        Match idMatch = Regex.Match(line.ToLower(), $@"(?<=: id )(.[^:]*)(?=:)");
-                        if (!idMatch.Success) continue;
-                        id = int.Parse(idMatch.Value);
-                        if (!ParamBank.PrimaryBank.Params.TryGetValue(param, out FSParam.Param value))
-                        {
-                            Console.Error.WriteLine("Warning: Could not find param by name of " + param);
-                            continue;
-                        }
-                        if (value[id] == null)
-                        {
-                            FSParam.Param.Row newrow = new(value.Rows.FirstOrDefault());
-                            for (int i = 0; i < newrow.CellHandles.Count; i++)
-                            {
-                                try // for some reason the defaults aren't always the same type as the SetValue call is expecting
-                                {
-                                    newrow.CellHandles[i].SetValue(newrow.CellHandles[i].Def.Default);
-                                }
-                                catch (Exception) { }
-                            }
-                            newrow.ID = id;
-                            value.AddRow(newrow);
-                            // We added a row, flag this Param to be sorted later
-                            if (!sortingRows.Contains(param)) sortingRows.Add(param);
-                        }
-                    }
-                }
                 // Perform the massedit operation
                 (meresult, ActionManager tmp) = MassParamEditRegex.PerformMassEdit(ParamBank.PrimaryBank, opstring, new ParamEditorSelectionState());
                 if (meresult.Type == MassEditResultType.SUCCESS) Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
-            }
-            Console.Out.WriteLine("Sorting Rows...");
-            foreach (string s in sortingRows)
-            {
-                MassParamEditOther.SortRows(ParamBank.PrimaryBank, s).Execute();
             }
             Console.Out.WriteLine("Saving param file...");
             try
@@ -410,12 +424,12 @@ namespace DSMSPortable
                             break;
                         case ParamMode.MASSEDIT:
                             if (File.Exists(param) && (param.ToLower().EndsWith("txt") || param.ToLower().EndsWith("massedit")))
-                                masseditFiles.Add(param, false);
+                                masseditFiles.Add(param);
                             else Console.Out.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
                             break;
                         case ParamMode.MASSEDITPLUS:
                             if (File.Exists(param) && (param.ToLower().EndsWith("txt") || param.ToLower().EndsWith("massedit")))
-                                masseditFiles.Add(param, true);
+                                masseditpFiles.Add(param);
                             else Console.Out.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
                             break;
                         case ParamMode.OUTPUT:
