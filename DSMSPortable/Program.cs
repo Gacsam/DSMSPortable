@@ -135,7 +135,7 @@ namespace DSMSPortable
                 }
                 catch (NullReferenceException)
                 {
-                    Console.Error.WriteLine($@"ERROR: '{paramName}' does not correspond to any params in {inputFile} (be mindful of case sensitivity)");
+                    Console.Error.WriteLine($@"ERROR: '{paramName}' does not correspond to any params in {inputFile}");
                     Environment.Exit(5);
                 }
                 foreach (FSParam.Param.Row r in ParamBank.PrimaryBank.GetParamFromName(paramName).Rows)
@@ -156,11 +156,7 @@ namespace DSMSPortable
                         // if this row was newly added, use the default row for comparison
                         if (oldRow == null)
                         {
-                            oldRow = new(oldParam.Rows.FirstOrDefault());
-                            for (int i = 0; i < oldRow.CellHandles.Count; i++)
-                            {   // There is definitely a more elegant way to handle this casting
-                                if(oldRow.CellHandles[i].Def.Default != null) oldRow.CellHandles[i].SetValue(Convert.ChangeType(oldRow.CellHandles[i].Def.Default, oldRow.CellHandles[i].Value.GetType()));
-                            }
+                            oldRow = AddNewRow(row.ID, oldParam);
                             addition = true;
                         }
                         // Compare the whole row
@@ -256,13 +252,7 @@ namespace DSMSPortable
                     }
                     if (value[id] == null)
                     {
-                        FSParam.Param.Row newRow = new(value.Rows.FirstOrDefault());
-                        for (int i = 0; i < newRow.CellHandles.Count; i++)
-                        {   // There is definitely a more elegant way to handle this casting
-                            if (newRow.CellHandles[i].Def.Default != null) newRow.CellHandles[i].SetValue(Convert.ChangeType(newRow.CellHandles[i].Def.Default, newRow.CellHandles[i].Value.GetType()));
-                        }
-                        newRow.ID = id;
-                        value.AddRow(newRow);
+                        FSParam.Param.Row newRow = AddNewRow(id, value);
                         // We added a row, flag this Param to be sorted later
                         if (!sortingRows.Contains(param)) sortingRows.Add(param);
                     }
@@ -333,6 +323,22 @@ namespace DSMSPortable
                     Console.Error.WriteLine(ioe.Message);
                 }
             }
+        }
+        public static FSParam.Param.Row AddNewRow(int id, FSParam.Param param)
+        {
+            if (param[id] != null) return null;
+            FSParam.Param.Row newRow = new(param.Rows.FirstOrDefault());
+            for (int i = 0; i < newRow.CellHandles.Count; i++)
+            {   // Def.Default is just always 0. s32's where the minimum is explicitly -1 reference ID's so -1 makes a better default
+                if ((newRow.CellHandles[i].Def.DisplayType == SoulsFormats.PARAMDEF.DefType.s32 || newRow.CellHandles[i].Def.DisplayType == SoulsFormats.PARAMDEF.DefType.s16 ) 
+                    && (int)newRow.CellHandles[i].Def.Minimum == -1) 
+                    newRow.CellHandles[i].SetValue(Convert.ChangeType(newRow.CellHandles[i].Def.Minimum, newRow.CellHandles[i].Value.GetType()));
+                else if (newRow.CellHandles[i].Def.Default != null)
+                    newRow.CellHandles[i].SetValue(Convert.ChangeType(newRow.CellHandles[i].Def.Default, newRow.CellHandles[i].Value.GetType()));
+            }
+            newRow.ID = id;
+            param.AddRow(newRow);
+            return newRow;
         }
         private static void FindGamepath()
         {
