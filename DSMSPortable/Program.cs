@@ -453,9 +453,9 @@ namespace DSMSPortable
                     break;
             }
             Console.Out.WriteLine(gameDisplayName);
-            Console.Out.WriteLine("ParamfileName:\t" + paramFileName);
+            Console.Out.WriteLine(paramFileName);
             if(paramFileName.Equals(OTHER_PARAMFILE_NAME)) 
-                Console.Out.WriteLine("ParamfileRelativePath:\t" + OTHER_PARAMFILE_PATH + "\\" + paramFileName);
+                Console.Out.WriteLine(OTHER_PARAMFILE_PATH + "\\" + paramFileName);
         }
         private static void GetParamName()
         {
