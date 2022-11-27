@@ -12,26 +12,35 @@ namespace DSMSPortable
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
+        static readonly string ER_PARAMFILE_NAME = "regulation.bin";
+        static readonly string DS2_PARAMFILE_NAME = "enc_regulation.bnd.dcx";
+        static readonly string DS3_PARAMFILE_NAME = "Data0.bdt";
+        static readonly string OTHER_PARAMFILE_NAME = "gameparam.parambnd.dcx";
+        static readonly string OTHER_PARAMFILE_PATH = "param\\gameparam";
         static string gamepath = null;
         static ArrayList csvFiles;
         static ArrayList c2mFiles;
         static ArrayList masseditFiles;
         static ArrayList masseditpFiles;
+        static ArrayList sortingRows;
+        static ActionManager manager;
         static GameType gameType = GameType.EldenRing;
         static string paramFileName;
         static string outputFile = null;
         static string inputFile = null;
         static string workingDirectory = null;
+        static bool gametypeContext = false;
+        static bool folderMimic = false;
+        static bool changesMade = false;
         static void Main(string[] args)
         {
-            ArrayList sortingRows = new();
             masseditFiles = new();
             masseditpFiles = new();
             csvFiles = new();
             c2mFiles = new();
+            sortingRows = new();
+            manager = new();
             string exePath = null;
-            bool changesMade = false;
-            bool folderMimic = false;
             // Set culture to invariant, so doubles don't try to parse with floating commas
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             // Save the current working directory
@@ -49,8 +58,16 @@ namespace DSMSPortable
             // Check the input file given
             if (inputFile == null)
             {
-                Console.Error.WriteLine("ERROR: No param file specified as input");
-                Environment.Exit(2);
+                if (gametypeContext)
+                {
+                    PrintGameContext();
+                    return;
+                }
+                else
+                {
+                    Console.Error.WriteLine("ERROR: No param file specified as input");
+                    Environment.Exit(2);
+                }
             }
             // Mimic the param folder structure if needed
             string inputDir = new FileInfo(inputFile).Directory.FullName;
@@ -59,11 +76,11 @@ namespace DSMSPortable
                 if (File.Exists($@"{inputDir}\{paramFileName}"))
                 {
                     Directory.CreateDirectory($@"{inputDir}\param");
-                    Directory.CreateDirectory($@"{inputDir}\param\gameparam");
-                    File.Move($@"{inputDir}\{paramFileName}", $@"{inputDir}\param\gameparam\{paramFileName}");
+                    Directory.CreateDirectory($@"{inputDir}\{OTHER_PARAMFILE_PATH}");
+                    File.Move($@"{inputDir}\{paramFileName}", $@"{inputDir}\{OTHER_PARAMFILE_PATH}\{paramFileName}");
                     folderMimic = true;
                 }
-                else if (!File.Exists($@"{inputDir}\param\gameparam\{paramFileName}"))
+                else if (!File.Exists($@"{inputDir}\{OTHER_PARAMFILE_PATH}\{paramFileName}"))
                 {
                     Console.Error.WriteLine($@"ERROR: Cannot find {paramFileName}");
                     Environment.Exit(2);
@@ -93,7 +110,6 @@ namespace DSMSPortable
                 loadDefaultNames = false,
                 directory = new FileInfo(inputFile).Directory.FullName
             };
-            ActionManager manager = new();
             AssetLocator locator = new();
             locator.SetFromProjectSettings(settings, new FileInfo(inputFile).Directory.FullName);
             ParamBank.PrimaryBank.SetAssetLocator(locator);
@@ -130,19 +146,59 @@ namespace DSMSPortable
             // Switch back to the original working directory
             if (exePath != null) Directory.SetCurrentDirectory(workingDirectory);
             Console.Out.WriteLine("Done!");
-            MassEditResult meresult;
-            string opstring;
-            if(c2mFiles.Count > 0) Console.Out.WriteLine("Converting CSV files to MASSEDIT...");
             // Perform conversions
+            if (c2mFiles.Count > 0)
+            {
+                Console.Out.WriteLine("Converting CSV files to MASSEDIT...");
+                ProcessCSVToMassedit();
+            }
+            // Process CSV edits first
+            if (csvFiles.Count > 0)
+            {
+                Console.Out.WriteLine("Performing CSV edits...");
+                ProcessCSV();
+            }
+            // Then process massedit+ scripts
+            if (masseditpFiles.Count > 0)
+            {
+                Console.Out.WriteLine("Processing MASSEDIT scripts with row additions...");
+                ProcessMasseditWithAddition();
+            }
+            // Then sort all our row additions
+            if (sortingRows.Count > 0)
+            {
+                Console.Out.WriteLine("Sorting Added Rows...");
+                foreach (string s in sortingRows)
+                {
+                    MassParamEditOther.SortRows(ParamBank.PrimaryBank, s).Execute();
+                }
+            }
+            // Then process normal massedit scripts
+            if (masseditFiles.Count > 0)
+            {
+                Console.Out.WriteLine("Processing MASSEDIT scripts...");
+                ProcessMassedit();
+            }
+            // Save changes if we made any
+            if (changesMade)
+            {
+                Console.Out.WriteLine("Saving param file...");
+                SaveParamFile();
+            }
+        }
+        private static void ProcessCSVToMassedit()
+        {
+            string opstring;
+            MassEditResult meresult;
             foreach (string c2mfile in c2mFiles)
             {
                 string mfile = "";
                 bool addition = false;
                 opstring = File.ReadAllText(c2mfile);
                 string paramName = Path.GetFileNameWithoutExtension(c2mfile);
-                foreach(string p in ParamBank.PrimaryBank.Params.Keys)
+                foreach (string p in ParamBank.PrimaryBank.Params.Keys)
                 {
-                    if(paramName.ToLower() == p.ToLower())
+                    if (paramName.ToLower() == p.ToLower())
                     {
                         paramName = p;
                         break;
@@ -167,43 +223,7 @@ namespace DSMSPortable
                 FSParam.Param newParam = ParamBank.PrimaryBank.GetParamFromName(paramName);
                 if (meresult.Type == MassEditResultType.SUCCESS)
                 {
-                    // Compare every row for changes
-                    foreach (FSParam.Param.Row row in newParam.Rows)
-                    {
-                        if (row == null) continue;
-                        FSParam.Param.Row oldRow;
-                        // Try to get the old param's contents at this ID
-                        oldRow = oldParam[row.ID];
-                        // if this row was newly added, use the default row for comparison
-                        if (oldRow == null)
-                        {
-                            oldRow = AddNewRow(row.ID, oldParam);
-                            addition = true;
-                        }
-                        // Compare the whole row
-                        if (!row.DataEquals(oldRow))
-                        {
-                            // Grab the new name if needed
-                            if(!row.Name.Equals(oldRow.Name))
-                            {
-                                mfile += $@"param {paramName}: id {row.ID}: Name: = {row.Name};" + "\n";
-                            }
-                            // if something is different, check each cell for changes
-                            for (int i=0; i<row.CellHandles.Count; i++)
-                            {
-                                // Convert each individual change to massedit format
-                                if (row.CellHandles[i].Value.GetType() == typeof(byte[]))
-                                {
-                                    string value = ParamUtils.Dummy8Write((byte[])row.CellHandles[i].Value);
-                                    string oldvalue = ParamUtils.Dummy8Write((byte[])oldRow.CellHandles[i].Value);
-                                    if(!value.Equals(oldvalue))
-                                        mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {value};" + "\n";
-                                }
-                                else if (!row.CellHandles[i].Value.Equals(oldRow.CellHandles[i].Value))
-                                    mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {row.CellHandles[i].Value};"+"\n";
-                            }
-                        }
-                    }
+                    addition = ConvertToMassedit(oldParam, newParam, paramName, out mfile) || addition;
                     // Write the output in the same directory as the CSV file provided, but change the extension
                     string outputFile = $@"{new FileInfo(c2mfile).Directory.FullName}\{paramName}.MASSEDIT";
                     try
@@ -214,15 +234,61 @@ namespace DSMSPortable
                     {
                         Console.Error.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} FAILED: {e.Message}");
                     }
-                    Console.Out.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}:"+"\n\t" + outputFile);
+                    Console.Out.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}:" + "\n\t" + outputFile);
                     if (addition) Console.Out.WriteLine("\tNote: Row additions detected, use the -M+ switch when loading this script.");
                     // Undo the edits we made to the param file
                     manager.UndoAction();
                 }
                 else Console.Error.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}: {meresult.Information}");
             }
-            if (csvFiles.Count > 0) Console.Out.WriteLine("Performing CSV edits...");
-            // Process CSV edits first
+        }
+        public static bool ConvertToMassedit(FSParam.Param oldParam, FSParam.Param newParam, string paramName, out string mfile)
+        {
+            mfile = "";
+            bool addition = false;
+            // Compare every row for changes
+            foreach (FSParam.Param.Row row in newParam.Rows)
+            {
+                if (row == null) continue;
+                FSParam.Param.Row oldRow;
+                // Try to get the old param's contents at this ID
+                oldRow = oldParam[row.ID];
+                // if this row was newly added, use the default row for comparison
+                if (oldRow == null)
+                {
+                    oldRow = AddNewRow(row.ID, oldParam);
+                    addition = true;
+                }
+                // Compare the whole row
+                if (!row.DataEquals(oldRow))
+                {
+                    // Grab the new name if needed
+                    if (!row.Name.Equals(oldRow.Name))
+                    {
+                        mfile += $@"param {paramName}: id {row.ID}: Name: = {row.Name};" + "\n";
+                    }
+                    // if something is different, check each cell for changes
+                    for (int i = 0; i < row.CellHandles.Count; i++)
+                    {
+                        // Convert each individual change to massedit format
+                        if (row.CellHandles[i].Value.GetType() == typeof(byte[]))
+                        {
+                            string value = ParamUtils.Dummy8Write((byte[])row.CellHandles[i].Value);
+                            string oldvalue = ParamUtils.Dummy8Write((byte[])oldRow.CellHandles[i].Value);
+                            if (!value.Equals(oldvalue))
+                                mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {value};" + "\n";
+                        }
+                        else if (!row.CellHandles[i].Value.Equals(oldRow.CellHandles[i].Value))
+                            mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {row.CellHandles[i].Value};" + "\n";
+                    }
+                }
+            }
+            return addition;
+        }
+        private static void ProcessCSV()
+        {
+            string opstring;
+            MassEditResult meresult;
             foreach (string csvfile in csvFiles)
             {
                 opstring = File.ReadAllText(csvfile);
@@ -240,27 +306,30 @@ namespace DSMSPortable
                 {
                     changesMade = true;
                     // Remember this Param to sort later
-                    if (!sortingRows.Contains(paramName)) 
+                    if (!sortingRows.Contains(paramName))
                         sortingRows.Add(paramName);
                     Console.Out.WriteLine($@"{paramName} {meresult.Type}: {meresult.Information}");
                 }
                 else Console.Error.WriteLine($@"{paramName} {meresult.Type}: {meresult.Information}");
                 if (meresult.Information.Contains(" 0 rows added")) Console.Out.WriteLine("\tWarning: Use MASSEDIT scripts for modifying existing params to avoid conflicts");
             }
-            if (masseditpFiles.Count > 0) Console.Out.WriteLine("Processing MASSEDIT scripts with row additions...");
-            // Then process massedit+ scripts
+        }
+        private static void ProcessMasseditWithAddition()
+        {
+            string opstring;
+            MassEditResult meresult;
             foreach (string mepfile in masseditpFiles)
             {
                 opstring = File.ReadAllText(mepfile).ReplaceLineEndings("\n").Trim();
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
-                opstring = opstring.Replace("\n\n", "\n");
+                    opstring = opstring.Replace("\n\n", "\n");
                 // Row addition logic
                 StringReader reader = new(opstring);
                 string line;
                 string param;
                 int id = 0;
-                while ((line=reader.ReadLine()) != null)
+                while ((line = reader.ReadLine()) != null)
                 {
                     // Strip the param name and ID from the entry (who doesn't love regexes?)
                     param = Regex.Match(line, $@"(?i)(?<=\bparam \b)(.[^:]*)(?=:)").Value;
@@ -288,14 +357,11 @@ namespace DSMSPortable
                 }
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mepfile)} {meresult.Type}: {meresult.Information}");
             }
-            // Then sort all our row additions
-            if(sortingRows.Count > 0) Console.Out.WriteLine("Sorting Added Rows...");
-            foreach (string s in sortingRows)
-            {
-                MassParamEditOther.SortRows(ParamBank.PrimaryBank, s).Execute();
-            }
-            if (masseditFiles.Count > 0) Console.Out.WriteLine("Processing MASSEDIT scripts...");
-            // Then process normal massedit scripts
+        }
+        private static void ProcessMassedit()
+        {
+            string opstring;
+            MassEditResult meresult;
             foreach (string mefile in masseditFiles)
             {
                 opstring = File.ReadAllText(mefile).ReplaceLineEndings("\n").Trim();
@@ -311,9 +377,10 @@ namespace DSMSPortable
                 }
                 else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
             }
-            if (!changesMade) return;
+        }
+        private static void SaveParamFile()
+        {
             string paramFileDir = new FileInfo(inputFile).Directory.FullName;
-            Console.Out.WriteLine("Saving param file...");
             try // Save the param file
             {
                 ParamBank.PrimaryBank.SaveParams(false, false);
@@ -324,7 +391,7 @@ namespace DSMSPortable
                 {   // Attempt to stick the landing if SaveParams finds itself unable to overwrite the param file
                     if (folderMimic)
                     {
-                        File.Move($@"{paramFileDir}\param\gameparam\{paramFileName}.temp", $@"{paramFileDir}\param\gameparam\{paramFileName}");
+                        File.Move($@"{paramFileDir}\{OTHER_PARAMFILE_PATH}\{paramFileName}.temp", $@"{paramFileDir}\{OTHER_PARAMFILE_PATH}\{paramFileName}");
                     }
                     else File.Move($@"{paramFileDir}\{paramFileName}.temp", $@"{paramFileDir}\{paramFileName}");
                 }
@@ -336,10 +403,10 @@ namespace DSMSPortable
             }
             if (folderMimic) try
             {   // if we mimicked the folder structure, revert it back to normal
-                File.Move($@"{paramFileDir}\param\gameparam\{paramFileName}", $@"{paramFileDir}\{paramFileName}");
+                File.Move($@"{paramFileDir}\{OTHER_PARAMFILE_PATH}\{paramFileName}", $@"{paramFileDir}\{paramFileName}");
                 if (Directory.GetFiles($@"{paramFileDir}\param").Length == 0) Directory.Delete($@"{paramFileDir}\param");
             }
-            catch (Exception) {}
+            catch (Exception) { }
             if (outputFile != null)
             {   // if an output file is specified, wing it by just copying the param file, and renaming the backup
                 try
@@ -355,21 +422,56 @@ namespace DSMSPortable
                 }
             }
         }
+        private static void PrintGameContext()
+        {
+            string gameDisplayName = "";
+            switch (gameType)
+            {
+                case GameType.EldenRing:
+                    gameDisplayName = "Elden Ring";
+                    break;
+                case GameType.DarkSoulsIISOTFS:
+                    gameDisplayName = "Dark Souls 2";
+                    break;
+                case GameType.DarkSoulsIII:
+                    gameDisplayName = "Dark Souls 3";
+                    break;
+                case GameType.Sekiro:
+                    gameDisplayName = "Sekiro";
+                    break;
+                case GameType.Bloodborne:
+                    gameDisplayName = "Bloodborne";
+                    break;
+                case GameType.DemonsSouls:
+                    gameDisplayName = "Demons Souls";
+                    break;
+                case GameType.DarkSoulsRemastered:
+                    gameDisplayName = "Dark Souls Remastered";
+                    break;
+                case GameType.DarkSoulsPTDE:
+                    gameDisplayName = "Dark Souls Prepare to Die Edition";
+                    break;
+            }
+            Console.Out.WriteLine(gameDisplayName);
+            Console.Out.WriteLine("ParamfileName:\t" + paramFileName);
+            if(paramFileName.Equals(OTHER_PARAMFILE_NAME)) 
+                Console.Out.WriteLine("ParamfileRelativePath:\t" + OTHER_PARAMFILE_PATH + "\\" + paramFileName);
+        }
         private static void GetParamName()
         {
             switch(gameType)
             {
                 case GameType.EldenRing:
-                    paramFileName = "regulation.bin";
+                    paramFileName = ER_PARAMFILE_NAME;
                     break;
                 case GameType.DarkSoulsIISOTFS:
-                    paramFileName = "enc_regulation.bnd.dcx";
+                    paramFileName = DS2_PARAMFILE_NAME;
                     break;
                 case GameType.DarkSoulsIII:
-                    paramFileName = "Data0.bdt";
+                    paramFileName = DS3_PARAMFILE_NAME;
                     break;
                 default:
-                    paramFileName = "gameparam.parambnd.dcx";
+                    paramFileName = OTHER_PARAMFILE_NAME;
                     break;
             }
         }
@@ -458,6 +560,7 @@ namespace DSMSPortable
                             break;
                         case 'G':
                             mode = ParamMode.SETGAMETYPE;
+                            gametypeContext = true;
                             break;
                         case 'P':
                             mode = ParamMode.SETGAMEPATH;
@@ -596,6 +699,7 @@ namespace DSMSPortable
             Console.Out.WriteLine("             DS1R  Dark Souls Remastered    DS2  Dark Souls 2    DS3     Dark Souls 3");
             Console.Out.WriteLine("             ER    Elden Ring               BB   Bloodborne      SEKIRO  Sekiro");
             Console.Out.WriteLine("             DS1   Dark Souls PTDE          DES  Demon's Souls");
+            Console.Out.WriteLine("             Using this switch without specifying a paramfile will return the expected paramfile name for that game");
             Console.Out.WriteLine("  -P gamepath");
             Console.Out.WriteLine("             Path to the main install directory for the selected game, for loading vanilla params.");
             Console.Out.WriteLine("             The gamepath can also be implicitly specified in a gamepath.txt file in the working directory.");
