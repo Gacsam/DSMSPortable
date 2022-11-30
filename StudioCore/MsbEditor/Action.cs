@@ -134,6 +134,87 @@ namespace StudioCore.MsbEditor
         }
     }
 
+
+    /// <summary>
+    /// Copies values from one array to another without affecting references.
+    /// </summary>
+    public class ArrayPropertyCopyAction : Action
+    {
+        private class PropertyChange
+        {
+            public Array ChangedObj;
+            public object OldVal;
+            public object NewVal;
+            public int ArrayIndex;
+        }
+
+        private List<PropertyChange> Changes = new List<PropertyChange>();
+        private Action<bool> PostExecutionAction = null;
+
+        public ArrayPropertyCopyAction(Array source, Array target)
+        {
+            for (var i = 0; i < target.Length; i++)
+            {
+                PropertyChange change = new()
+                {
+                    ChangedObj = target,
+                    OldVal = target.GetValue(i),
+                    NewVal = source.GetValue(i),
+                    ArrayIndex = i
+                };
+                Changes.Add(change);
+            }
+        }
+        public ArrayPropertyCopyAction(Array source, List<Array> targetList)
+        {
+            foreach (var target in targetList)
+            {
+                for (var i = 0; i < target.Length; i++)
+                {
+                    PropertyChange change = new()
+                    {
+                        ChangedObj = target,
+                        OldVal = target.GetValue(i),
+                        NewVal = source.GetValue(i),
+                        ArrayIndex = i
+                    };
+                    Changes.Add(change);
+                }
+            }
+        }
+
+        public void SetPostExecutionAction(Action<bool> action)
+        {
+            PostExecutionAction = action;
+        }
+
+        public override ActionEvent Execute()
+        {
+            foreach (var change in Changes)
+            {
+                change.ChangedObj.SetValue(change.NewVal, change.ArrayIndex);
+            }
+            if (PostExecutionAction != null)
+            {
+                PostExecutionAction.Invoke(false);
+            }
+            return ActionEvent.NoEvent;
+        }
+
+        public override ActionEvent Undo()
+        {
+            foreach (var change in Changes)
+            {
+                change.ChangedObj.SetValue(change.OldVal, change.ArrayIndex);
+            }
+            if (PostExecutionAction != null)
+            {
+                PostExecutionAction.Invoke(true);
+            }
+            return ActionEvent.NoEvent;
+        }
+    }
+
     public class MultipleEntityPropertyChangeAction : Action
     {
         private class PropertyChange
@@ -235,15 +316,17 @@ namespace StudioCore.MsbEditor
         private List<MapEntity> Clones = new List<MapEntity>();
         private List<ObjectContainer> CloneMaps = new List<ObjectContainer>();
         private bool SetSelection;
+        private Map MapTarget;
 
         private static Regex TrailIDRegex = new Regex(@"_(?<id>\d+)$");
 
-        public CloneMapObjectsAction(Universe univ, Scene.RenderScene scene, List<MapEntity> objects, bool setSelection)
+        public CloneMapObjectsAction(Universe univ, Scene.RenderScene scene, List<MapEntity> objects, bool setSelection, Map mapTarget = null)
         {
             Universe = univ;
             Scene = scene;
             Clonables.AddRange(objects);
             SetSelection = setSelection;
+            MapTarget = mapTarget;
         }
 
         public override ActionEvent Execute()
@@ -254,7 +337,15 @@ namespace StudioCore.MsbEditor
             var objectnames = new Dictionary<string, HashSet<string>>();
             for (int i = 0; i < Clonables.Count(); i++)
             {
-                var m = Universe.GetLoadedMap(Clonables[i].MapID);
+                Map? m;
+                if (MapTarget != null)
+                {
+                    m = Universe.GetLoadedMap(MapTarget.Name);
+                }
+                else
+                {
+                    m = Universe.GetLoadedMap(Clonables[i].MapID);
+                }
                 if (m != null)
                 {
                     // Get list of names that exist so our duplicate names don't trample over them
@@ -305,7 +396,7 @@ namespace StudioCore.MsbEditor
                     if (Clonables[i].Parent != null)
                     {
                         int idx = Clonables[i].Parent.ChildIndex(Clonables[i]);
-                        Clonables[i].Parent.AddChild(newobj, idx);
+                        Clonables[i].Parent.AddChild(newobj, idx + 1);
                     }
                     newobj.UpdateRenderModel();
                     if (newobj.RenderSceneMesh != null)
@@ -375,16 +466,18 @@ namespace StudioCore.MsbEditor
         private List<MapEntity> Added = new List<MapEntity>();
         private List<ObjectContainer> AddedMaps = new List<ObjectContainer>();
         private bool SetSelection;
+        private Entity Parent;
 
         private static Regex TrailIDRegex = new Regex(@"_(?<id>\d+)$");
 
-        public AddMapObjectsAction(Universe univ, Map map, Scene.RenderScene scene, List<MapEntity> objects, bool setSelection)
+        public AddMapObjectsAction(Universe univ, Map map, Scene.RenderScene scene, List<MapEntity> objects, bool setSelection, Entity parent)
         {
             Universe = univ;
             Map = map;
             Scene = scene;
             Added.AddRange(objects);
             SetSelection = setSelection;
+            Parent = parent;
         }
 
         public override ActionEvent Execute()
@@ -394,7 +487,7 @@ namespace StudioCore.MsbEditor
                 if (Map != null)
                 {
                     Map.Objects.Add(Added[i]);
-                    Map.RootObject.AddChild(Added[i]);
+                    Parent.AddChild(Added[i]);
                     Added[i].UpdateRenderModel();
                     if (Added[i].RenderSceneMesh != null)
                     {

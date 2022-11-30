@@ -45,6 +45,7 @@ namespace StudioCore.MsbEditor
         public bool AltHeld;
 
         private int _createEntityMapIndex = 0;
+        private string _dupeSelectionTargetedMap = null;
 
         private static object _lock_PauseUpdate = new object();
         private bool _PauseUpdate;
@@ -81,7 +82,7 @@ namespace StudioCore.MsbEditor
 
             SceneTree = new SceneTree(SceneTree.Configuration.MapEditor, this, "mapedittree", Universe, _selection, EditorActionManager, Viewport, AssetLocator);
             PropEditor = new PropertyEditor(EditorActionManager);
-            DispGroupEditor = new DisplayGroupsEditor(RenderScene, _selection);
+            DispGroupEditor = new DisplayGroupsEditor(RenderScene, _selection, EditorActionManager);
             PropSearch = new SearchProperties(Universe);
             NavMeshEditor = new NavmeshEditor(locator, RenderScene, _selection);
 
@@ -204,12 +205,17 @@ namespace StudioCore.MsbEditor
             }
         }
 
-        private void AddNewEntity(Type typ, MapEntity.MapEntityType etype, Map map)
+        /// <summary>
+        /// Adds a new entity to the targeted map. If no parent is specified, RootObject will be used.
+        /// </summary>
+        private void AddNewEntity(Type typ, MapEntity.MapEntityType etype, Map map, Entity parent = null)
         {
             var newent = typ.GetConstructor(Type.EmptyTypes).Invoke(new object[0]);
             var obj = new MapEntity(map, newent, etype);
 
-            var act = new AddMapObjectsAction(Universe, map, RenderScene, new List<MapEntity> { obj }, true);
+            parent ??= map.RootObject;
+
+            var act = new AddMapObjectsAction(Universe, map, RenderScene, new List<MapEntity> { obj }, true, parent);
             EditorActionManager.ExecuteAction(act);
         }
 
@@ -227,7 +233,6 @@ namespace StudioCore.MsbEditor
         }
         private void DummyUndummySelection(string[] sourceTypes, string[] targetTypes)
         {
-            //Incomplete. see action
             Type msbclass;
             switch (AssetLocator.Type)
             {
@@ -262,7 +267,56 @@ namespace StudioCore.MsbEditor
 
             var action = new ChangeMapObjectType(Universe, msbclass, sourceList, sourceTypes, targetTypes, "Part", true);
             EditorActionManager.ExecuteAction(action);
+        }
 
+        private void DuplicateToTargetMapUI()
+        {
+            ImGui.Text("Duplicate selection to specific map");
+            ImGui.SameLine();
+            ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, 0.5f), $" <{KeyBindings.Current.Map_DuplicateToMap.HintText}>");
+
+            ObjectContainer targetMap = null;
+            string name = "None";
+
+            if (_dupeSelectionTargetedMap != null)
+            {
+                Universe.LoadedObjectContainers.TryGetValue(_dupeSelectionTargetedMap, out targetMap);
+                if (targetMap != null)
+                {
+                    name = targetMap.Name;
+                }
+                else
+                {
+                    _dupeSelectionTargetedMap = null;
+                }
+            }
+            if (ImGui.BeginCombo("Targeted Map", name))
+            {
+                foreach (var obj in Universe.LoadedObjectContainers)
+                {
+                    if (obj.Value != null)
+                    {
+                        if (ImGui.Selectable(obj.Key))
+                        {
+                            _dupeSelectionTargetedMap = obj.Key;
+                            break;
+                        }
+                    }
+                }
+                ImGui.EndCombo();
+            }
+            var sel = _selection.GetFilteredSelection<MapEntity>().ToList();
+            if (_dupeSelectionTargetedMap == null)
+                ImGui.BeginDisabled();
+            if (ImGui.Button("Duplicate"))
+            {
+                var action = new CloneMapObjectsAction(Universe, RenderScene, sel, true, (Map)targetMap);
+                EditorActionManager.ExecuteAction(action);
+                // Closes popupo or menu bar
+                ImGui.CloseCurrentPopup();
+            }
+            if (_dupeSelectionTargetedMap == null)
+                ImGui.EndDisabled();
         }
 
         public override void DrawEditorMenu()
@@ -290,15 +344,21 @@ namespace StudioCore.MsbEditor
                     EditorActionManager.ExecuteAction(action);
                 }
 
+                if (ImGui.BeginMenu($"Duplicate to Map", _selection.IsSelection()))
+                {
+                    DuplicateToTargetMapUI();
+                    ImGui.EndMenu();
+                }
+
                 if (ImGui.BeginMenu("Dummify/Un-Dummify"))
                 {
-                    if (ImGui.MenuItem("Un-Dummify Enemies/Objects/Assets", KeyBindings.Current.Map_UnDummify.HintText, false, _selection.IsSelection()))
-                    {
-                        UnDummySelection();
-                    }
                     if (ImGui.MenuItem("Dummify Enemies/Objects/Assets", KeyBindings.Current.Map_Dummify.HintText, false, _selection.IsSelection()))
                     {
                         DummySelection();
+                    }
+                    if (ImGui.MenuItem("Un-Dummify Enemies/Objects/Assets", KeyBindings.Current.Map_UnDummify.HintText, false, _selection.IsSelection()))
+                    {
+                        UnDummySelection();
                     }
                     //ImGui.TextColored(new Vector4(1f, .4f, 0f, 1f), "Warning: Converting Assets to Dummy Assets will result in lost property data (Undo will properly restore data)");
                     ImGui.EndMenu();
@@ -336,7 +396,7 @@ namespace StudioCore.MsbEditor
             if (ImGui.BeginMenu("Create"))
             {
                 var loadedMaps = Universe.LoadedObjectContainers.Values.Where(x => x != null);
-                if (loadedMaps.Count() == 0)
+                if (!loadedMaps.Any())
                 {
                     ImGui.Text("No maps loaded");
                 }
@@ -348,6 +408,29 @@ namespace StudioCore.MsbEditor
 
                     Map map = (Map)loadedMaps.ElementAt(_createEntityMapIndex);
 
+                    if (ImGui.BeginMenu("BTL Lights"))
+                    {
+                        if (!map.BTLParents.Any())
+                        {
+                            ImGui.Text("This map has no BTL files.");
+                        }
+                        else
+                        {
+                            foreach (var btl in map.BTLParents)
+                            {
+                                var ad = (AssetDescription)btl.WrappedObject;
+                                if (ImGui.BeginMenu(ad.AssetName))
+                                {
+                                    if (ImGui.MenuItem("Create Light"))
+                                    {
+                                        AddNewEntity(typeof(BTL.Light), MapEntity.MapEntityType.Light, map, btl);
+                                    }
+                                    ImGui.EndMenu();
+                                }
+                            }
+                        }
+                        ImGui.EndMenu();
+                    }
                     if (ImGui.BeginMenu("Parts"))
                     {
                         foreach (var p in _partsClasses)
@@ -541,12 +624,14 @@ namespace StudioCore.MsbEditor
 
         public void OnGUI(string[] initcmd)
         {
+            float scale = ImGuiRenderer.GetUIScale();
+
             // Docking setup
             //var vp = ImGui.GetMainViewport();
             var wins = ImGui.GetWindowSize();
             var winp = ImGui.GetWindowPos();
-            winp.Y += 20.0f;
-            wins.Y -= 20.0f;
+            winp.Y += 20.0f * scale;
+            wins.Y -= 20.0f * scale;
             ImGui.SetNextWindowPos(winp);
             ImGui.SetNextWindowSize(wins);
             ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 0.0f);
@@ -577,6 +662,10 @@ namespace StudioCore.MsbEditor
                 {
                     var action = new CloneMapObjectsAction(Universe, RenderScene, _selection.GetFilteredSelection<MapEntity>().ToList(), true);
                     EditorActionManager.ExecuteAction(action);
+                }
+                if (InputTracker.GetKeyDown(KeyBindings.Current.Map_DuplicateToMap) && _selection.IsSelection())
+                {
+                    ImGui.OpenPopup("##DupeToTargetMapPopup");
                 }
                 if (InputTracker.GetKeyDown(KeyBindings.Current.Core_Delete) && _selection.IsSelection())
                 {
@@ -663,6 +752,12 @@ namespace StudioCore.MsbEditor
                 CFG.Current.LastSceneFilter = RenderScene.DrawFilter;
             }
 
+            if (ImGui.BeginPopup("##DupeToTargetMapPopup"))
+            {
+                DuplicateToTargetMapUI();
+                ImGui.EndPopup();
+            }
+
             // Parse select commands
             string[] propSearchCmd = null;
             if (initcmd != null && initcmd.Length > 1)
@@ -720,8 +815,8 @@ namespace StudioCore.MsbEditor
                 }
             }
 
-            ImGui.SetNextWindowSize(new Vector2(300, 500), ImGuiCond.FirstUseEver);
-            ImGui.SetNextWindowPos(new Vector2(20, 20), ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowSize(new Vector2(300, 500) * scale, ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowPos(new Vector2(20, 20) * scale, ImGuiCond.FirstUseEver);
 
             System.Numerics.Vector3 clear_color = new System.Numerics.Vector3(114f / 255f, 144f / 255f, 154f / 255f);
             //ImGui.Text($@"Viewport size: {Viewport.Width}x{Viewport.Height}");
