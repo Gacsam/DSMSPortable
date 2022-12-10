@@ -1,6 +1,8 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Components.Forms;
 using StudioCore;
 using StudioCore.Editor;
 using StudioCore.ParamEditor;
@@ -23,12 +25,16 @@ namespace DSMSPortable
         static ArrayList masseditFiles;
         static ArrayList masseditpFiles;
         static ArrayList sortingRows;
+        static ArrayList exportParams = null;
         static ActionManager manager;
         static GameType gameType = GameType.EldenRing;
         static string paramFileName;
+        static string paramFileRelPath = "";
         static string outputFile = null;
         static string inputFile = null;
         static string workingDirectory = null;
+        static string compareParamFile = null;
+        static string upgradeRefParamFile = null;
         static bool gametypeContext = false;
         static bool folderMimic = false;
         static bool changesMade = false;
@@ -40,7 +46,6 @@ namespace DSMSPortable
             c2mFiles = new();
             sortingRows = new();
             manager = new();
-            string exePath = null;
             // Set culture to invariant, so doubles don't try to parse with floating commas
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             // Save the current working directory
@@ -69,27 +74,14 @@ namespace DSMSPortable
                     Environment.Exit(2);
                 }
             }
-            // Mimic the param folder structure if needed
-            string inputDir = new FileInfo(inputFile).Directory.FullName;
-            if (gameType != GameType.EldenRing && gameType != GameType.DarkSoulsIISOTFS && gameType != GameType.DarkSoulsIII)
+            try
             {
-                if (File.Exists($@"{inputDir}\{paramFileName}"))
-                {
-                    Directory.CreateDirectory($@"{inputDir}\param");
-                    Directory.CreateDirectory($@"{inputDir}\{OTHER_PARAMFILE_PATH}");
-                    File.Move($@"{inputDir}\{paramFileName}", $@"{inputDir}\{OTHER_PARAMFILE_PATH}\{paramFileName}");
-                    folderMimic = true;
-                }
-                else if (!File.Exists($@"{inputDir}\{OTHER_PARAMFILE_PATH}\{paramFileName}"))
-                {
-                    Console.Error.WriteLine($@"ERROR: Cannot find {paramFileName}");
-                    Environment.Exit(2);
-                }
-            } // Check to make sure the expected param file exists
-            else if(!Path.GetFileName(inputFile).ToLower().Equals(paramFileName) && !File.Exists(inputDir + "\\" + paramFileName))
+                MimicDirectory(inputFile);
+            }
+            catch (Exception e)
             {
-                Console.Error.WriteLine($@"ERROR: Invalid {paramFileName} given");
-                Environment.Exit(2);
+                Console.Error.WriteLine("Error: " + e.Message);
+                Environment.Exit(10);
             }
             FindGamepath();
             if (gamepath == null)
@@ -97,55 +89,13 @@ namespace DSMSPortable
                 Console.Error.WriteLine("ERROR: Could not find game directory");
                 Environment.Exit(3);
             }
-            ProjectSettings settings = new()
+            LoadParams();
+            // Perform Param Upgrade
+            if (upgradeRefParamFile != null)
             {
-                PartialParams = false,
-                UseLooseParams = false,
-                GameType = gameType
-            };
-            if (gamepath != null) settings.GameRoot = gamepath;
-            NewProjectOptions options = new()
-            {
-                settings = settings,
-                loadDefaultNames = false,
-                directory = new FileInfo(inputFile).Directory.FullName
-            };
-            AssetLocator locator = new();
-            locator.SetFromProjectSettings(settings, new FileInfo(inputFile).Directory.FullName);
-            ParamBank.PrimaryBank.SetAssetLocator(locator);
-            ParamBank.VanillaBank.SetAssetLocator(locator);
-            // Navigate to wherever our dependencies are and make that the working directory while we initialize
-            if (!File.Exists("Assets\\GameOffsets\\ER\\ParamOffsets.txt"))
-            {
-                exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-                if (File.Exists($@"{exePath}\Assets\GameOffsets\ER\ParamOffsets.txt"))
-                {
-                    Directory.SetCurrentDirectory(exePath);
-                }
-                else
-                {
-                    Console.Error.WriteLine("ERROR: Could not find param definition assets in current directory");
-                    Environment.Exit(4);
-                }
+                Console.Out.WriteLine("Upgrading Params...");
+                UpgradeParamFile();
             }
-            // This operation takes time in a separate thread, so just wait and poll it
-            ParamBank.ReloadParams(settings, options);
-            Console.Out.Write("Loading Params");
-            int timeout = 0;
-            while (ParamBank.PrimaryBank.IsLoadingParams)
-            {
-                timeout++;
-                if (timeout > 20)
-                {
-                    Console.Out.WriteLine("Failed due to timeout, ensure param file is valid and that the gamepath is specified.");
-                    Environment.Exit(7);
-                }
-                Thread.Sleep(500);
-                Console.Out.Write(".");
-            }
-            // Switch back to the original working directory
-            if (exePath != null) Directory.SetCurrentDirectory(workingDirectory);
-            Console.Out.WriteLine("Done!");
             // Perform conversions
             if (c2mFiles.Count > 0)
             {
@@ -185,6 +135,254 @@ namespace DSMSPortable
                 Console.Out.WriteLine("Saving param file...");
                 SaveParamFile();
             }
+            // Perform CSV export if one was specified
+            if (exportParams != null)
+            {
+                Console.Out.WriteLine("Exporting Params to CSV...");
+                ExportParams();
+            }
+            // Perform diff and convert changes to massedit, if a file to compare against was specified
+            if (compareParamFile != null)
+            {
+                Console.Out.WriteLine("Converting changes to MASSEDIT...");
+                ConvertDiffsToMassedit();
+            }
+        }
+        private static void LoadParams()
+        {
+            string exePath = null;
+            ProjectSettings settings = new()
+            {
+                PartialParams = false,
+                UseLooseParams = false,
+                GameType = gameType
+            };
+            if (gamepath != null) settings.GameRoot = gamepath;
+            NewProjectOptions options = new()
+            {
+                settings = settings,
+                loadDefaultNames = false,
+                directory = new FileInfo(inputFile).Directory.FullName
+            };
+            AssetLocator locator = new();
+            locator.SetFromProjectSettings(settings, new FileInfo(inputFile).Directory.FullName);
+            ParamBank.PrimaryBank.SetAssetLocator(locator);
+            ParamBank.VanillaBank.SetAssetLocator(locator);
+            // Navigate to wherever our dependencies are and make that the working directory while we initialize
+            if (!File.Exists("Assets\\GameOffsets\\ER\\ParamOffsets.txt"))
+            {
+                exePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                if (File.Exists($@"{exePath}\Assets\GameOffsets\ER\ParamOffsets.txt"))
+                {
+                    Directory.SetCurrentDirectory(exePath);
+                }
+                else
+                {
+                    Console.Error.WriteLine("ERROR: Could not find param definition assets in current directory");
+                    Environment.Exit(4);
+                }
+            }
+            // This operation takes time in a separate thread, so just wait and poll it
+            ParamBank.ReloadParams(settings, options);
+            Console.Out.Write("Loading Params");
+            int timeout = 0;
+            while (ParamBank.PrimaryBank.IsLoadingParams || ParamBank.VanillaBank.IsLoadingParams)
+            {
+                timeout++;
+                if (timeout > 20)
+                {
+                    Console.Out.WriteLine("Failed due to timeout, ensure param file is valid and that the gamepath is specified.");
+                    Environment.Exit(7);
+                }
+                Thread.Sleep(500);
+                Console.Out.Write(".");
+            }
+            // Switch back to the original working directory
+            if (exePath != null) Directory.SetCurrentDirectory(workingDirectory);
+            Console.Out.WriteLine("Done!");
+        }
+        private static void UpgradeParamFile()
+        {
+            try
+            {
+                ParamBank.ParamUpgradeResult result = ParamBank.PrimaryBank.UpgradeRegulation(ParamBank.VanillaBank, upgradeRefParamFile, new Dictionary<string, HashSet<int>>());
+                switch (result)
+                {
+                    case ParamBank.ParamUpgradeResult.Success:
+                        Console.Out.WriteLine("Params Upgraded!");
+                        changesMade = true;
+                        break;
+                    case ParamBank.ParamUpgradeResult.RowConflictsFound:
+                        Console.Error.WriteLine("Warning: Unresolvable Conflicts found");
+                        break;
+                    case ParamBank.ParamUpgradeResult.OldRegulationVersionMismatch:
+                        Console.Error.WriteLine("ERROR: Invalid Reference Param File specified");
+                        break;
+                    case ParamBank.ParamUpgradeResult.OldRegulationNotFound:
+                        Console.Error.WriteLine("ERROR: Could not find " + upgradeRefParamFile);
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine("ERROR: " + e.Message);
+            }
+        }
+        private static void ExportParams()
+        {
+            string param = null;
+            string query;
+            // Empty list is a special case. Mass export all.
+            if(exportParams.Count == 0)
+            {
+                foreach (string p in ParamBank.PrimaryBank.Params.Keys)
+                {
+                    exportParams.Add(p);
+                }
+            }
+            // Read each argument, check for a query, and generate CSV
+            foreach (string exportParam in exportParams)
+            {
+                query = "";
+                if (!exportParam.Contains(':')) 
+                    param = exportParam.Trim();
+                else
+                {
+                    param = exportParam.Split(':', 2)[0].Trim();
+                    query = exportParam.Split(':', 2)[1].Trim();
+                }
+                // Check for param name
+                foreach (string p in ParamBank.PrimaryBank.Params.Keys)
+                {
+                    if (param.ToLower().StartsWith(p.ToLower()))
+                    {
+                        param = p;
+                        break;
+                    }
+                }
+                List<FSParam.Param.Row> rows = RowSearchEngine.rse.Search(ParamBank.PrimaryBank.GetParamFromName(param), query, false, false);
+                string output = MassParamEditCSV.GenerateCSV(rows, ParamBank.PrimaryBank.GetParamFromName(param), ',');
+                // Write the output in the same directory as the param file provided, unless a valid output path was specified
+                string csvOutFile = $@"{new FileInfo(inputFile).Directory.FullName}\{param}.csv";
+                if (outputFile != null && File.Exists(outputFile))
+                    csvOutFile = $@"{new FileInfo(outputFile).Directory.FullName}\{param}.csv";
+                else if(outputFile != null && Directory.Exists(outputFile))
+                    csvOutFile = $@"{outputFile}\{param}.csv";
+                Console.Out.Write($@"Exporting {param}... ");
+                try
+                {
+                    File.WriteAllText(csvOutFile, output);
+                    Console.Out.WriteLine($@"SUCCESS:");
+                    Console.Out.WriteLine("\t" + csvOutFile);
+                }
+                catch (Exception e)
+                {
+                    Console.Error.WriteLine($@"FAILED: {e.Message}");
+                }
+            }
+        }
+        private static void MimicDirectory(string paramfile)
+        {
+            // Mimic the param folder structure if needed
+            string inputDir = new FileInfo(paramfile).Directory.FullName;
+            if (gameType != GameType.EldenRing && gameType != GameType.DarkSoulsIISOTFS && gameType != GameType.DarkSoulsIII)
+            {
+                if (File.Exists(paramfile))
+                {
+                    Directory.CreateDirectory($@"{inputDir}\{paramFileRelPath}");
+                    if (File.Exists($@"{inputDir}\{paramFileRelPath}{paramFileName}"))
+                        File.Move($@"{inputDir}\{paramFileRelPath}{paramFileName}", $@"{inputDir}\{paramFileRelPath}{paramFileName}.tmp", true);
+                    File.Move(paramfile, $@"{inputDir}\{paramFileRelPath}{paramFileName}");
+                    folderMimic = true;
+                }
+                else if (!File.Exists($@"{inputDir}\{paramFileRelPath}{paramFileName}"))
+                {
+                    Console.Error.WriteLine($@"ERROR: Cannot find {paramFileName}");
+                    Environment.Exit(2);
+                }
+            } // Check to make sure the expected param file exists
+            else if (!Path.GetFileName(paramfile).ToLower().Equals(paramFileName) && !File.Exists(paramfile + "\\" + paramFileName))
+            {
+                if(File.Exists(paramfile) && File.Exists(inputDir + "\\" + paramFileName))
+                {
+                    File.Move(inputDir + "\\" + paramFileName, inputDir + "\\" + paramFileName + ".tmp", true);
+                    File.Move(paramfile, inputDir + "\\" + paramFileName);
+                }
+                else if(File.Exists(paramfile))
+                {
+                    File.Move(paramfile, inputDir + "\\" + paramFileName);
+                }
+                else
+                {
+                    Console.Error.WriteLine($@"ERROR: Cannot find {paramFileName}");
+                    Environment.Exit(2);
+                }
+            }
+        }
+        private static void UnmimicDirectory(string paramfile)
+        {
+            string paramFileDir = new FileInfo(paramfile).Directory.FullName;
+            try
+            {   // if we mimicked the folder structure, revert it back to normal
+                File.Move($@"{paramFileDir}\{paramFileRelPath}{paramFileName}", paramfile);
+                if(File.Exists($@"{paramFileDir}\{paramFileRelPath}{paramFileName}.tmp"))
+                    File.Move($@"{paramFileDir}\{paramFileRelPath}{paramFileName}.tmp", $@"{paramFileDir}\{paramFileRelPath}{paramFileName}");
+                if (folderMimic && Directory.GetFiles($@"{paramFileDir}\{paramFileRelPath}").Length == 0)
+                    Directory.Delete($@"{paramFileDir}\{paramFileRelPath}");
+                if (folderMimic && Directory.GetFiles($@"{paramFileDir}\param").Length == 0)
+                    Directory.Delete($@"{paramFileDir}\param");
+            }
+            catch (Exception e) 
+            {
+                Console.Error.WriteLine("Warning: Could not perform directory cleanup: " + e.Message);
+            }
+        }
+        private static void ConvertDiffsToMassedit()
+        {
+            string tmp = gamepath;
+            string comparePath = new FileInfo(compareParamFile).Directory.FullName + "\\temp";
+            // Change the gamepath so we load the compare file as our vanilla param
+            gamepath = comparePath;
+            string compareParamFileCopy = comparePath + "\\" + paramFileRelPath + paramFileName;
+            Directory.CreateDirectory(new FileInfo(compareParamFileCopy).Directory.FullName);
+            File.Copy(compareParamFile, compareParamFileCopy, true);
+            LoadParams();
+            gamepath = tmp;
+            Directory.Delete(comparePath, true);
+            string mfile = "";
+            bool addition = false;
+            foreach (string paramName in ParamBank.PrimaryBank.Params.Keys)
+            {
+                Console.Out.Write($@"Comparing {paramName}... ");
+                FSParam.Param oldParam = ParamBank.PrimaryBank.Params[paramName];
+                FSParam.Param newParam = ParamBank.VanillaBank.Params[paramName];
+                addition = ConvertToMassedit(oldParam, newParam, paramName, out string medits) || addition;
+                mfile += medits;
+                if (medits == "")
+                    Console.Out.WriteLine("No changes found");
+                else
+                    Console.Out.WriteLine("Success!");
+            }
+            if (mfile != "")
+            {
+                // Write the output in the same directory as the param file provided, unless a valid output path was specified
+                string meOutFile = $@"{new FileInfo(compareParamFile).Directory.FullName}\{Path.GetFileNameWithoutExtension(compareParamFile)}_diff.MASSEDIT";
+                if (outputFile != null && File.Exists(outputFile))
+                    meOutFile = $@"{new FileInfo(outputFile).Directory.FullName}\{Path.GetFileNameWithoutExtension(compareParamFile)}_diff.MASSEDIT";
+                else if (outputFile != null && Directory.Exists(outputFile))
+                    meOutFile = $@"{outputFile}\{Path.GetFileNameWithoutExtension(compareParamFile)}_diff.MASSEDIT";
+                try
+                {
+                    File.WriteAllText(meOutFile, mfile);
+                }
+                catch (Exception e)
+                {
+                    Console.Error.WriteLine($@"Exporting {meOutFile} FAILED: {e.Message}");
+                }
+                Console.Out.WriteLine($@"Exported {meOutFile}");
+                if (addition) Console.Out.WriteLine("\tNote: Row additions detected, use the -M+ switch when loading this script.");
+            }
+            else Console.Out.WriteLine("No changes Detected");
         }
         private static void ProcessCSVToMassedit()
         {
@@ -195,10 +393,12 @@ namespace DSMSPortable
                 string mfile = "";
                 bool addition = false;
                 opstring = File.ReadAllText(c2mfile);
-                string paramName = Path.GetFileNameWithoutExtension(c2mfile);
+                string c2mNameNoExt = Path.GetFileNameWithoutExtension(c2mfile);
+                string paramName = c2mNameNoExt;
+                // Check for param name
                 foreach (string p in ParamBank.PrimaryBank.Params.Keys)
                 {
-                    if (paramName.ToLower() == p.ToLower())
+                    if (paramName.ToLower().StartsWith(p.ToLower()))
                     {
                         paramName = p;
                         break;
@@ -224,22 +424,26 @@ namespace DSMSPortable
                 if (meresult.Type == MassEditResultType.SUCCESS)
                 {
                     addition = ConvertToMassedit(oldParam, newParam, paramName, out mfile) || addition;
-                    // Write the output in the same directory as the CSV file provided, but change the extension
-                    string outputFile = $@"{new FileInfo(c2mfile).Directory.FullName}\{paramName}.MASSEDIT";
+                    // Write the output in the same directory as the CSV file provided, unless a valid output path was specified
+                    string meOutFile = $@"{new FileInfo(c2mfile).Directory.FullName}\{c2mNameNoExt}.MASSEDIT";
+                    if (outputFile != null && File.Exists(outputFile))
+                        meOutFile = $@"{new FileInfo(outputFile).Directory.FullName}\{c2mNameNoExt}.MASSEDIT";
+                    else if (outputFile != null && Directory.Exists(outputFile))
+                        meOutFile = $@"{outputFile}\{c2mNameNoExt}.MASSEDIT";
                     try
                     {
-                        File.WriteAllText(outputFile, mfile);
+                        File.WriteAllText(meOutFile, mfile);
                     }
                     catch (Exception e)
                     {
-                        Console.Error.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} FAILED: {e.Message}");
+                        Console.Error.WriteLine($@"Converting {c2mNameNoExt} FAILED: {e.Message}");
                     }
-                    Console.Out.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}:" + "\n\t" + outputFile);
+                    Console.Out.WriteLine($@"Converting {c2mNameNoExt} {meresult.Type}:" + "\n\t" + meOutFile);
                     if (addition) Console.Out.WriteLine("\tNote: Row additions detected, use the -M+ switch when loading this script.");
                     // Undo the edits we made to the param file
                     manager.UndoAction();
                 }
-                else Console.Error.WriteLine($@"Converting {Path.GetFileNameWithoutExtension(c2mfile)} {meresult.Type}: {meresult.Information}");
+                else Console.Error.WriteLine($@"Converting {c2mNameNoExt} {meresult.Type}: {meresult.Information}");
             }
         }
         public static bool ConvertToMassedit(FSParam.Param oldParam, FSParam.Param newParam, string paramName, out string mfile)
@@ -263,9 +467,9 @@ namespace DSMSPortable
                 if (!row.DataEquals(oldRow))
                 {
                     // Grab the new name if needed
-                    if (!row.Name.Equals(oldRow.Name))
+                    if (row.Name.Replace("\r", "") != oldRow.Name.Replace("\r", ""))
                     {
-                        mfile += $@"param {paramName}: id {row.ID}: Name: = {row.Name};" + "\n";
+                        mfile += $@"param {paramName}: id {row.ID}: Name: = {row.Name.Replace("\r", "")};" + "\n";
                     }
                     // if something is different, check each cell for changes
                     for (int i = 0; i < row.CellHandles.Count; i++)
@@ -380,47 +584,34 @@ namespace DSMSPortable
         }
         private static void SaveParamFile()
         {
-            string paramFileDir = new FileInfo(inputFile).Directory.FullName;
+            string paramFileDir = new FileInfo(inputFile).Directory.FullName + "\\" + paramFileRelPath + paramFileName;
             try // Save the param file
             {
                 ParamBank.PrimaryBank.SaveParams(false, false);
             }
             catch (Exception e)
             {
-                try
-                {   // Attempt to stick the landing if SaveParams finds itself unable to overwrite the param file
-                    if (folderMimic)
-                    {
-                        File.Move($@"{paramFileDir}\{OTHER_PARAMFILE_PATH}\{paramFileName}.temp", $@"{paramFileDir}\{OTHER_PARAMFILE_PATH}\{paramFileName}");
-                    }
-                    else File.Move($@"{paramFileDir}\{paramFileName}.temp", $@"{paramFileDir}\{paramFileName}");
-                }
-                catch (Exception)
-                {
-                    Console.Error.WriteLine("ERROR: " + e.Message);
-                    Environment.Exit(9);
-                }
+                Console.Error.WriteLine("ERROR: " + e.Message);
+                Environment.Exit(9);
             }
-            if (folderMimic) try
-            {   // if we mimicked the folder structure, revert it back to normal
-                File.Move($@"{paramFileDir}\{OTHER_PARAMFILE_PATH}\{paramFileName}", $@"{paramFileDir}\{paramFileName}");
-                if (Directory.GetFiles($@"{paramFileDir}\param").Length == 0) Directory.Delete($@"{paramFileDir}\param");
-            }
-            catch (Exception) { }
             if (outputFile != null)
             {   // if an output file is specified, wing it by just copying the param file, and renaming the backup
                 try
                 {   // Peform rename operations in this order so the input file remains untouched if we fail to write the output file
-                    File.Move(paramFileDir, paramFileDir + ".temp");
+                    File.Move(paramFileDir, paramFileDir + ".temp", true);
                     File.Move(paramFileDir + ".prev", paramFileDir);
-                    File.Move(paramFileDir + ".temp", outputFile);
+                    if (Directory.Exists(outputFile))
+                        File.Move(paramFileDir + ".temp", outputFile + "\\" + paramFileName, true);
+                    else File.Move(paramFileDir + ".temp", outputFile, true);
                 }
                 catch (Exception ioe)
                 {
                     Console.Error.WriteLine("ERROR: " + ioe.Message);
+                    UnmimicDirectory(inputFile);
                     Environment.Exit(8);
                 }
             }
+            UnmimicDirectory(inputFile);
         }
         private static void PrintGameContext()
         {
@@ -455,7 +646,7 @@ namespace DSMSPortable
             Console.Out.WriteLine(gameDisplayName);
             Console.Out.WriteLine("ParamfileName:\t" + paramFileName);
             if(paramFileName.Equals(OTHER_PARAMFILE_NAME)) 
-                Console.Out.WriteLine("ParamfileRelativePath:\t" + OTHER_PARAMFILE_PATH + "\\" + paramFileName);
+                Console.Out.WriteLine("ParamfileRelativePath:\t" + paramFileRelPath + paramFileName);
         }
         private static void GetParamName()
         {
@@ -472,6 +663,7 @@ namespace DSMSPortable
                     break;
                 default:
                     paramFileName = OTHER_PARAMFILE_NAME;
+                    paramFileRelPath = OTHER_PARAMFILE_PATH + "\\";
                     break;
             }
         }
@@ -495,10 +687,10 @@ namespace DSMSPortable
         {
             // Check working directory for gamepath.txt, if it wasn't specified on the command line
             if (gamepath == null && File.Exists($@"{workingDirectory}\{GAMEPATH_FILE}"))
-                gamepath = File.ReadAllText($@"{workingDirectory}\{GAMEPATH_FILE}");
+                gamepath = File.ReadAllText($@"{workingDirectory}\{GAMEPATH_FILE}").Replace("\"", "").Trim();
             // Check default path for gamepath.txt (which will be the exe directory here)
             else if (gamepath == null && File.Exists(GAMEPATH_FILE)) 
-                gamepath = File.ReadAllText(GAMEPATH_FILE);
+                gamepath = File.ReadAllText(GAMEPATH_FILE).Replace("\"", "").Trim();
             // If the game is Elden Ring, we can make more thorough checks
             if (gameType == GameType.EldenRing)
             {
@@ -565,6 +757,16 @@ namespace DSMSPortable
                         case 'P':
                             mode = ParamMode.SETGAMEPATH;
                             break;
+                        case 'X':
+                            mode = ParamMode.EXPORT;
+                            exportParams ??= new();
+                            break;
+                        case 'D':
+                            mode = ParamMode.DIFF;
+                            break;
+                        case 'U':
+                            mode = ParamMode.UPGRADE;
+                            break;
                         case 'H':
                         case '?':
                             Help();
@@ -601,8 +803,16 @@ namespace DSMSPortable
                             break;
                         case ParamMode.OUTPUT:
                             if (outputFile != null)
-                                throw new Exception("Multiple output paths specified at once: " + outputFile + " and " + param);
-                            outputFile = param;
+                            {
+                                Console.Error.WriteLine("Multiple output paths specified at once: " + outputFile + " and " + param);
+                                Environment.Exit(4);
+                            }
+                            outputFile = param.Replace("\"", "");
+                            if(Path.EndsInDirectorySeparator(outputFile) && !Directory.Exists(outputFile))
+                            {
+                                Console.Error.WriteLine($@"ERROR: Output path {outputFile} does not exist");
+                                Environment.Exit(4);
+                            }
                             mode = ParamMode.NONE;
                             break;
                         case ParamMode.SETGAMETYPE:
@@ -651,9 +861,32 @@ namespace DSMSPortable
                                     gameType = GameType.Undefined;
                                     break;
                             }
+                            mode = ParamMode.NONE;
                             break;
                         case ParamMode.SETGAMEPATH:
                             gamepath = param;
+                            mode = ParamMode.NONE;
+                            break;
+                        case ParamMode.EXPORT:
+                            exportParams.Add(param);
+                            break;
+                        case ParamMode.DIFF:
+                            if(compareParamFile != null)
+                            {
+                                Console.Error.WriteLine("Multiple param files specified at once: " + compareParamFile + " and " + param);
+                                Environment.Exit(4);
+                            }
+                            compareParamFile = param;
+                            mode = ParamMode.NONE;
+                            break;
+                        case ParamMode.UPGRADE:
+                            if (upgradeRefParamFile != null)
+                            {
+                                Console.Error.WriteLine("Multiple param files specified at once: " + upgradeRefParamFile + " and " + param);
+                                Environment.Exit(4);
+                            }
+                            upgradeRefParamFile = param;
+                            mode = ParamMode.NONE;
                             break;
                         case ParamMode.NONE:
                             if (param.ToLower().Equals("help") || param.Equals("?"))
@@ -679,7 +912,8 @@ namespace DSMSPortable
             Console.Out.WriteLine("Lightweight utility for patching FromSoft param files. Free to distribute with other mods, but not for sale.");
             Console.Out.WriteLine("DS Map Studio Core developed and maintained by the SoulsMods team: https://github.com/soulsmods/DSMapStudio\n");
             Console.Out.WriteLine("Usage: DSMSPortable [paramfile] [-M[+] masseditfile1 masseditfile2 ...] [-C csvfile1 csvfile2 ...] [-G gametype]");
-            Console.Out.WriteLine("                                [-P gamepath] [-O outputpath]\n");
+            Console.Out.WriteLine("                                [-X paramname1[:query] paramname2 ...] [-U oldvanillafile] [-D compareparamfile]");
+            Console.Out.WriteLine("                                [-C2M csvfile1 csvfile2 ...] [-P gamepath] [-O outputpath]\n");
             Console.Out.WriteLine("  paramfile  Path to regulation.bin file (or respective param file for other FromSoft games) to modify");
             Console.Out.WriteLine("  -M[+] masseditfile1 masseditfile2 ...");
             Console.Out.WriteLine("             List of text files (.TXT or .MASSEDIT) containing a script of DS Map Studio MASSEDIT commands.");
@@ -694,17 +928,33 @@ namespace DSMSPortable
             Console.Out.WriteLine("  -C2M csvfile1 csvfile2 ...");
             Console.Out.WriteLine("             Converts the specified CSV files into .MASSEDIT scripts.");
             Console.Out.WriteLine("             Resulting files are saved in the same directories as the CSV's provided.");
+            Console.Out.WriteLine("             If a valid output path is specified, they will be saved there instead.");
+            Console.Out.WriteLine("  -D compareparamfile");
+            Console.Out.WriteLine("             Compares the specified param file against the input paramfile, and exports any differences as a");
+            Console.Out.WriteLine("             massedit script. Diff is one way from paramfile -> compareparamfile.");
+            Console.Out.WriteLine("             Resulting file is saved in the same directory as the compareparamfile.");
+            Console.Out.WriteLine("             If a valid output path is specified, it will be saved there instead.");
+            Console.Out.WriteLine("  -X paramname1[:query] paramname2 ...");
+            Console.Out.WriteLine("             Exports the specified params to CSV, where paramname is the exact name of the param to be exported,");
+            Console.Out.WriteLine("             and the query narrows down the export criteria, e.g. SpEffectParam: modified && idrange 100000 110000");
+            Console.Out.WriteLine("             Specifying -X by itself will result in a full mass export.");
+            Console.Out.WriteLine("             Resulting files are saved in the same directories as the paramfile.");
+            Console.Out.WriteLine("             If a valid output path is specified, they will be saved there instead.");
+            Console.Out.WriteLine("  -U oldvanillafile");
+            Console.Out.WriteLine("             Upgrades the paramfile to the latest version found in the gamepath, using the specified vanilla param");
+            Console.Out.WriteLine("             file as a reference. If trying to upgrade a 1.0 param file to 1.1, oldvanillafile should be");
+            Console.Out.WriteLine("             a copy of the original 1.0 param file, and the game install in gamepath should be on 1.1.");
             Console.Out.WriteLine("  -G gametype");
             Console.Out.WriteLine("             Code indicating which game is being modified. The default is Elden Ring. Options are as follows:");
             Console.Out.WriteLine("             DS1R  Dark Souls Remastered    DS2  Dark Souls 2    DS3     Dark Souls 3");
             Console.Out.WriteLine("             ER    Elden Ring               BB   Bloodborne      SEKIRO  Sekiro");
             Console.Out.WriteLine("             DS1   Dark Souls PTDE          DES  Demon's Souls");
-            Console.Out.WriteLine("             Using this switch without specifying a paramfile will return the expected paramfile name for that game");
+            Console.Out.WriteLine("             Using this switch without specifying a paramfile will return the default paramfile name for that game");
             Console.Out.WriteLine("  -P gamepath");
             Console.Out.WriteLine("             Path to the main install directory for the selected game, for loading vanilla params.");
             Console.Out.WriteLine("             The gamepath can also be implicitly specified in a gamepath.txt file in the working directory.");
             Console.Out.WriteLine("  -O outputpath");
-            Console.Out.WriteLine("             Path where the resulting regulation.bin (or equivalent param file) will be saved.");
+            Console.Out.WriteLine("             Path where the resulting param file will be saved.");
             Console.Out.WriteLine("             If this is not specified, the input file will be overwritten, and a backup will be made if possible.");
             Environment.Exit(0);
         }
@@ -718,6 +968,9 @@ namespace DSMSPortable
             OUTPUT,
             SETGAMETYPE,
             SETGAMEPATH,
+            EXPORT,
+            DIFF,
+            UPGRADE,
             NONE
         }
         // No reason to be anal about the exact switch character used, any of these is fine

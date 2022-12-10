@@ -14,7 +14,7 @@ namespace StudioCore.Editor
     /* Restricted characters: colon, space, forward slash
      *
      */
-    class SearchEngine<A,B>
+    public class SearchEngine<A,B>
     {
         public SearchEngine()
         {
@@ -145,7 +145,7 @@ namespace StudioCore.Editor
             });
         }
     }
-    class RowSearchEngine : SearchEngine<Param, Param.Row>
+    public class RowSearchEngine : SearchEngine<Param, Param.Row>
     {
         public static RowSearchEngine rse = new RowSearchEngine(ParamBank.PrimaryBank);
         private RowSearchEngine(ParamBank bank)
