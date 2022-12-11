@@ -1,8 +1,6 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Components.Forms;
 using StudioCore;
 using StudioCore.Editor;
 using StudioCore.ParamEditor;
@@ -944,7 +942,7 @@ namespace DSMSPortable
             Console.Out.WriteLine("             populated with default values (usually whatever is in the first entry of the param).");
             Console.Out.WriteLine("  -X paramname1[:query] paramname2 ...");
             Console.Out.WriteLine("             Exports the specified params to CSV, where paramname is the exact name of the param to be exported,");
-            Console.Out.WriteLine("             and the query narrows down the export criteria, e.g. SpEffectParam: name Crucible* && modified");
+            Console.Out.WriteLine("             and the query narrows down the export criteria, e.g. SpEffectParam: name Crucible && modified");
             Console.Out.WriteLine("             Specifying -X by itself will result in a full mass export.");
             Console.Out.WriteLine("             Resulting files are saved in the same directories as the paramfile.");
             Console.Out.WriteLine("             If a valid output path is specified, they will be saved there instead.");
