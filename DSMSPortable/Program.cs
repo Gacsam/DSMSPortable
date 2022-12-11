@@ -260,7 +260,8 @@ namespace DSMSPortable
                         break;
                     }
                 }
-                List<FSParam.Param.Row> rows = RowSearchEngine.rse.Search(ParamBank.PrimaryBank.GetParamFromName(param), query, false, false);
+                Console.Out.Write($@"Exporting {param}... ");
+                List<FSParam.Param.Row> rows = RowSearchEngine.rse.Search(ParamBank.PrimaryBank.GetParamFromName(param), query, true, true);
                 string output = MassParamEditCSV.GenerateCSV(rows, ParamBank.PrimaryBank.GetParamFromName(param), ',');
                 // Write the output in the same directory as the param file provided, unless a valid output path was specified
                 string csvOutFile = $@"{new FileInfo(inputFile).Directory.FullName}\{param}.csv";
@@ -268,7 +269,6 @@ namespace DSMSPortable
                     csvOutFile = $@"{new FileInfo(outputFile).Directory.FullName}\{param}.csv";
                 else if(outputFile != null && Directory.Exists(outputFile))
                     csvOutFile = $@"{outputFile}\{param}.csv";
-                Console.Out.Write($@"Exporting {param}... ");
                 try
                 {
                     File.WriteAllText(csvOutFile, output);
@@ -944,7 +944,7 @@ namespace DSMSPortable
             Console.Out.WriteLine("             populated with default values (usually whatever is in the first entry of the param).");
             Console.Out.WriteLine("  -X paramname1[:query] paramname2 ...");
             Console.Out.WriteLine("             Exports the specified params to CSV, where paramname is the exact name of the param to be exported,");
-            Console.Out.WriteLine("             and the query narrows down the export criteria, e.g. SpEffectParam: modified && idrange 100000 110000");
+            Console.Out.WriteLine("             and the query narrows down the export criteria, e.g. SpEffectParam: name Crucible* && modified");
             Console.Out.WriteLine("             Specifying -X by itself will result in a full mass export.");
             Console.Out.WriteLine("             Resulting files are saved in the same directories as the paramfile.");
             Console.Out.WriteLine("             If a valid output path is specified, they will be saved there instead.");
