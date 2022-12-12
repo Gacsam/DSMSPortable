@@ -146,6 +146,69 @@ namespace DSMSPortable
                 ConvertDiffsToMassedit();
             }
         }
+        public static bool ConvertToMassedit(FSParam.Param oldParam, FSParam.Param newParam, string paramName, out string mfile)
+        {
+            mfile = "";
+            bool addition = false;
+            ArrayList ids = new();
+            // Compare every row for changes
+            foreach (FSParam.Param.Row row in newParam.Rows)
+            {
+                if (row == null) continue;
+                // ignore duplicate rows
+                if (ids.Contains(row.ID)) continue;
+                else ids.Add(row.ID);
+                FSParam.Param.Row oldRow;
+                // Try to get the old param's contents at this ID
+                oldRow = oldParam[row.ID];
+                // if this row was newly added, use the default row for comparison
+                if (oldRow == null)
+                {
+                    oldRow = AddNewRow(row.ID, oldParam);
+                    addition = true;
+                }
+                // Compare the whole row
+                if (!row.DataEquals(oldRow))
+                {
+                    // Grab the new name if needed
+                    if (row.Name.Replace("\r", "") != oldRow.Name.Replace("\r", ""))
+                    {
+                        mfile += $@"param {paramName}: id {row.ID}: Name: = {row.Name.Replace("\r", "")};" + "\n";
+                    }
+                    // if something is different, check each cell for changes
+                    for (int i = 0; i < row.CellHandles.Count; i++)
+                    {
+                        // Convert each individual change to massedit format
+                        if (row.CellHandles[i].Value.GetType() == typeof(byte[]))
+                        {
+                            string value = ParamUtils.Dummy8Write((byte[])row.CellHandles[i].Value);
+                            string oldvalue = ParamUtils.Dummy8Write((byte[])oldRow.CellHandles[i].Value);
+                            if (!value.Equals(oldvalue))
+                                mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {value};" + "\n";
+                        }
+                        else if (!row.CellHandles[i].Value.Equals(oldRow.CellHandles[i].Value))
+                            mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {row.CellHandles[i].Value};" + "\n";
+                    }
+                }
+            }
+            return addition;
+        }
+        public static FSParam.Param.Row AddNewRow(int id, FSParam.Param param)
+        {
+            if (param[id] != null) return null;
+            FSParam.Param.Row newRow = new(param.Rows.FirstOrDefault());
+            for (int i = 0; i < newRow.CellHandles.Count; i++)
+            {   // Def.Default is just always 0. s32's where the minimum is explicitly -1 reference ID's so -1 makes a better default
+                if ((newRow.CellHandles[i].Def.DisplayType == SoulsFormats.PARAMDEF.DefType.s32 || newRow.CellHandles[i].Def.DisplayType == SoulsFormats.PARAMDEF.DefType.s16)
+                    && (int)newRow.CellHandles[i].Def.Minimum == -1)
+                    newRow.CellHandles[i].SetValue(Convert.ChangeType(newRow.CellHandles[i].Def.Minimum, newRow.CellHandles[i].Value.GetType()));
+                else if (newRow.CellHandles[i].Def.Default != null)
+                    newRow.CellHandles[i].SetValue(Convert.ChangeType(newRow.CellHandles[i].Def.Default, newRow.CellHandles[i].Value.GetType()));
+            }
+            newRow.ID = id;
+            param.AddRow(newRow);
+            return newRow;
+        }
         private static void LoadParams()
         {
             string exePath = null;
@@ -444,49 +507,6 @@ namespace DSMSPortable
                 else Console.Error.WriteLine($@"Converting {c2mNameNoExt} {meresult.Type}: {meresult.Information}");
             }
         }
-        public static bool ConvertToMassedit(FSParam.Param oldParam, FSParam.Param newParam, string paramName, out string mfile)
-        {
-            mfile = "";
-            bool addition = false;
-            // Compare every row for changes
-            foreach (FSParam.Param.Row row in newParam.Rows)
-            {
-                if (row == null) continue;
-                FSParam.Param.Row oldRow;
-                // Try to get the old param's contents at this ID
-                oldRow = oldParam[row.ID];
-                // if this row was newly added, use the default row for comparison
-                if (oldRow == null)
-                {
-                    oldRow = AddNewRow(row.ID, oldParam);
-                    addition = true;
-                }
-                // Compare the whole row
-                if (!row.DataEquals(oldRow))
-                {
-                    // Grab the new name if needed
-                    if (row.Name.Replace("\r", "") != oldRow.Name.Replace("\r", ""))
-                    {
-                        mfile += $@"param {paramName}: id {row.ID}: Name: = {row.Name.Replace("\r", "")};" + "\n";
-                    }
-                    // if something is different, check each cell for changes
-                    for (int i = 0; i < row.CellHandles.Count; i++)
-                    {
-                        // Convert each individual change to massedit format
-                        if (row.CellHandles[i].Value.GetType() == typeof(byte[]))
-                        {
-                            string value = ParamUtils.Dummy8Write((byte[])row.CellHandles[i].Value);
-                            string oldvalue = ParamUtils.Dummy8Write((byte[])oldRow.CellHandles[i].Value);
-                            if (!value.Equals(oldvalue))
-                                mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {value};" + "\n";
-                        }
-                        else if (!row.CellHandles[i].Value.Equals(oldRow.CellHandles[i].Value))
-                            mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {row.CellHandles[i].Value};" + "\n";
-                    }
-                }
-            }
-            return addition;
-        }
         private static void ProcessCSV()
         {
             string opstring;
@@ -664,22 +684,6 @@ namespace DSMSPortable
                     paramFileRelPath = OTHER_PARAMFILE_PATH + "\\";
                     break;
             }
-        }
-        public static FSParam.Param.Row AddNewRow(int id, FSParam.Param param)
-        {
-            if (param[id] != null) return null;
-            FSParam.Param.Row newRow = new(param.Rows.FirstOrDefault());
-            for (int i = 0; i < newRow.CellHandles.Count; i++)
-            {   // Def.Default is just always 0. s32's where the minimum is explicitly -1 reference ID's so -1 makes a better default
-                if ((newRow.CellHandles[i].Def.DisplayType == SoulsFormats.PARAMDEF.DefType.s32 || newRow.CellHandles[i].Def.DisplayType == SoulsFormats.PARAMDEF.DefType.s16 ) 
-                    && (int)newRow.CellHandles[i].Def.Minimum == -1) 
-                    newRow.CellHandles[i].SetValue(Convert.ChangeType(newRow.CellHandles[i].Def.Minimum, newRow.CellHandles[i].Value.GetType()));
-                else if (newRow.CellHandles[i].Def.Default != null)
-                    newRow.CellHandles[i].SetValue(Convert.ChangeType(newRow.CellHandles[i].Def.Default, newRow.CellHandles[i].Value.GetType()));
-            }
-            newRow.ID = id;
-            param.AddRow(newRow);
-            return newRow;
         }
         private static void FindGamepath()
         {
