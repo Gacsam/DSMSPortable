@@ -266,7 +266,8 @@ namespace DSMSPortable
         {
             try
             {
-                ParamBank.ParamUpgradeResult result = ParamBank.PrimaryBank.UpgradeRegulation(ParamBank.VanillaBank, upgradeRefParamFile, new Dictionary<string, HashSet<int>>());
+                Dictionary<string, HashSet<int>> conflicts = new();
+                ParamBank.ParamUpgradeResult result = ParamBank.PrimaryBank.UpgradeRegulation(ParamBank.VanillaBank, upgradeRefParamFile, conflicts);
                 switch (result)
                 {
                     case ParamBank.ParamUpgradeResult.Success:
@@ -274,7 +275,16 @@ namespace DSMSPortable
                         changesMade = true;
                         break;
                     case ParamBank.ParamUpgradeResult.RowConflictsFound:
-                        Console.Error.WriteLine("Warning: Unresolvable Conflicts found");
+                        Console.Out.WriteLine("Warning: Conflicts found on the following rows:");
+                        foreach (string confParam in conflicts.Keys)
+                        {
+                            foreach(int confId in conflicts[confParam])
+                            {
+                                Console.Out.WriteLine("\t" + $@"param {confParam}: id {confId}");
+                            }
+                        }
+                        Console.Out.WriteLine("These rows were not able to be updated.");
+                        changesMade = true;
                         break;
                     case ParamBank.ParamUpgradeResult.OldRegulationVersionMismatch:
                         Console.Error.WriteLine("ERROR: Invalid Reference Param File specified");
