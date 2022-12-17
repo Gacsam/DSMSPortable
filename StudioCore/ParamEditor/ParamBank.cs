@@ -777,7 +777,7 @@ namespace StudioCore.ParamEditor
                 }
             });
         }
-        public static void LoadAuxBank(string path)
+        public static void LoadAuxBank(string path, string looseDir, string enemyPath)
         {
             // Steal assetlocator
             AssetLocator locator = PrimaryBank.AssetLocator;
@@ -800,6 +800,10 @@ namespace StudioCore.ParamEditor
             else if (locator.Type == GameType.Bloodborne)
             {
                 newBank.LoadParamsBBSekiroFromFile(path);
+            }
+            else if (locator.Type == GameType.DarkSoulsIISOTFS)
+            {
+                newBank.LoadParamsDS2FromFile(new List<string>{looseDir}, path, enemyPath);
             }
             else if (locator.Type == GameType.DarkSoulsRemastered)
             {
@@ -972,7 +976,7 @@ namespace StudioCore.ParamEditor
                             p.Bytes = _params[Path.GetFileNameWithoutExtension(p.Name)].Write();
                         }
                     }
-                    Utils.WriteWithBackup(dir, mod, @$"param\DrawParam\{Path.GetFileNameWithoutExtension(bnd)}", paramBnd);
+                    Utils.WriteWithBackup(dir, mod, @$"param\DrawParam\{Path.GetFileName(bnd)}", paramBnd);
                 }
             }
         }
@@ -1017,7 +1021,7 @@ namespace StudioCore.ParamEditor
                             p.Bytes = _params[Path.GetFileNameWithoutExtension(p.Name)].Write();
                         }
                     }
-                    Utils.WriteWithBackup(dir, mod, @$"param\DrawParam\{Path.GetFileNameWithoutExtension(bnd)}.dcx", paramBnd);
+                    Utils.WriteWithBackup(dir, mod, @$"param\DrawParam\{Path.GetFileName(bnd)}", paramBnd);
                 }
             }
         }
@@ -1241,7 +1245,7 @@ namespace StudioCore.ParamEditor
                             p.Bytes = _params[Path.GetFileNameWithoutExtension(p.Name)].Write();
                         }
                     }
-                    Utils.WriteWithBackup(dir, mod, @$"param\DrawParam\{Path.GetFileNameWithoutExtension(bnd)}.dcx", paramBnd);
+                    Utils.WriteWithBackup(dir, mod, @$"param\DrawParam\{Path.GetFileName(bnd)}", paramBnd);
                 }
             }
         }
@@ -1449,8 +1453,33 @@ namespace StudioCore.ParamEditor
             Param dest = new Param(newVanilla);
             
             // Now try to build the destination from the new regulation with the edit operations in mind
+            var pendingAdds = addedRows.Keys.OrderBy(e => e).ToArray();
+            int currPendingAdd = 0;
+            int lastID = 0;
             foreach (var row in newVanilla.Rows)
             {
+                // See if we have any pending adds we can slot in
+                while (currPendingAdd < pendingAdds.Length && 
+                       pendingAdds[currPendingAdd] >= lastID && 
+                       pendingAdds[currPendingAdd] < row.ID)
+                {
+                    if (!addedRows.ContainsKey(pendingAdds[currPendingAdd]))
+                    {
+                        currPendingAdd++;
+                        continue;
+                    }
+                    foreach (var arow in addedRows[pendingAdds[currPendingAdd]])
+                    {
+                        dest.AddRow(new Param.Row(arow, dest));
+                    }
+
+                    addedRows.Remove(pendingAdds[currPendingAdd]);
+                    editOperations.Remove(pendingAdds[currPendingAdd]);
+                    currPendingAdd++;
+                }
+
+                lastID = row.ID;
+                
                 if (!editOperations.ContainsKey(row.ID))
                 {
                     // No edit operations for this ID, so just add it (likely a new row in the update)
@@ -1505,14 +1534,17 @@ namespace StudioCore.ParamEditor
                         renamedRows.Remove(row.ID);
                 }
             }
-
+            
             // Take care of any more pending adds
-            foreach (var arow in addedRows)
+            for (; currPendingAdd < pendingAdds.Length; currPendingAdd++)
             {
-                foreach (var row in arow.Value)
+                foreach (var arow in addedRows[pendingAdds[currPendingAdd]])
                 {
-                    dest.AddRow(new Param.Row(row, dest));
+                    dest.AddRow(new Param.Row(arow, dest));
                 }
+
+                addedRows.Remove(pendingAdds[currPendingAdd]);
+                editOperations.Remove(pendingAdds[currPendingAdd]);
             }
 
             return dest;
@@ -1586,9 +1618,9 @@ namespace StudioCore.ParamEditor
                     (10701000l, "1.07 - (AssetEnvironmentGeometryParam) Set Reserve_2 to Vanilla v1.07 values", "param AssetEnvironmentGeometryParam: modified: Reserve_2: = vanillafield Reserve_2;"),
                     (10701000l, "1.07 - (AssetEnvironmentGeometryParam) Set Reserve_3 to Vanilla v1.07 values", "param AssetEnvironmentGeometryParam: modified: Reserve_3: = vanillafield Reserve_3;"),
                     (10701000l, "1.07 - (AssetEnvironmentGeometryParam) Set Reserve_4 to Vanilla v1.07 values", "param AssetEnvironmentGeometryParam: modified: Reserve_4: = vanillafield Reserve_4;"),
-                    (10801000l, "1.08 - (BuddyParam) Set Unk1 to default value", "param BuddyParam: added: Unk1: = 1410;"),
-                    (10801000l, "1.08 - (BuddyParam) Set Unk2 to default value", "param BuddyParam: added: Unk2: = 1420;"),
-                    (10801000l, "1.08 - (BuddyParam) Set Unk11 to default value", "param BuddyParam: added: Unk11: = 1400;"),
+                    (10801000l, "1.08 - (BuddyParam) Set Unk1 to default value", "param BuddyParam: modified: Unk1: = 1410;"),
+                    (10801000l, "1.08 - (BuddyParam) Set Unk2 to default value", "param BuddyParam: modified: Unk2: = 1420;"),
+                    (10801000l, "1.08 - (BuddyParam) Set Unk11 to default value", "param BuddyParam: modified: Unk11: = 1400;"),
                 };
             }
 
