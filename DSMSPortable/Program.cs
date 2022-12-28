@@ -133,6 +133,8 @@ namespace DSMSPortable
                 Console.Out.WriteLine("Saving param file...");
                 SaveParamFile();
             }
+            // Unmimic directories if needed
+            UnmimicDirectory(inputFile);
             // Perform CSV export if one was specified
             if (exportParams != null)
             {
@@ -639,7 +641,6 @@ namespace DSMSPortable
                     Environment.Exit(8);
                 }
             }
-            UnmimicDirectory(inputFile);
         }
         private static void PrintGameContext()
         {
