@@ -152,13 +152,11 @@ namespace StudioCore.LiveRefresh
         //write to address
         public static bool WriteFlags8(IntPtr address, bool value, Startbit startbit)
         {
-            // Unused but needs to be fixed if ever used
-            throw new NotImplementedException();
-            /*var WriteBit = Convert.ToByte(value) * Convert.ToByte(Math.Pow((double)2, (double)startbit));
+            var WriteBit = Convert.ToByte(value) * Convert.ToByte(Math.Pow((double)2, (double)startbit));
             var WriteBit_ = (byte)WriteBit;
 
 
-            return Kernel32.WriteProcessMemory(ProcessHandle, address, BitConverter.GetBytes(WriteBit_), (UIntPtr)1, UIntPtr.Zero);*/
+            return Kernel32.WriteProcessMemory(ProcessHandle, address, BitConverter.GetBytes(WriteBit_), (UIntPtr)1, UIntPtr.Zero);
         }
 
         public static bool WriteBoolean(IntPtr address, bool value)
@@ -168,9 +166,7 @@ namespace StudioCore.LiveRefresh
 
         public static bool WriteInt8(IntPtr address, byte value)
         {
-            // Unused but needs to be fixed if ever used
-            throw new NotImplementedException();
-            //return Kernel32.WriteProcessMemory(ProcessHandle, address, BitConverter.GetBytes(value), (UIntPtr)1, UIntPtr.Zero);
+            return Kernel32.WriteProcessMemory(ProcessHandle, address, BitConverter.GetBytes(value), (UIntPtr)1, UIntPtr.Zero);
         }
 
         public static bool WriteInt16(IntPtr address, short value)
