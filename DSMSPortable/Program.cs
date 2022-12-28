@@ -325,7 +325,7 @@ namespace DSMSPortable
                 // Check for param name
                 foreach (string p in ParamBank.PrimaryBank.Params.Keys)
                 {
-                    if (param.ToLower().StartsWith(p.ToLower()))
+                    if (param.ToLower() == p.ToLower())
                     {
                         param = p;
                         break;
@@ -393,7 +393,7 @@ namespace DSMSPortable
         private static void UnmimicDirectory(string paramfile)
         {
             string paramFileDir = new FileInfo(paramfile).Directory.FullName;
-            try
+            if (new FileInfo(paramfile).FullName != $@"{paramFileDir}\{paramFileRelPath}{paramFileName}") try
             {   // if we mimicked the folder structure, revert it back to normal
                 File.Move($@"{paramFileDir}\{paramFileRelPath}{paramFileName}", paramfile);
                 if(File.Exists($@"{paramFileDir}\{paramFileRelPath}{paramFileName}.tmp"))
@@ -940,6 +940,7 @@ namespace DSMSPortable
             Console.Out.WriteLine("             Upgrades the paramfile to the latest version found in the gamepath, using the specified vanilla param");
             Console.Out.WriteLine("             file as a reference. If trying to upgrade a 1.0 param file to 1.1, oldvanillaparams should be");
             Console.Out.WriteLine("             a copy of the original 1.0 param file, and the game install in gamepath should be on 1.1.");
+            Console.Out.WriteLine("             Upgrading occurs before processing any edits.");
             Console.Out.WriteLine("  -C2M csvfile1 csvfile2 ...");
             Console.Out.WriteLine("             Converts the specified CSV files into .MASSEDIT scripts.");
             Console.Out.WriteLine("             Resulting files are saved in the same directories as the CSV's provided.");
