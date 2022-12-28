@@ -196,7 +196,7 @@ namespace StudioCore.ParamEditor
                 using StreamWriter logWriter = new StreamWriter(logPath);
                 logWriter.WriteLine("The following rows have conflicts (i.e. both you and the game update added these rows).");
                 logWriter.WriteLine("The conflicting rows have been overwritten with your modded version, but it is recommended");
-                logWriter.WriteLine("that you review these rows and potentially move them to new IDs and try merging again");
+                logWriter.WriteLine("that you review these rows and move them to new IDs and try merging again");
                 logWriter.WriteLine("instead of saving your upgraded regulation right away.");
                 logWriter.WriteLine();
                 foreach (var c in conflicts)
@@ -211,12 +211,12 @@ namespace StudioCore.ParamEditor
                 logWriter.Flush();
                 
                 var msgRes = System.Windows.Forms.MessageBox.Show(
-                    $@"Conflicts were found while upgrading params. This is usually caused by a game updating adding " +
-                    "a new row that has the same ID as the one that you added in your mod. It is recommended that you " +
+                    $@"Conflicts were found while upgrading params. This is usually caused by a game update adding " +
+                    "a new row that has the same ID as the one that you added in your mod. It is highly recommended that you " +
                     "review these conflicts and handle them before saving. You can revert to your original params by " +
-                    "reloading your project by saving and move the conflicting rows to new IDs, or you can chance it by " +
-                    "trying to fix the current post-merge result. Currently your mod added rows will have overwritten" +
-                    "the added rows in the vanilla regulation.\n\nThe list of conflicts can be found in regulationUpgradeLog.txt" +
+                    "reloading your project without saving. Then you can move the conflicting rows to new IDs. " +
+                    "Currently the added rows from your mod will have overwritten " +
+                    "the added rows in the vanilla regulation.\n\nThe list of conflicts can be found in regulationUpgradeLog.txt " +
                     "in your mod project directory. Would you like to open them now?",
                     "Row conflicts found",
                     System.Windows.Forms.MessageBoxButtons.YesNo,
@@ -539,6 +539,11 @@ namespace StudioCore.ParamEditor
             }
             if (ImGui.BeginMenu("Compare"))
             {
+                if (ImGui.MenuItem("Show Vanilla Params", null, CFG.Current.Param_ShowVanillaParams))
+                {
+                    CFG.Current.Param_ShowVanillaParams = !CFG.Current.Param_ShowVanillaParams;
+                }
+                ImGui.Separator();
                 if (ImGui.MenuItem("Clear current row comparison", null, false, _activeView != null && _activeView._selection.getCompareRow() != null))
                 {
                     _activeView._selection.SetCompareRow(null);
@@ -679,8 +684,9 @@ namespace StudioCore.ParamEditor
                             "overwriting exiting rows if needed.\n\nIf both you and the game update added a row with the same ID, the merge " +
                             "will fail and there will be a log saying what rows you will need to manually change the ID of before trying " +
                             "to merge again.\n\nIn order to perform this operation, you must specify the original regulation on the version " +
-                            $"that your current mod is based on (version {ParamBank.PrimaryBank.ParamVersion}).\n\nOnce done, the upgraded params will appear" +
-                            "in the param editor where you can view and save them, but this operation is not undoable. " +
+                            $"that your current mod is based on (version {ParamBank.PrimaryBank.ParamVersion}).\n\nOnce done, the upgraded params will appear " +
+                            "in the param editor where you can view and save them. This operation is not undoable, but you can reload the project without " +
+                            "saving to revert to the un-upgraded params.\n\n" +
                             "Would you like to continue?", "Regulation upgrade",
                             System.Windows.Forms.MessageBoxButtons.OKCancel,
                             System.Windows.Forms.MessageBoxIcon.Question);
@@ -1371,7 +1377,7 @@ namespace StudioCore.ParamEditor
         private int _gotoParamRow = -1;
         private bool _arrowKeyPressed = false;
         private bool _focusRows = false;
-        private bool _drawParamView = false;
+        private bool _mapParamView = false;
 
         internal ParamEditorSelectionState _selection = new ParamEditorSelectionState();
 
@@ -1406,7 +1412,14 @@ namespace StudioCore.ParamEditor
                 or GameType.DarkSoulsRemastered)
             {
                 // This game has DrawParams, add UI element to toggle viewing DrawParam and GameParams.
-                if (ImGui.Checkbox("Edit Drawparams", ref _drawParamView))
+                if (ImGui.Checkbox("Edit Drawparams", ref _mapParamView))
+                    CacheBank.ClearCaches();
+                ImGui.Separator();
+            }
+            else if (ParamBank.PrimaryBank.AssetLocator.Type is GameType.DarkSoulsIISOTFS)
+            {
+                // DS2 has map params, add UI element to toggle viewing map params and GameParams.
+                if (ImGui.Checkbox("Edit Map Params", ref _mapParamView))
                     CacheBank.ClearCaches();
                 ImGui.Separator();
             }
@@ -1445,10 +1458,17 @@ namespace StudioCore.ParamEditor
                     or GameType.DarkSoulsPTDE
                     or GameType.DarkSoulsRemastered)
                 {
-                    if (_drawParamView)
+                    if (_mapParamView)
                         keyList = keyList.FindAll(p => p.EndsWith("Bank"));
                     else
                         keyList = keyList.FindAll(p => !p.EndsWith("Bank"));
+                }
+                else if (ParamBank.PrimaryBank.AssetLocator.Type is GameType.DarkSoulsIISOTFS)
+                {
+                    if (_mapParamView)
+                        keyList = keyList.FindAll(p => ParamBank.DS2MapParamlist.Contains(p.Split('_')[0]));
+                    else
+                        keyList = keyList.FindAll(p => !ParamBank.DS2MapParamlist.Contains(p.Split('_')[0]));
                 }
 
                 if (CFG.Current.Param_AlphabeticalParams)
