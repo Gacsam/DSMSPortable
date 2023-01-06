@@ -71,7 +71,7 @@ namespace DSMSPortable
             // Perform FMGMerging if specified
             if (msgbndFile != null)
             {
-                Console.Out.Write("Performing FMG merge...");
+                Console.Out.Write("Performing FMG merge for " + msgbndFile + "...");
                 if (FmgMerge())
                     Console.Out.WriteLine("Success!");
                 else
@@ -386,9 +386,9 @@ namespace DSMSPortable
                 }
             }
             if (fmgBinder is BND3 bnd3)
-                Utils.WriteWithBackup(gamepath, new FileInfo(msgbndFile).Directory.FullName, msgbndFile, bnd3);
+                Utils.WriteWithBackup(gamepath, new FileInfo(msgbndFile).Directory.FullName, Path.GetFileName(msgbndFile), bnd3);
             else if (fmgBinder is BND4 bnd4)
-                Utils.WriteWithBackup(gamepath, new FileInfo(msgbndFile).Directory.FullName, msgbndFile, bnd4);
+                Utils.WriteWithBackup(gamepath, new FileInfo(msgbndFile).Directory.FullName, Path.GetFileName(msgbndFile), bnd4);
             return true;
         }
         private static void LoadParams()
