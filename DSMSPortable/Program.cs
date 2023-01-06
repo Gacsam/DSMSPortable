@@ -385,10 +385,14 @@ namespace DSMSPortable
                     file.Bytes = info.Fmg.Write();
                 }
             }
+            string savePath;
+            if (outputFile != null && File.Exists(outputFile)) savePath = new FileInfo(outputFile).Directory.FullName;
+            else if (outputFile != null) savePath = outputFile;
+            else savePath = new FileInfo(msgbndFile).Directory.FullName;
             if (fmgBinder is BND3 bnd3)
-                Utils.WriteWithBackup(gamepath, new FileInfo(msgbndFile).Directory.FullName, Path.GetFileName(msgbndFile), bnd3);
+                Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(msgbndFile), bnd3);
             else if (fmgBinder is BND4 bnd4)
-                Utils.WriteWithBackup(gamepath, new FileInfo(msgbndFile).Directory.FullName, Path.GetFileName(msgbndFile), bnd4);
+                Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(msgbndFile), bnd4);
             return true;
         }
         private static void LoadParams()
@@ -1202,13 +1206,13 @@ namespace DSMSPortable
             Console.Out.WriteLine("             Path where the resulting param file will be saved.");
             Console.Out.WriteLine("             If this is not specified, the input file will be overwritten, and a backup will be made.");
             Console.Out.WriteLine("  --fmgmerge [msgbndfile] [fmgfile1 fmgfile2 ...] [-I]");
-            Console.Out.WriteLine("             Separate operation mode for merging FMG edits into a msgbnd file. -G and -P still apply.");
+            Console.Out.WriteLine("             Separate operation mode for merging FMG edits into a msgbnd file. -G, -P, and -O still apply.");
             Console.Out.WriteLine("             First argument is a msgbnd file, with the extension .msgbnd.dcx, latter arguments are files");
             Console.Out.WriteLine("             containing FMG entries, in either json or xml format as exported by DSMS or Yabber, respectively,");
             Console.Out.WriteLine("             or even as raw FMG data files.");
             Console.Out.WriteLine("             If -I is specified, conflicting entries will be ignored and only new entries will be merged");
             Console.Out.WriteLine("  --fmgentry [msgbndfile] [name1:id1:text1] [name2:id2:text2] ...");
-            Console.Out.WriteLine("             Separate operation mode for adding individual FMG entries to a msgbnd file. -G and -P still apply");
+            Console.Out.WriteLine("             Separate operation mode for adding individual FMG entries to a msgbnd file. -G -P -O still apply");
             Console.Out.WriteLine("             Each argument should be one string with the fmg name, id, and text separated by a colon:");
             Console.Out.WriteLine("             i.e. \"AccessoryName: 6200: Amulet of Defenestration\"");
             Environment.Exit(0);
