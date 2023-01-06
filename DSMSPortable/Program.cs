@@ -1104,7 +1104,16 @@ namespace DSMSPortable
                             }
                             else
                             {
-                                if (File.Exists(param) && (param.ToLower().EndsWith(".fmg") || param.ToLower().EndsWith(".xml") || param.ToLower().EndsWith(".json")))
+                                if (Directory.Exists(param))
+                                {
+                                    foreach (string file in Directory.EnumerateFiles(param))
+                                    {
+                                        if (File.Exists(file) && (file.ToLower().EndsWith(".fmg") || file.ToLower().EndsWith(".xml") || file.ToLower().EndsWith(".json")))
+                                            fmgFiles.Add(file);
+                                        else Console.Error.WriteLine("Warning: Invalid fmg file specified: " + file);
+                                    }
+                                }
+                                else if (File.Exists(param) && (param.ToLower().EndsWith(".fmg") || param.ToLower().EndsWith(".xml") || param.ToLower().EndsWith(".json")))
                                     fmgFiles.Add(param);
                                 else Console.Error.WriteLine("Warning: Invalid fmg file specified: " + param);
                             }
