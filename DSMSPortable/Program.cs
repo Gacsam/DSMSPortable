@@ -514,7 +514,7 @@ namespace DSMSPortable
                     }
                 }
                 Console.Out.Write($@"Exporting {param}... ");
-                List<FSParam.Param.Row> rows = RowSearchEngine.rse.Search(ParamBank.PrimaryBank.GetParamFromName(param), query, true, true);
+                List<FSParam.Param.Row> rows = RowSearchEngine.rse.Search((ParamBank.PrimaryBank, ParamBank.PrimaryBank.GetParamFromName(param)), query, true, true);
                 string output = MassParamEditCSV.GenerateCSV(rows, ParamBank.PrimaryBank.GetParamFromName(param), ',');
                 // Write the output in the same directory as the param file provided, unless a valid output path was specified
                 string csvOutFile = $@"{new FileInfo(inputFile).Directory.FullName}\{param}.csv";
