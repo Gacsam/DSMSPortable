@@ -1,9 +1,13 @@
 ﻿using System.Collections;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Xml;
+using Newtonsoft.Json;
+using SoulsFormats;
 using StudioCore;
 using StudioCore.Editor;
 using StudioCore.ParamEditor;
+using StudioCore.TextEditor;
 
 namespace DSMSPortable
 {
@@ -24,6 +28,8 @@ namespace DSMSPortable
         static ArrayList masseditpFiles;
         static ArrayList sortingRows;
         static ArrayList exportParams = null;
+        static ArrayList fmgFiles;
+        static ArrayList fmgAdditions;
         static ActionManager manager;
         static GameType gameType = GameType.EldenRing;
         static string paramFileName;
@@ -33,9 +39,11 @@ namespace DSMSPortable
         static string workingDirectory = null;
         static string compareParamFile = null;
         static string upgradeRefParamFile = null;
+        static string msgbndFile = null;
         static bool gametypeContext = false;
         static bool folderMimic = false;
         static bool changesMade = false;
+        static bool ignoreConflicts = false;
         static void Main(string[] args)
         {
             masseditFiles = new();
@@ -43,6 +51,8 @@ namespace DSMSPortable
             csvFiles = new();
             c2mFiles = new();
             sortingRows = new();
+            fmgFiles = new();
+            fmgAdditions = new();
             manager = new();
             // Set culture to invariant, so doubles don't try to parse with floating commas
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
@@ -58,6 +68,16 @@ namespace DSMSPortable
                 Environment.Exit(2);
             }
             GetParamName();
+            // Perform FMGMerging if specified
+            if (msgbndFile != null)
+            {
+                Console.Out.Write("Performing FMG merge...");
+                if (FmgMerge())
+                    Console.Out.WriteLine("Success!");
+                else
+                    Console.Out.WriteLine("No changes detected.");
+                return;
+            }
             // Check the input file given
             if (inputFile == null)
             {
@@ -201,7 +221,8 @@ namespace DSMSPortable
             FSParam.Param.Row newRow = new(param.Rows.FirstOrDefault());
             for (int i = 0; i < newRow.CellHandles.Count; i++)
             {   // Def.Default is just always 0. s32's where the minimum is explicitly -1 reference ID's so -1 makes a better default
-                if ((newRow.CellHandles[i].Def.DisplayType == SoulsFormats.PARAMDEF.DefType.s32 || newRow.CellHandles[i].Def.DisplayType == SoulsFormats.PARAMDEF.DefType.s16)
+                if ((newRow.CellHandles[i].Def.DisplayType == SoulsFormats.PARAMDEF.DefType.s32 || 
+                    newRow.CellHandles[i].Def.DisplayType == SoulsFormats.PARAMDEF.DefType.s16)
                     && (int)newRow.CellHandles[i].Def.Minimum == -1)
                     newRow.CellHandles[i].SetValue(Convert.ChangeType(newRow.CellHandles[i].Def.Minimum, newRow.CellHandles[i].Value.GetType()));
                 else if (newRow.CellHandles[i].Def.Default != null)
@@ -210,6 +231,165 @@ namespace DSMSPortable
             newRow.ID = id;
             param.AddRow(newRow);
             return newRow;
+        }
+        private static bool FmgMerge()
+        {
+            if (msgbndFile == null) return false;
+            bool changesMade = false;
+            // Read msgbndfile
+            List<FMGBank.FMGInfo> fmgBank = new();
+            IBinder fmgBinder;
+            if (gameType == GameType.DemonsSouls || gameType == GameType.DarkSoulsPTDE || gameType == GameType.DarkSoulsRemastered)
+                fmgBinder = BND3.Read(msgbndFile);
+            else fmgBinder = BND4.Read(msgbndFile);
+            foreach (var file in fmgBinder.Files)
+                fmgBank.Add(FMGBank.GenerateFMGInfo(file));
+            // Read fmg files provided
+            foreach (string fmgPath in fmgFiles)
+            {
+                FMG fmg = null;
+                FMGBank.FMGInfo sourceFmg = null;
+                // Find out which FMG we're dealing with
+                foreach (FMGBank.FMGInfo src in fmgBank)
+                {
+                    if (src.Name.ToLower() == Path.GetFileNameWithoutExtension(fmgPath).Split(".")[0].ToLower() ||
+                        src.FileName.Split(".")[0].ToLower() == Path.GetFileNameWithoutExtension(fmgPath).Split(".")[0].ToLower())
+                    {
+                        sourceFmg = src;
+                        break;
+                    }
+                }
+                if (sourceFmg == null)
+                {
+                    Console.Error.WriteLine("ERROR: Could not find FMG by name of " + Path.GetFileNameWithoutExtension(fmgPath).Split(".")[0] + 
+                        " in " + Path.GetFileName(msgbndFile));
+                    Environment.Exit(11);
+                }
+                if (fmgPath.ToLower().EndsWith(".json"))
+                {   // exported with DSMS
+                    var file = File.ReadAllText(fmgPath);
+                    var json = JsonConvert.DeserializeObject<FMGBank.JsonFMG>(@file);
+                    fmg = json.Fmg;
+                }
+                else if (fmgPath.ToLower().EndsWith(".xml"))
+                {   // exported with Yabber
+                    fmg = new FMG();
+                    XmlDocument xml = new();
+                    try
+                    {
+                        xml.Load(fmgPath);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.Error.WriteLine("ERROR: Could not parse " + Path.GetFileName(fmgPath) + " as an xml file: " + e.Message);
+                        Environment.Exit(12);
+                    }
+                    if(!Enum.TryParse(xml.SelectSingleNode("fmg/compression")?.InnerText ?? "None", out DCX.Type compression))
+                    {
+                        Console.Error.WriteLine("ERROR: Could not parse " + Path.GetFileName(fmgPath) + " as an xml file");
+                        Environment.Exit(12);
+                    }
+                    fmg.Compression = compression;
+                    fmg.Version = (FMG.FMGVersion)Enum.Parse(typeof(FMG.FMGVersion), xml.SelectSingleNode("fmg/version").InnerText);
+                    fmg.BigEndian = bool.Parse(xml.SelectSingleNode("fmg/bigendian").InnerText);
+                    foreach (XmlNode textNode in xml.SelectNodes("fmg/entries/text"))
+                    {
+                        int id = int.Parse(textNode.Attributes["id"].InnerText);
+                        string text = textNode.InnerText.Replace("\r", "");
+                        if (text == "%null%")
+                            text = null;
+                        fmg.Entries.Add(new FMG.Entry(id, text));
+                    }
+                }
+                else if (fmgPath.ToLower().EndsWith(".fmg"))
+                {   // Raw data
+                    try
+                    {
+                        fmg = FMG.Read(File.ReadAllBytes(fmgPath));
+                    }
+                    catch (Exception e)
+                    {
+                        Console.Error.WriteLine("ERROR: Could not read " + Path.GetFileName(fmgPath) + " as an fmg file: " + e.Message);
+                        Environment.Exit(12);
+                    }
+                }
+                // Perform merge
+                foreach (FMG.Entry entry in fmg.Entries)
+                {
+                    FMG.Entry existingEntry = sourceFmg.GetEntry(entry.ID);
+                    if (existingEntry == null)
+                    {
+                        sourceFmg.AddEntry(entry);
+                        changesMade = true;
+                    }
+                    else if (!ignoreConflicts && existingEntry.Text != entry.Text)
+                    {
+                        sourceFmg.DeleteEntry(existingEntry);
+                        sourceFmg.AddEntry(entry);
+                        changesMade = true;
+                    }
+                }
+            }
+            // Perform manual entries
+            foreach(string fmgstring in fmgAdditions)
+            {
+                string name = fmgstring.Split(":", 3)[0].Trim();
+                int id = 0;
+                try
+                {
+                    id = int.Parse(fmgstring.Split(":", 3)[1].Trim());
+                }
+                catch(Exception)
+                {
+                    Console.Error.WriteLine("ERROR: \"" + fmgstring + "\" is not a valid FMG entry in the format [Name]:[ID]:[Text]");
+                    Environment.Exit(13);
+                }
+                string text = fmgstring.Split(":", 3)[2].Trim();
+                // Find out which FMG we're dealing with
+                FMGBank.FMGInfo sourceFmg = null;
+                foreach (FMGBank.FMGInfo src in fmgBank)
+                {
+                    if (src.Name.ToLower() == name.ToLower() || src.FileName.Split(".")[0].ToLower() == name.ToLower())
+                    {
+                        sourceFmg = src;
+                        break;
+                    }
+                }
+                if (sourceFmg == null)
+                {
+                    Console.Error.WriteLine("ERROR: Could not find FMG by name of " + name + " in " + Path.GetFileName(msgbndFile));
+                    Environment.Exit(11);
+                }
+                // Perform entry
+                FMG.Entry newEntry = new(id, text);
+                FMG.Entry existingEntry = sourceFmg.GetEntry(id);
+                if (existingEntry == null)
+                {
+                    sourceFmg.AddEntry(newEntry);
+                    changesMade = true;
+                }
+                else if (existingEntry.Text != text)
+                {
+                    sourceFmg.DeleteEntry(existingEntry);
+                    sourceFmg.AddEntry(newEntry);
+                    changesMade = true;
+                }
+            }
+            // Save msgbnd file if necessary
+            if (!changesMade) return false;
+            foreach (var file in fmgBinder.Files)
+            {
+                var info = fmgBank.Find(e => e.FmgID == (FMGBank.FmgIDType)file.ID);
+                if (info != null)
+                {
+                    file.Bytes = info.Fmg.Write();
+                }
+            }
+            if (fmgBinder is BND3 bnd3)
+                Utils.WriteWithBackup(gamepath, new FileInfo(msgbndFile).Directory.FullName, msgbndFile, bnd3);
+            else if (fmgBinder is BND4 bnd4)
+                Utils.WriteWithBackup(gamepath, new FileInfo(msgbndFile).Directory.FullName, msgbndFile, bnd4);
+            return true;
         }
         private static void LoadParams()
         {
@@ -545,7 +725,8 @@ namespace DSMSPortable
                     Console.Out.WriteLine($@"{paramName} {meresult.Type}: {meresult.Information}");
                 }
                 else Console.Error.WriteLine($@"{paramName} {meresult.Type}: {meresult.Information}");
-                if (meresult.Information.Contains(" 0 rows added")) Console.Out.WriteLine("\tWarning: Use MASSEDIT scripts for modifying existing params to avoid conflicts");
+                if (meresult.Information.Contains(" 0 rows added")) 
+                    Console.Out.WriteLine("\tWarning: Use MASSEDIT scripts for modifying existing params to avoid conflicts");
             }
         }
         private static void ProcessMasseditWithAddition()
@@ -780,13 +961,23 @@ namespace DSMSPortable
                         case 'U':
                             mode = ParamMode.UPGRADE;
                             break;
+                        case 'I':
+                            ignoreConflicts = true;
+                            break;
                         case 'H':
                         case '?':
                             Help();
                             break;
                         default:
-                            Console.Error.WriteLine("ERROR: Invalid switch: " + param);
-                            Environment.Exit(5);
+                            if (param.ToLower() == "--fmgmerge")
+                                mode = ParamMode.FMGMERGE;
+                            else if (param.ToLower() == "--fmgentry")
+                                mode = ParamMode.FMGENTRY;
+                            else
+                            {
+                                Console.Error.WriteLine("ERROR: Invalid switch: " + param);
+                                Environment.Exit(5);
+                            }
                             break;
                     }
                 }
@@ -901,6 +1092,35 @@ namespace DSMSPortable
                             upgradeRefParamFile = param;
                             mode = ParamMode.NONE;
                             break;
+                        case ParamMode.FMGMERGE:
+                            if (msgbndFile == null)
+                            {
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith(".msgbnd") || param.ToLower().EndsWith(".msgbnd.dcx")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid msgbnd file specified");
+                                    Environment.Exit(10);
+                                }
+                                msgbndFile = param;
+                            }
+                            else
+                            {
+                                if (File.Exists(param) && (param.ToLower().EndsWith(".fmg") || param.ToLower().EndsWith(".xml") || param.ToLower().EndsWith(".json")))
+                                    fmgFiles.Add(param);
+                                else Console.Error.WriteLine("Warning: Invalid fmg file specified: " + param);
+                            }
+                            break;
+                        case ParamMode.FMGENTRY:
+                            if (msgbndFile == null)
+                            {
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith(".msgbnd") || param.ToLower().EndsWith(".msgbnd.dcx")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid msgbnd file specified");
+                                    Environment.Exit(10);
+                                }
+                                msgbndFile = param;
+                            }
+                            else fmgAdditions.Add(param);
+                            break;
                         case ParamMode.NONE:
                             if (param.ToLower().Equals("help") || param.Equals("?"))
                             {
@@ -927,6 +1147,8 @@ namespace DSMSPortable
             Console.Out.WriteLine("Usage: DSMSPortable [paramfile] [-G gametype] [-P gamepath] [-U oldvanillaparams] [-C2M csvfile1 csvfile2 ...]");
             Console.Out.WriteLine("                                [-C csvfile1 csvfile2 ...] [-M[+] masseditfile1 masseditfile2 ...]");
             Console.Out.WriteLine("                                [-X paramname1[:query] paramname2 ...] [-D diffparamfile] [-O outputpath]\n");
+            Console.Out.WriteLine("       DSMSPortable --fmgmerge [msgbndfile] [fmgfile1 fmgfile2 ...] [-I]");
+            Console.Out.WriteLine("       DSMSPortable --fmgentry [msgbndfile] [name1:id1:text1] [name2:id2:text2] ...");
             Console.Out.WriteLine("  paramfile  Path to regulation.bin file (or respective param file for other FromSoft games) to modify");
             Console.Out.WriteLine("  -G gametype");
             Console.Out.WriteLine("             Code indicating which game is being modified. The default is Elden Ring. Options are as follows:");
@@ -936,11 +1158,11 @@ namespace DSMSPortable
             Console.Out.WriteLine("  -P gamepath");
             Console.Out.WriteLine("             Path to the main install directory for the selected game, for loading vanilla params.");
             Console.Out.WriteLine("             The gamepath can also be implicitly specified in a gamepath.txt file in the working directory.");
-            Console.Out.WriteLine("             Using this switch without specifying a paramfile will return the default paramfile name for that game");
+            Console.Out.WriteLine("             Using this switch without specifying a paramfile will return paramfile metadata for that game");
             Console.Out.WriteLine("  -U oldvanillaparams");
-            Console.Out.WriteLine("             Upgrades the paramfile to the latest version found in the gamepath, using the specified vanilla param");
-            Console.Out.WriteLine("             file as a reference. If trying to upgrade a 1.0 param file to 1.1, oldvanillaparams should be");
-            Console.Out.WriteLine("             a copy of the original 1.0 param file, and the game install in gamepath should be on 1.1.");
+            Console.Out.WriteLine("             Upgrades the paramfile to the latest version found in the gamepath, using the specified vanilla");
+            Console.Out.WriteLine("             paramfile as a reference. If trying to upgrade a 1.0 param file to 1.1, oldvanillaparams should");
+            Console.Out.WriteLine("             be a copy of the original 1.0 param file, and the game install in gamepath should be on 1.1.");
             Console.Out.WriteLine("             Upgrading occurs before processing any edits.");
             Console.Out.WriteLine("  -C2M csvfile1 csvfile2 ...");
             Console.Out.WriteLine("             Converts the specified CSV files into .MASSEDIT scripts.");
@@ -952,12 +1174,12 @@ namespace DSMSPortable
             Console.Out.WriteLine("             CSV edits will be always be processed before massedit scripts.");
             Console.Out.WriteLine("  -M[+] masseditfile1 masseditfile2 ...");
             Console.Out.WriteLine("             List of text files (.TXT or .MASSEDIT) containing a script of DS Map Studio MASSEDIT commands.");
-            Console.Out.WriteLine("             It is highly recommended to use massedit scripts to modify existing params to avoid conflicting edits.");
+            Console.Out.WriteLine("             It is highly recommended to use massedit scripts to modify existing params to avoid conflicts.");
             Console.Out.WriteLine("             Edit scripts of the same type are processed in the order in which they are specified.");
-            Console.Out.WriteLine("             If -M+ is specified, any individual ID's found that do not exist in the param file will be created and");
-            Console.Out.WriteLine("             populated with default values (usually whatever is in the first entry of the param).");
+            Console.Out.WriteLine("             If -M+ is specified, any individual ID's found that do not exist in the param file will be");
+            Console.Out.WriteLine("             created and populated with default values (usually whatever is in the first entry of the param).");
             Console.Out.WriteLine("  -X paramname1[:query] paramname2 ...");
-            Console.Out.WriteLine("             Exports the specified params to CSV, where paramname is the exact name of the param to be exported,");
+            Console.Out.WriteLine("             Exports the specified params to CSV, where paramname is the name of the param to be exported,");
             Console.Out.WriteLine("             and the query narrows down the export criteria, e.g. SpEffectParam: name Crucible && modified");
             Console.Out.WriteLine("             Specifying -X by itself will result in a full mass export.");
             Console.Out.WriteLine("             Resulting files are saved in the same directories as the paramfile.");
@@ -969,7 +1191,17 @@ namespace DSMSPortable
             Console.Out.WriteLine("             If a valid output path is specified, it will be saved there instead.");
             Console.Out.WriteLine("  -O outputpath");
             Console.Out.WriteLine("             Path where the resulting param file will be saved.");
-            Console.Out.WriteLine("             If this is not specified, the input file will be overwritten, and a backup will be made if possible.");
+            Console.Out.WriteLine("             If this is not specified, the input file will be overwritten, and a backup will be made.");
+            Console.Out.WriteLine("  --fmgmerge [msgbndfile] [fmgfile1 fmgfile2 ...] [-I]");
+            Console.Out.WriteLine("             Separate operation mode for merging FMG edits into a msgbnd file. -G and -P still apply.");
+            Console.Out.WriteLine("             First argument is a msgbnd file, with the extension .msgbnd.dcx, latter arguments are files");
+            Console.Out.WriteLine("             containing FMG entries, in either json or xml format as exported by DSMS or Yabber, respectively,");
+            Console.Out.WriteLine("             or even as raw FMG data files.");
+            Console.Out.WriteLine("             If -I is specified, conflicting entries will be ignored and only new entries will be merged");
+            Console.Out.WriteLine("  --fmgentry [msgbndfile] [name1:id1:text1] [name2:id2:text2] ...");
+            Console.Out.WriteLine("             Separate operation mode for adding individual FMG entries to a msgbnd file. -G and -P still apply");
+            Console.Out.WriteLine("             Each argument should be one string with the fmg name, id, and text separated by a colon:");
+            Console.Out.WriteLine("             i.e. \"AccessoryName: 6200: Amulet of Defenestration\"");
             Environment.Exit(0);
         }
         // Indicates what the last read switch was
@@ -985,7 +1217,9 @@ namespace DSMSPortable
             EXPORT,
             DIFF,
             UPGRADE,
-            NONE
+            NONE,
+            FMGMERGE,
+            FMGENTRY
         }
         // No reason to be anal about the exact switch character used, any of these is fine
         private static bool IsSwitch(string arg)

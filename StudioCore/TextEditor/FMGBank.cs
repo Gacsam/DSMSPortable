@@ -49,6 +49,15 @@ namespace StudioCore.TextEditor
             public FmgEntryCategory EntryCategory;
             public FmgEntryTextType EntryType;
 
+            public FMG.Entry GetEntry(int ID)
+            {
+                foreach (FMG.Entry e in Fmg.Entries)
+                {
+                    if (e.ID == ID) return e;
+                }
+                return null;
+            }
+
             public void AddParent(FMGInfo parent)
             {
                 if (CFG.Current.FMG_NoFmgPatching)
@@ -820,7 +829,7 @@ namespace StudioCore.TextEditor
             return str;
         }
 
-        private static FMGInfo GenerateFMGInfo(BinderFile file)
+        public static FMGInfo GenerateFMGInfo(BinderFile file)
         {
             var fmg = FMG.Read(file.Bytes);
             var name = Enum.GetName(typeof(FmgIDType), file.ID);
@@ -1270,7 +1279,7 @@ namespace StudioCore.TextEditor
             }
         }
 
-        private class JsonFMG
+        public class JsonFMG
         {
             public FmgIDType FmgID;
             public FMG Fmg;
