@@ -8,6 +8,7 @@
     <StartupObject>DSMSPortable.DSMSPortable</StartupObject>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <ErrorReport>none</ErrorReport>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -20,6 +21,10 @@
     <DebugType>embedded</DebugType>
     <NoWarn>1701;1702;0414</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="icon.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\StudioCore\StudioCore.csproj">
