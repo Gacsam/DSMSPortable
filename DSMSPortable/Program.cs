@@ -540,15 +540,7 @@ namespace DSMSPortable
         {
             string param = null;
             string query;
-            // Empty list is a special case. Mass export all.
-            if (removeParams.Count == 0)
-            {
-                foreach (string p in ParamBank.PrimaryBank.Params.Keys)
-                {
-                    removeParams.Add(p);
-                }
-            }
-            // Read each argument, check for a query, and generate CSV
+            // Read each argument, check for a query, and remove resulting rows
             foreach (string removalParam in removeParams)
             {
                 query = "";
