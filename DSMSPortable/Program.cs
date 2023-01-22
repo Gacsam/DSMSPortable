@@ -28,8 +28,7 @@ namespace DSMSPortable
         static ArrayList masseditpFiles;
         static ArrayList sortingRows;
         static ArrayList exportParams = null;
-        static ArrayList fmgFiles;
-        static ArrayList fmgAdditions;
+        static ArrayList removeParams;
         static ActionManager manager;
         static GameType gameType = GameType.EldenRing;
         static string paramFileName;
@@ -39,7 +38,16 @@ namespace DSMSPortable
         static string workingDirectory = null;
         static string compareParamFile = null;
         static string upgradeRefParamFile = null;
+        // fmgmerge files
         static string msgbndFile = null;
+        static ArrayList fmgFiles;
+        static ArrayList fmgAdditions;
+        // layoutmerge files
+        static string sblytbndFile = null;
+        static ArrayList layoutFiles;
+        // texturemerge files
+        static string tpfFile = null;
+        static ArrayList ddsFiles;
         static bool gametypeContext = false;
         static bool folderMimic = false;
         static bool changesMade = false;
@@ -51,8 +59,11 @@ namespace DSMSPortable
             csvFiles = new();
             c2mFiles = new();
             sortingRows = new();
+            removeParams = new();
             fmgFiles = new();
             fmgAdditions = new();
+            layoutFiles = new();
+            ddsFiles = new();
             manager = new();
             // Set culture to invariant, so doubles don't try to parse with floating commas
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
@@ -73,6 +84,26 @@ namespace DSMSPortable
             {
                 Console.Out.Write("Performing FMG merge for " + msgbndFile + "...");
                 if (FmgMerge())
+                    Console.Out.WriteLine("Success!");
+                else
+                    Console.Out.WriteLine("No changes detected.");
+                return;
+            }
+            // Perform LayoutMerging if specified
+            if (sblytbndFile != null)
+            {
+                Console.Out.Write("Performing Layout merge for " + sblytbndFile + "...");
+                if (LayoutMerge())
+                    Console.Out.WriteLine("Success!");
+                else
+                    Console.Out.WriteLine("No changes detected.");
+                return;
+            }
+            // Perform TextureMerging if specified
+            if (tpfFile != null)
+            {
+                Console.Out.Write("Performing Layout merge for " + tpfFile + "...");
+                if (TextureMerge())
                     Console.Out.WriteLine("Success!");
                 else
                     Console.Out.WriteLine("No changes detected.");
@@ -119,6 +150,12 @@ namespace DSMSPortable
             {
                 Console.Out.WriteLine("Converting CSV files to MASSEDIT...");
                 ProcessCSVToMassedit();
+            }
+            // Execute Row Removals
+            if (removeParams.Count > 0)
+            {
+                Console.Out.WriteLine("Executing Row removals...");
+                RemoveParams();
             }
             // Process CSV edits first
             if (csvFiles.Count > 0)
@@ -231,6 +268,20 @@ namespace DSMSPortable
             newRow.ID = id;
             param.AddRow(newRow);
             return newRow;
+        }
+        private static bool LayoutMerge()
+        {
+            if (sblytbndFile == null) return false;
+            if (layoutFiles.Count == 0) return false;
+            // TODO everything
+            return true;
+        }
+        private static bool TextureMerge()
+        {
+            if (tpfFile == null) return false;
+            if (ddsFiles.Count == 0) return false;
+            // TODO everything
+            return true;
         }
         private static bool FmgMerge()
         {
@@ -483,6 +534,59 @@ namespace DSMSPortable
             catch (Exception e)
             {
                 Console.Error.WriteLine("ERROR: " + e.Message);
+            }
+        }
+        private static void RemoveParams()
+        {
+            string param = null;
+            string query;
+            // Empty list is a special case. Mass export all.
+            if (removeParams.Count == 0)
+            {
+                foreach (string p in ParamBank.PrimaryBank.Params.Keys)
+                {
+                    removeParams.Add(p);
+                }
+            }
+            // Read each argument, check for a query, and generate CSV
+            foreach (string removalParam in removeParams)
+            {
+                query = "";
+                if (!removalParam.Contains(':'))
+                    param = removalParam.Trim();
+                else
+                {
+                    param = removalParam.Split(':', 2)[0].Trim();
+                    query = removalParam.Split(':', 2)[1].Trim();
+                }
+                // Check for param name
+                foreach (string p in ParamBank.PrimaryBank.Params.Keys)
+                {
+                    if (param.ToLower() == p.ToLower())
+                    {
+                        param = p;
+                        break;
+                    }
+                }
+                FSParam.Param selectedParam = ParamBank.PrimaryBank.GetParamFromName(param);
+                if (selectedParam == null)
+                {
+                    Console.Error.WriteLine("Warning: No such param: " + param);
+                    continue;
+                }
+                Console.Out.Write($@"Removing rows from {param}... ");
+                List<FSParam.Param.Row> rows = RowSearchEngine.rse.Search((ParamBank.PrimaryBank, selectedParam), query, true, true);
+                if(rows.Count == 0)
+                {
+                    Console.Out.WriteLine("No rows found.");
+                    continue;
+                }
+                foreach (FSParam.Param.Row row in rows)
+                {
+                    selectedParam.RemoveRow(row);
+                    changesMade = true;
+                }
+                Console.Out.WriteLine("Done!");
             }
         }
         private static void ExportParams()
@@ -959,6 +1063,9 @@ namespace DSMSPortable
                             mode = ParamMode.EXPORT;
                             exportParams ??= new();
                             break;
+                        case 'R':
+                            mode = ParamMode.REMOVE;
+                            break;
                         case 'D':
                             mode = ParamMode.DIFF;
                             break;
@@ -977,6 +1084,10 @@ namespace DSMSPortable
                                 mode = ParamMode.FMGMERGE;
                             else if (param.ToLower() == "--fmgentry")
                                 mode = ParamMode.FMGENTRY;
+                            else if (param.ToLower() == "--layoutmerge")
+                                mode = ParamMode.LAYOUTMERGE;
+                            else if (param.ToLower() == "--texturemerge")
+                                mode = ParamMode.DDSMERGE;
                             else
                             {
                                 Console.Error.WriteLine("ERROR: Invalid switch: " + param);
@@ -1078,6 +1189,9 @@ namespace DSMSPortable
                         case ParamMode.EXPORT:
                             exportParams.Add(param);
                             break;
+                        case ParamMode.REMOVE:
+                            removeParams.Add(param);
+                            break;
                         case ParamMode.DIFF:
                             if(compareParamFile != null)
                             {
@@ -1134,6 +1248,58 @@ namespace DSMSPortable
                             }
                             else fmgAdditions.Add(param);
                             break;
+                        case ParamMode.LAYOUTMERGE:
+                            if (sblytbndFile == null)
+                            {
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith(".sblytbnd") || param.ToLower().EndsWith(".sblytbnd.dcx")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid sblytbnd file specified");
+                                    Environment.Exit(11);
+                                }
+                                sblytbndFile = param;
+                            }
+                            else
+                            {
+                                if (Directory.Exists(param))
+                                {
+                                    foreach (string file in Directory.EnumerateFiles(param))
+                                    {
+                                        if (File.Exists(file) && (file.ToLower().EndsWith(".layout")))
+                                            layoutFiles.Add(file);
+                                        else Console.Error.WriteLine("Warning: Invalid layout file specified: " + file);
+                                    }
+                                }
+                                else if (File.Exists(param) && (param.ToLower().EndsWith(".layout")))
+                                    layoutFiles.Add(param);
+                                else Console.Error.WriteLine("Warning: Invalid layout file specified: " + param);
+                            }
+                            break;
+                        case ParamMode.DDSMERGE:
+                            if (tpfFile == null)
+                            {
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith(".tpf") || param.ToLower().EndsWith(".tpf.dcx")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid tpf file specified");
+                                    Environment.Exit(12);
+                                }
+                                tpfFile = param;
+                            }
+                            else
+                            {
+                                if (Directory.Exists(param))
+                                {
+                                    foreach (string file in Directory.EnumerateFiles(param))
+                                    {
+                                        if (File.Exists(file) && (file.ToLower().EndsWith(".dds")))
+                                            layoutFiles.Add(file);
+                                        else Console.Error.WriteLine("Warning: Invalid DDS file specified: " + file);
+                                    }
+                                }
+                                else if (File.Exists(param) && (param.ToLower().EndsWith(".dds")))
+                                    layoutFiles.Add(param);
+                                else Console.Error.WriteLine("Warning: Invalid DDS file specified: " + param);
+                            }
+                            break;
                         case ParamMode.NONE:
                             if (param.ToLower().Equals("help") || param.Equals("?"))
                             {
@@ -1158,8 +1324,9 @@ namespace DSMSPortable
             Console.Out.WriteLine("Lightweight utility for patching FromSoft param files. Free to distribute with other mods, but not for sale.");
             Console.Out.WriteLine("DS Map Studio Core developed and maintained by the SoulsMods team: https://github.com/soulsmods/DSMapStudio\n");
             Console.Out.WriteLine("Usage: DSMSPortable [paramfile] [-G gametype] [-P gamepath] [-U oldvanillaparams] [-C2M csvfile1 csvfile2 ...]");
-            Console.Out.WriteLine("                                [-C csvfile1 csvfile2 ...] [-M[+] masseditfile1 masseditfile2 ...]");
-            Console.Out.WriteLine("                                [-X paramname1[:query] paramname2 ...] [-D diffparamfile] [-O outputpath]\n");
+            Console.Out.WriteLine("                                [-R paramname1:query1 paramname2:query2 ...] [-C csvfile1 csvfile2 ...]");
+            Console.Out.WriteLine("                                [-M[+] masseditfile1 masseditfile2 ...] [-X paramname1[:query] paramname2 ...]");
+            Console.Out.WriteLine("                                [-D diffparamfile] [-O outputpath]\n");
             Console.Out.WriteLine("       DSMSPortable --fmgmerge [msgbndfile] [fmgfile1 fmgfile2 ...] [-I]");
             Console.Out.WriteLine("       DSMSPortable --fmgentry [msgbndfile] [name1:id1:text1] [name2:id2:text2] ...");
             Console.Out.WriteLine("  paramfile  Path to regulation.bin file (or respective param file for other FromSoft games) to modify");
@@ -1181,6 +1348,8 @@ namespace DSMSPortable
             Console.Out.WriteLine("             Converts the specified CSV files into .MASSEDIT scripts.");
             Console.Out.WriteLine("             Resulting files are saved in the same directories as the CSV's provided.");
             Console.Out.WriteLine("             If a valid output path is specified, they will be saved there instead.");
+            Console.Out.WriteLine("  -R paramname1:query1 paramname2:query2 ...");
+            Console.Out.WriteLine("             Removes the rows specified by the given query from the specified param. Same format as -X.");
             Console.Out.WriteLine("  -C csvfile1 csvfile2 ...");
             Console.Out.WriteLine("             List of CSV files (.TXT or .CSV) containing entire rows of params to add.");
             Console.Out.WriteLine("             Each file's name must perfectly match the param it is modifying (i.e. SpEffectParam.csv).");
@@ -1229,11 +1398,14 @@ namespace DSMSPortable
             SETGAMETYPE,
             SETGAMEPATH,
             EXPORT,
+            REMOVE,
             DIFF,
             UPGRADE,
             NONE,
             FMGMERGE,
-            FMGENTRY
+            FMGENTRY,
+            LAYOUTMERGE,
+            DDSMERGE
         }
         // No reason to be anal about the exact switch character used, any of these is fine
         private static bool IsSwitch(string arg)
