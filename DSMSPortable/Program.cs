@@ -1025,7 +1025,7 @@ namespace DSMSPortable
         private static void ProcessArgs(string[] args)
         {
             if (args.Length == 0)
-                Help();
+                Help(true);
             ParamMode mode = ParamMode.NONE;
             foreach (string param in args)
             {
@@ -1069,7 +1069,7 @@ namespace DSMSPortable
                             break;
                         case 'H':
                         case '?':
-                            Help();
+                            Help(false);
                             break;
                         default:
                             if (param.ToLower() == "--fmgmerge")
@@ -1295,7 +1295,7 @@ namespace DSMSPortable
                         case ParamMode.NONE:
                             if (param.ToLower().Equals("help") || param.Equals("?"))
                             {
-                                Help();
+                                Help(false);
                                 break;
                             }
                             if (inputFile != null)
@@ -1310,7 +1310,7 @@ namespace DSMSPortable
             }
         }
 
-        private static void Help()
+        private static void Help(bool pause)
         {
             Console.Out.WriteLine("DSMS Portable by mountlover.");
             Console.Out.WriteLine("Lightweight utility for patching FromSoft param files. Free to distribute with other mods, but not for sale.");
@@ -1376,7 +1376,7 @@ namespace DSMSPortable
             Console.Out.WriteLine("             Separate operation mode for adding individual FMG entries to a msgbnd file. -G -P -O still apply");
             Console.Out.WriteLine("             Each argument should be one string with the fmg name, id, and text separated by a colon:");
             Console.Out.WriteLine("             i.e. \"AccessoryName: 6200: Amulet of Defenestration\"");
-            Console.ReadKey(false);
+            if(pause) Console.ReadKey(true);
             Environment.Exit(0);
         }
         // Indicates what the last read switch was
