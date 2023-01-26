@@ -102,7 +102,7 @@ namespace DSMSPortable
             // Perform TextureMerging if specified
             if (tpfFile != null)
             {
-                Console.Out.Write("Performing Layout merge for " + tpfFile + "...");
+                Console.Out.Write("Performing Texture merge for " + tpfFile + "...");
                 if (TextureMerge())
                     Console.Out.WriteLine("Success!");
                 else
@@ -273,14 +273,140 @@ namespace DSMSPortable
         {
             if (sblytbndFile == null) return false;
             if (layoutFiles.Count == 0) return false;
-            // TODO everything
+            IBinder sblytBinder = null;
+            try // Attempt to read the sblytbnd file
+            {
+                if (gameType == GameType.DemonsSouls || gameType == GameType.DarkSoulsPTDE || gameType == GameType.DarkSoulsRemastered)
+                    sblytBinder = BND3.Read(sblytbndFile);
+                else sblytBinder = BND4.Read(sblytbndFile);
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($@"ERROR: Could not read sblytbnd File {sblytbndFile}: {e.Message}");
+                Environment.Exit(14);
+            }
+            foreach (string layoutFile in layoutFiles)
+            {
+                if (!File.Exists(layoutFile))
+                {
+                    Console.Error.WriteLine("Warning: Could not open layout file: " + layoutFile);
+                    continue;
+                }
+                string name = Path.GetFileName(layoutFile);
+                bool conflict = false;
+                // Snag a reference from the existing textures
+                int index = sblytBinder.Files.Count;
+                Binder.FileFlags flags = sblytBinder.Files[index-1].Flags;
+                name = $@"{new FileInfo(sblytBinder.Files[index-1].Name).Directory.FullName}\{name}";
+                // Check to make sure there isn't an existing texture with the same name (non case sensitive)
+                foreach (BinderFile oldLayout in sblytBinder.Files)
+                {
+                    if (oldLayout.Name.ToLower() == name.ToLower())
+                    {
+                        conflict = true;
+                        index = oldLayout.ID;
+                        flags = oldLayout.Flags;
+                        if (!ignoreConflicts) sblytBinder.Files.Remove(oldLayout);
+                        break;
+                    }
+                }
+                // If the ignoreConflicts flag is set, do nothing
+                if (conflict && ignoreConflicts) continue;
+                // Add the new Texture
+                sblytBinder.Files.Add(new BinderFile(flags, index, name, File.ReadAllBytes(layoutFile)));
+                changesMade = true;
+            }
+            if (!changesMade) return false;
+            // If changes were detected, save the TPF file
+            string savePath;
+            if (outputFile != null && !Directory.Exists(outputFile)) savePath = new FileInfo(outputFile).Directory.FullName;
+            else if (outputFile != null) savePath = outputFile;
+            else savePath = new FileInfo(msgbndFile).Directory.FullName;
+            try
+            {
+                if (sblytBinder is BND3 bnd3)
+                    Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(sblytbndFile), bnd3);
+                else if (sblytBinder is BND4 bnd4)
+                    Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(sblytbndFile), bnd4);
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine("ERROR: " + e.Message);
+                Environment.Exit(8);
+            }
             return true;
         }
         private static bool TextureMerge()
         {
             if (tpfFile == null) return false;
             if (ddsFiles.Count == 0) return false;
-            // TODO everything
+            TPF tpf = null;
+            DCX.Type compression = DCX.Type.None;
+            try // Attempt to read the TPF file
+            {
+                if (tpfFile.ToLower().EndsWith(".dcx"))
+                    tpf = TPF.Read(DCX.Decompress(tpfFile, out compression));
+                else tpf = TPF.Read(tpfFile);
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($@"ERROR: Could not read TPF File {tpfFile}: {e.Message}");
+                Environment.Exit(15);
+            }
+            foreach (string ddsFile in ddsFiles)
+            {
+                if (!File.Exists(ddsFile))
+                {
+                    Console.Error.WriteLine("Warning: Could not open DDS file: " + ddsFile);
+                    continue;
+                }
+                string name = Path.GetFileNameWithoutExtension(ddsFile);
+                // Snag a reference from the existing textures
+                byte format = tpf.Textures[tpf.Textures.Count-1].Format;
+                byte flags = tpf.Textures[tpf.Textures.Count-1].Flags1;
+                bool conflict = false;
+                // Check to make sure there isn't an existing texture with the same name (non case sensitive)
+                foreach (TPF.Texture oldTexture in tpf.Textures)
+                {
+                    if (oldTexture.Name.ToLower() == name.ToLower())
+                    {
+                        conflict = true;
+                        format = oldTexture.Format;
+                        flags = oldTexture.Flags1;
+                        if(!ignoreConflicts) tpf.Textures.Remove(oldTexture);
+                        break;
+                    }
+                }
+                // If the ignoreConflicts flag is set, do nothing
+                if (conflict && ignoreConflicts) continue;
+                // Add the new Texture
+                tpf.Textures.Add(new TPF.Texture(name, format, flags, File.ReadAllBytes(ddsFile)));
+                changesMade = true;
+            }
+            if (!changesMade) return false;
+            // If changes were detected, save the TPF file
+            string savePath = tpfFile;
+            if (outputFile != null)
+            {
+                savePath = outputFile;
+                if (Directory.Exists(outputFile))
+                {
+                    if (compression == DCX.Type.None)
+                        savePath = $@"{savePath}\{Path.GetFileName(tpfFile).Split(".")[0]}.tpf";
+                    else
+                        savePath = $@"{savePath}\{Path.GetFileName(tpfFile).Split(".")[0]}.tpf.dcx";
+                }
+            }
+            try
+            {
+                if (File.Exists(savePath)) File.Move(savePath, savePath + ".prev", true);
+                tpf.Write(savePath, compression);
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine("ERROR: " + e.Message);
+                Environment.Exit(8);
+            }
             return true;
         }
         private static bool FmgMerge()
@@ -437,7 +563,7 @@ namespace DSMSPortable
                 }
             }
             string savePath;
-            if (outputFile != null && File.Exists(outputFile)) savePath = new FileInfo(outputFile).Directory.FullName;
+            if (outputFile != null && !Directory.Exists(outputFile)) savePath = new FileInfo(outputFile).Directory.FullName;
             else if (outputFile != null) savePath = outputFile;
             else savePath = new FileInfo(msgbndFile).Directory.FullName;
             if (fmgBinder is BND3 bnd3)
@@ -1246,7 +1372,7 @@ namespace DSMSPortable
                                 if (!File.Exists(param) || !(param.ToLower().EndsWith(".sblytbnd") || param.ToLower().EndsWith(".sblytbnd.dcx")))
                                 {
                                     Console.Error.WriteLine("ERROR: Invalid sblytbnd file specified");
-                                    Environment.Exit(11);
+                                    Environment.Exit(14);
                                 }
                                 sblytbndFile = param;
                             }
@@ -1272,7 +1398,7 @@ namespace DSMSPortable
                                 if (!File.Exists(param) || !(param.ToLower().EndsWith(".tpf") || param.ToLower().EndsWith(".tpf.dcx")))
                                 {
                                     Console.Error.WriteLine("ERROR: Invalid tpf file specified");
-                                    Environment.Exit(12);
+                                    Environment.Exit(15);
                                 }
                                 tpfFile = param;
                             }
@@ -1283,12 +1409,12 @@ namespace DSMSPortable
                                     foreach (string file in Directory.EnumerateFiles(param))
                                     {
                                         if (File.Exists(file) && (file.ToLower().EndsWith(".dds")))
-                                            layoutFiles.Add(file);
+                                            ddsFiles.Add(file);
                                         else Console.Error.WriteLine("Warning: Invalid DDS file specified: " + file);
                                     }
                                 }
                                 else if (File.Exists(param) && (param.ToLower().EndsWith(".dds")))
-                                    layoutFiles.Add(param);
+                                    ddsFiles.Add(param);
                                 else Console.Error.WriteLine("Warning: Invalid DDS file specified: " + param);
                             }
                             break;
@@ -1376,7 +1502,13 @@ namespace DSMSPortable
             Console.Out.WriteLine("             Separate operation mode for adding individual FMG entries to a msgbnd file. -G -P -O still apply");
             Console.Out.WriteLine("             Each argument should be one string with the fmg name, id, and text separated by a colon:");
             Console.Out.WriteLine("             i.e. \"AccessoryName: 6200: Amulet of Defenestration\"");
-            if(pause) Console.ReadKey(true);
+            Console.Out.WriteLine("  --texturemerge [tpffile] [ddsfile1 ddsfile2 ...] [-I]");
+            Console.Out.WriteLine("             Separate operation mode for merging DDS textures into a TPF file. -P and -O still apply.");
+            Console.Out.WriteLine("             Same format as --fmgmerge, but cannot merge changes to individual DDS files");
+            Console.Out.WriteLine("  --layoutmerge [sblytbndfile] [layoutfile1 layoutfile2 ...] [-I]");
+            Console.Out.WriteLine("             Separate operation mode for merging layout files into a sblytbnd file. -G, -P, and -O still apply");
+            Console.Out.WriteLine("             Same format as --fmgmerge and --texturemerge, cannot merge changes to individual layout files");
+            if (pause) Console.ReadKey(true);
             Environment.Exit(0);
         }
         // Indicates what the last read switch was
