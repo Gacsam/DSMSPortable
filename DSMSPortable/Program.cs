@@ -13,6 +13,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
+        static readonly string VERSION = "1.4.6";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -306,15 +307,19 @@ namespace DSMSPortable
                         conflict = true;
                         index = oldLayout.ID;
                         flags = oldLayout.Flags;
-                        if (!ignoreConflicts) sblytBinder.Files.Remove(oldLayout);
+                        if (!ignoreConflicts)
+                        {
+                            sblytBinder.Files[index] = new BinderFile(flags, index, name, File.ReadAllBytes(layoutFile));
+                            changesMade = true;
+                        }
                         break;
                     }
                 }
-                // If the ignoreConflicts flag is set, do nothing
-                if (conflict && ignoreConflicts) continue;
-                // Add the new Texture
-                sblytBinder.Files.Add(new BinderFile(flags, index, name, File.ReadAllBytes(layoutFile)));
-                changesMade = true;
+                if (!conflict)
+                {
+                    sblytBinder.Files.Add(new BinderFile(flags, index, name, File.ReadAllBytes(layoutFile)));
+                    changesMade = true;
+                }
             }
             if (!changesMade) return false;
             // If changes were detected, save the TPF file
@@ -366,22 +371,26 @@ namespace DSMSPortable
                 byte flags = tpf.Textures[tpf.Textures.Count-1].Flags1;
                 bool conflict = false;
                 // Check to make sure there isn't an existing texture with the same name (non case sensitive)
-                foreach (TPF.Texture oldTexture in tpf.Textures)
+                for (int i = 0; i < tpf.Textures.Count; i++)
                 {
-                    if (oldTexture.Name.ToLower() == name.ToLower())
+                    if (tpf.Textures[i].Name.ToLower() == name.ToLower())
                     {
                         conflict = true;
-                        format = oldTexture.Format;
-                        flags = oldTexture.Flags1;
-                        if(!ignoreConflicts) tpf.Textures.Remove(oldTexture);
+                        format = tpf.Textures[i].Format;
+                        flags = tpf.Textures[i].Flags1;
+                        if (!ignoreConflicts)
+                        {
+                            tpf.Textures[i] = new TPF.Texture(name, format, flags, File.ReadAllBytes(ddsFile));
+                            changesMade = true;
+                        }
                         break;
                     }
                 }
-                // If the ignoreConflicts flag is set, do nothing
-                if (conflict && ignoreConflicts) continue;
-                // Add the new Texture
-                tpf.Textures.Add(new TPF.Texture(name, format, flags, File.ReadAllBytes(ddsFile)));
-                changesMade = true;
+                if(!conflict)
+                {
+                    tpf.Textures.Add(new TPF.Texture(name, format, flags, File.ReadAllBytes(ddsFile)));
+                    changesMade = true;
+                }
             }
             if (!changesMade) return false;
             // If changes were detected, save the TPF file
@@ -623,6 +632,8 @@ namespace DSMSPortable
             }
             // Switch back to the original working directory
             if (exePath != null) Directory.SetCurrentDirectory(workingDirectory);
+            // Build diff cache in case we need to use the "modified" query
+            ParamBank.PrimaryBank.RefreshParamDiffCaches();
             Console.Out.WriteLine("Done!");
         }
         private static void UpgradeParamFile()
@@ -712,7 +723,7 @@ namespace DSMSPortable
             string param = null;
             string query;
             // Empty list is a special case. Mass export all.
-            if(exportParams.Count == 0)
+            if (exportParams.Count == 0)
             {
                 foreach (string p in ParamBank.PrimaryBank.Params.Keys)
                 {
@@ -1438,7 +1449,7 @@ namespace DSMSPortable
 
         private static void Help(bool pause)
         {
-            Console.Out.WriteLine("DSMS Portable by mountlover.");
+            Console.Out.WriteLine($@"DSMS Portable v{VERSION} by mountlover.");
             Console.Out.WriteLine("Lightweight utility for patching FromSoft param files. Free to distribute with other mods, but not for sale.");
             Console.Out.WriteLine("DS Map Studio Core developed and maintained by the SoulsMods team: https://github.com/soulsmods/DSMapStudio\n");
             Console.Out.WriteLine("Usage: DSMSPortable [paramfile] [-G gametype] [-P gamepath] [-U oldvanillaparams] [-C2M csvfile1 csvfile2 ...]");
