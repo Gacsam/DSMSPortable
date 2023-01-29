@@ -191,6 +191,12 @@ namespace DSMSPortable
                 Console.Out.WriteLine("Saving param file...");
                 SaveParamFile();
             }
+            // Perform diff and convert changes to massedit, if a file to compare against was specified
+            if (compareParamFile != null)
+            {
+                Console.Out.WriteLine("Converting changes to MASSEDIT...");
+                ConvertDiffsToMassedit();
+            }
             // Unmimic directories if needed
             UnmimicDirectory(inputFile);
             // Perform CSV export if one was specified
@@ -198,12 +204,6 @@ namespace DSMSPortable
             {
                 Console.Out.WriteLine("Exporting Params to CSV...");
                 ExportParams();
-            }
-            // Perform diff and convert changes to massedit, if a file to compare against was specified
-            if (compareParamFile != null)
-            {
-                Console.Out.WriteLine("Converting changes to MASSEDIT...");
-                ConvertDiffsToMassedit();
             }
         }
         public static bool ConvertToMassedit(FSParam.Param oldParam, FSParam.Param newParam, string paramName, out string mfile)
