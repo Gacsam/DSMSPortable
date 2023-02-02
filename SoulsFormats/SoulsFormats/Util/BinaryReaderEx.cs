@@ -1158,6 +1158,19 @@ namespace SoulsFormats
             byte a = br.ReadByte();
             return Color.FromArgb(a, r, g, b);
         }
+        /// <summary>
+        /// Reads a padded offset after the current field to align to the next field
+        /// </summary>
+        public long GetNextPaddedOffsetAfterCurrentField(int currentFieldLength, int align)
+        {
+            long pos = Position;
+            pos += currentFieldLength;
+            if (align <= 0)
+                return pos;
+            if (pos % align > 0)
+                pos += align - (pos % align);
+            return pos;
+        }
         #endregion
     }
 }
