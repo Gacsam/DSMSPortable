@@ -1055,13 +1055,14 @@ namespace DSMSPortable
                 opstring = File.ReadAllText(c2mfile);
                 string c2mNameNoExt = Path.GetFileNameWithoutExtension(c2mfile);
                 string paramName = c2mNameNoExt;
+                int len = 0;
                 // Check for param name
                 foreach (string p in ParamBank.PrimaryBank.Params.Keys)
-                {
-                    if (paramName.ToLower().StartsWith(p.ToLower()))
+                {   // We want to allow for filenames like bullet_new.csv so go with the longest paramname that matches
+                    if (c2mNameNoExt.ToLower().StartsWith(p.ToLower()) && p.Length > len)
                     {
                         paramName = p;
-                        break;
+                        len = p.Length;
                     }
                 }
                 // Save a copy of the current param for comparison
