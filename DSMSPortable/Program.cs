@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Xml;
 using Newtonsoft.Json;
@@ -13,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.5";
+        static readonly string VERSION = "1.5.2";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -393,7 +392,7 @@ namespace DSMSPortable
             string savePath;
             if (outputFile != null && !Directory.Exists(outputFile)) savePath = new FileInfo(outputFile).Directory.FullName;
             else if (outputFile != null) savePath = outputFile;
-            else savePath = new FileInfo(msgbndFile).Directory.FullName;
+            else savePath = new FileInfo(anibndFile).Directory.FullName;
             try
             {
                 if (animBinder is BND3 bnd3)
@@ -1114,13 +1113,16 @@ namespace DSMSPortable
             foreach (string csvfile in csvFiles)
             {
                 opstring = File.ReadAllText(csvfile);
-                string paramName = Path.GetFileNameWithoutExtension(csvfile);
+                string paramNameNoExt = Path.GetFileNameWithoutExtension(csvfile);
+                string paramName = paramNameNoExt;
+                int len = 0;
+                // Check for param name
                 foreach (string p in ParamBank.PrimaryBank.Params.Keys)
-                {
-                    if (paramName.ToLower() == p.ToLower())
+                {   // We want to allow for filenames like bullet_new.csv so go with the longest paramname that matches
+                    if (paramNameNoExt.ToLower().StartsWith(p.ToLower()) && p.Length > len)
                     {
                         paramName = p;
-                        break;
+                        len = p.Length;
                     }
                 }
                 meresult = MassParamEditCSV.PerformMassEdit(ParamBank.PrimaryBank, opstring, manager, paramName, true, false, ',');
