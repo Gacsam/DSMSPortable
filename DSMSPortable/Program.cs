@@ -370,6 +370,11 @@ namespace DSMSPortable
                         if (diffmode && verboseOutput.Count > 0)
                         {
                             string path;
+                            if(oldAnims.Animations.Count == 0)
+                            {
+                                verboseOutput.Add($@"Removed all animations from {taeName}");
+                                break;
+                            }
                             if (outputFile != null && !Directory.Exists(outputFile)) path = new FileInfo(outputFile).Directory.FullName;
                             else if (outputFile != null) path = outputFile;
                             else path = new FileInfo(taeFile).Directory.FullName;
