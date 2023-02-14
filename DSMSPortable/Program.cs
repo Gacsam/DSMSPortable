@@ -12,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.5.3";
+        static readonly string VERSION = "1.5.4";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -93,8 +93,10 @@ namespace DSMSPortable
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
+                {
                     Console.Out.WriteLine("Success!");
-                if (verbose) foreach (string output in verboseOutput) Console.Out.WriteLine(output);
+                    if (verbose) foreach (string output in verboseOutput) Console.Out.WriteLine(output);
+                }
                 return;
             }
             // Perform LayoutMerging if specified
@@ -105,8 +107,10 @@ namespace DSMSPortable
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
+                {
                     Console.Out.WriteLine("Success!");
-                if (verbose) foreach (string output in verboseOutput) Console.Out.WriteLine(output);
+                    if (verbose) foreach (string output in verboseOutput) Console.Out.WriteLine(output);
+                }
                 return;
             }
             // Perform TextureMerging if specified
@@ -117,8 +121,10 @@ namespace DSMSPortable
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
+                {
                     Console.Out.WriteLine("Success!");
-                if (verbose) foreach (string output in verboseOutput) Console.Out.WriteLine(output);
+                    if (verbose) foreach (string output in verboseOutput) Console.Out.WriteLine(output);
+                }
                 return;
             }
             // Perform Animation Merging/Diff if specified
@@ -130,8 +136,10 @@ namespace DSMSPortable
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
+                {
                     Console.Out.WriteLine("Success!");
-                if(verbose) foreach(string output in verboseOutput) Console.Out.WriteLine(output);
+                    if (verbose) foreach (string output in verboseOutput) Console.Out.WriteLine(output);
+                }
                 return;
             }
             // Check the input file given
@@ -370,14 +378,16 @@ namespace DSMSPortable
                         if (diffmode && verboseOutput.Count > 0)
                         {
                             string path;
-                            if(oldAnims.Animations.Count == 0)
-                            {
-                                verboseOutput.Add($@"Removed all animations from {taeName}");
-                                break;
-                            }
                             if (outputFile != null && !Directory.Exists(outputFile)) path = new FileInfo(outputFile).Directory.FullName;
                             else if (outputFile != null) path = outputFile;
                             else path = new FileInfo(taeFile).Directory.FullName;
+                            if (oldAnims.Animations.Count == 0)
+                            {   // this partial TAE is now empty, delete it altogether.
+                                verboseOutput.Add($@"Removed all animations from {taeName}");
+                                if (File.Exists($@"{path}\{taeName}.partial")) 
+                                    File.Delete($@"{path}\{taeName}.partial");
+                                break;
+                            }
                             File.WriteAllBytes($@"{path}\{taeName}.partial", newAnims.Write());
                         }
                         // Write the changes we made to the binderfile
