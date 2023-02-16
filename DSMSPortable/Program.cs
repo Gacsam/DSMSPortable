@@ -52,6 +52,9 @@ namespace DSMSPortable
         static string anibndFile = null;
         static List<string> taeFiles;
         static bool animDiffmode = false;
+        // bndmerge files
+        static string srcbndFile = null;
+        static string destbndFile = null;
         static bool gametypeContext = false;
         static bool folderMimic = false;
         static bool changesMade = false;
@@ -133,6 +136,20 @@ namespace DSMSPortable
                 if(animDiffmode) Console.Out.Write("Creating partial animations from diffs to " + anibndFile + "...");
                 else Console.Out.Write("Performing Animation merge for " + anibndFile + "...");
                 List<string> verboseOutput = AnimationMerge(anibndFile, taeFiles, ignoreConflicts, animDiffmode);
+                if (verboseOutput == null)
+                    Console.Out.WriteLine("No changes detected.");
+                else
+                {
+                    Console.Out.WriteLine("Success!");
+                    if (verbose) foreach (string output in verboseOutput) Console.Out.WriteLine(output);
+                }
+                return;
+            }
+            // Perform generic Binder Merging if specified
+            if (srcbndFile != null && destbndFile != null)
+            {
+                Console.Out.Write("Performing BND merge for " + destbndFile + "...");
+                List<string> verboseOutput = BndMerge(destbndFile, srcbndFile, ignoreConflicts);
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
@@ -515,6 +532,72 @@ namespace DSMSPortable
                     Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(sblytbndFile), bnd3);
                 else if (sblytBinder is BND4 bnd4)
                     Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(sblytbndFile), bnd4);
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine("ERROR: " + e.Message);
+                Environment.Exit(8);
+            }
+            return verboseOutput;
+        }
+        public static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts)
+        {
+            if (destbndFile == null || srcbndFile == null) return null;
+            List<string> verboseOutput = new();
+            IBinder destbnd = null;
+            IBinder srcbnd = null;
+            try // Attempt to read the binder files
+            {
+                if (gameType == GameType.DemonsSouls || gameType == GameType.DarkSoulsPTDE || gameType == GameType.DarkSoulsRemastered)
+                {
+                    destbnd = BND3.Read(destbndFile);
+                    srcbnd = BND3.Read(srcbndFile);
+                }
+                else
+                {
+                    destbnd = BND4.Read(destbndFile);
+                    srcbnd = BND4.Read(srcbndFile);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($@"ERROR: Could not read binder file: {e.Message}");
+                Environment.Exit(16);
+            }
+            foreach (BinderFile srcFile in srcbnd.Files)
+            {
+                bool fileMatch = false;
+                foreach (BinderFile destFile in destbnd.Files)
+                {
+                    if (destFile.Name.ToLower() == srcFile.Name.ToLower())
+                    {   // We got a matching binder file name
+                        fileMatch = true;
+                        if(!ignoreConflicts && !destFile.Bytes.SequenceEqual(srcFile.Bytes))
+                        {
+                            destFile.Bytes = srcFile.Bytes;
+                            verboseOutput.Add($@"Overwrote {srcFile.Name} in {Path.GetFileName(destbndFile)}");
+                        }
+                        break;
+                    }
+                }
+                if (!fileMatch)
+                {   // If the entire file was not found, add it
+                    destbnd.Files.Add(srcFile);
+                    verboseOutput.Add($@"Added {srcFile.Name} to {Path.GetFileName(destbndFile)}");
+                }
+            }
+            if (verboseOutput.Count == 0) return null;
+            // If changes were detected, save the binder
+            string savePath;
+            if (outputFile != null && !Directory.Exists(outputFile)) savePath = new FileInfo(outputFile).Directory.FullName;
+            else if (outputFile != null) savePath = outputFile;
+            else savePath = new FileInfo(destbndFile).Directory.FullName;
+            try
+            {
+                if (destbnd is BND3 bnd3)
+                    Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(destbndFile), bnd3);
+                else if (destbnd is BND4 bnd4)
+                    Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(destbndFile), bnd4);
             }
             catch (Exception e)
             {
@@ -1417,6 +1500,8 @@ namespace DSMSPortable
                                 mode = ParamMode.LAYOUTMERGE;
                             else if (param.ToLower() == "--texturemerge")
                                 mode = ParamMode.DDSMERGE;
+                            else if (param.ToLower() == "--bndmerge")
+                                mode = ParamMode.BNDMERGE;
                             else if (param.ToLower() == "--animerge")
                                 mode = ParamMode.ANIMERGE;
                             else if (param.ToLower() == "--animdiff")
@@ -1663,6 +1748,27 @@ namespace DSMSPortable
                                 else Console.Error.WriteLine("Warning: Invalid tae file specified: " + param);
                             }
                             break;
+                        case ParamMode.BNDMERGE:
+                            if (destbndFile == null)
+                            {
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid bnd file specified");
+                                    Environment.Exit(15);
+                                }
+                                destbndFile = param;
+                            }
+                            else if (srcbndFile == null)
+                            {
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid bnd file specified");
+                                    Environment.Exit(15);
+                                }
+                                srcbndFile = param;
+                            }
+                            else Console.Error.WriteLine("Warning: Extra file specified: " + param);
+                            break;
                         case ParamMode.NONE:
                             if (param.ToLower().Equals("help") || param.Equals("?"))
                             {
@@ -1765,6 +1871,9 @@ namespace DSMSPortable
             Console.Out.WriteLine("  --texturemerge [tpffile] [ddsfile1 ddsfile2 ...] [-I] [-V]");
             Console.Out.WriteLine("             Separate operation mode for merging DDS textures into a TPF file. -P and -O still apply.");
             Console.Out.WriteLine("             Same format as other merge operations, but can only merge whole DDS files.");
+            Console.Out.WriteLine("  --bndmerge [destbndfile] [srcbndfile] [-I] [-V]");
+            Console.Out.WriteLine("             Generic operation mode for merging two binder files. -G, -P, and -O still apply");
+            Console.Out.WriteLine("             Any files in srcbndfile not found in destbndfile will be added to destbndfile.");
             if (pause) Console.ReadKey(true);
             Environment.Exit(0);
         }
@@ -1788,7 +1897,8 @@ namespace DSMSPortable
             LAYOUTMERGE,
             DDSMERGE,
             ANIMERGE,
-            ANIMDIFF
+            ANIMDIFF,
+            BNDMERGE
         }
         // No reason to be anal about the exact switch character used, any of these is fine
         private static bool IsSwitch(string arg)
