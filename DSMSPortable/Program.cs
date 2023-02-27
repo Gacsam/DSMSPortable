@@ -12,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.5.7";
+        static readonly string VERSION = "1.5.8";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -804,7 +804,7 @@ namespace DSMSPortable
                     Console.Error.WriteLine("ERROR: \"" + fmgstring + "\" is not a valid FMG entry in the format [Name]:[ID]:[Text]");
                     Environment.Exit(13);
                 }
-                string text = fmgstring.Split(":", 3)[2].Trim();
+                string text = fmgstring.Split(":", 3)[2].Trim().Replace("\\n","\n");
                 // Find out which FMG we're dealing with
                 FMGBank.FMGInfo sourceFmg = null;
                 foreach (FMGBank.FMGInfo src in fmgBank)
@@ -1524,21 +1524,57 @@ namespace DSMSPortable
                         case ParamMode.CSV:
                             if (File.Exists(param) && (param.ToLower().EndsWith("csv") || param.ToLower().EndsWith("txt")))
                                 csvFiles.Add(param);
+                            else if (Directory.Exists(param))
+                            {
+                                foreach (string file in Directory.EnumerateFiles(param))
+                                {
+                                    if (File.Exists(param) && param.ToLower().EndsWith("csv"))
+                                        csvFiles.Add(file);
+                                    else Console.Error.WriteLine("Warning: Invalid CSV filename given: " + param);
+                                }
+                            }
                             else Console.Out.WriteLine("Warning: Invalid CSV filename given: " + param);
                             break;
                         case ParamMode.C2M:
                             if (File.Exists(param) && (param.ToLower().EndsWith("csv") || param.ToLower().EndsWith("txt")))
                                 c2mFiles.Add(param);
+                            else if (Directory.Exists(param))
+                            {
+                                foreach (string file in Directory.EnumerateFiles(param))
+                                {
+                                    if (File.Exists(param) && param.ToLower().EndsWith("csv"))
+                                        c2mFiles.Add(file);
+                                    else Console.Error.WriteLine("Warning: Invalid CSV filename given: " + param);
+                                }
+                            }
                             else Console.Out.WriteLine("Warning: Invalid CSV filename given: " + param);
                             break;
                         case ParamMode.MASSEDIT:
                             if (File.Exists(param) && (param.ToLower().EndsWith("txt") || param.ToLower().EndsWith("massedit")))
                                 masseditFiles.Add(param);
+                            else if (Directory.Exists(param))
+                            {
+                                foreach (string file in Directory.EnumerateFiles(param))
+                                {
+                                    if (File.Exists(param) && param.ToLower().EndsWith("massedit"))
+                                        masseditFiles.Add(file);
+                                    else Console.Error.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
+                                }
+                            }
                             else Console.Out.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
                             break;
                         case ParamMode.MASSEDITPLUS:
                             if (File.Exists(param) && (param.ToLower().EndsWith("txt") || param.ToLower().EndsWith("massedit")))
                                 masseditpFiles.Add(param);
+                            else if (Directory.Exists(param))
+                            {
+                                foreach (string file in Directory.EnumerateFiles(param))
+                                {
+                                    if (File.Exists(param) && param.ToLower().EndsWith("massedit"))
+                                        masseditpFiles.Add(file);
+                                    else Console.Error.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
+                                }
+                            }
                             else Console.Out.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
                             break;
                         case ParamMode.OUTPUT:
@@ -1852,6 +1888,7 @@ namespace DSMSPortable
             Console.Out.WriteLine("             Separate operation mode for adding individual FMG entries to a msgbnd file. -G -P -O still apply");
             Console.Out.WriteLine("             Each argument should be one string with the fmg name, id, and text separated by a colon:");
             Console.Out.WriteLine("             i.e. \"AccessoryName: 6200: Amulet of Defenestration\"");
+            Console.Out.WriteLine("             DSMSPortable will interpret new lines from the escape sequence \\n");
             Console.Out.WriteLine("  --fmgmerge [msgbndfile] [fmgfile1 fmgfile2 ...] [-I] [-V]");
             Console.Out.WriteLine("             Separate operation mode for merging FMG edits into a msgbnd file. -G, -P, and -O still apply.");
             Console.Out.WriteLine("             First argument is a msgbnd file, with the extension .msgbnd.dcx, latter arguments are files");
