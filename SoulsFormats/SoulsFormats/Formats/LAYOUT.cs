@@ -82,7 +82,7 @@ namespace SoulsFormats
         }
         protected override void Write(BinaryWriterEx bw)
         {
-            bw.WriteUTF16(XML());
+            bw.WriteASCII(XML());
         }
         /// <summary>
         /// Searches this TextureAtlas' SubTextures for one that matches the name of the one provided.
