@@ -12,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.5.9";
+        static readonly string VERSION = "1.6.0";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -1027,7 +1027,16 @@ namespace DSMSPortable
                     }
                 }
                 Console.Out.Write($@"Exporting {param}... ");
-                List<FSParam.Param.Row> rows = RowSearchEngine.rse.Search((ParamBank.PrimaryBank, ParamBank.PrimaryBank.GetParamFromName(param)), query, true, true);
+                List<FSParam.Param.Row> rows = null;
+                try
+                {
+                    rows = RowSearchEngine.rse.Search((ParamBank.PrimaryBank, ParamBank.PrimaryBank.GetParamFromName(param)), query, true, true);
+                }
+                catch(NullReferenceException)
+                {
+                    Console.Error.WriteLine("Warning: Could not find param by name of " + param);
+                    continue;
+                }
                 string output = MassParamEditCSV.GenerateCSV(rows, ParamBank.PrimaryBank.GetParamFromName(param), ',');
                 // Write the output in the same directory as the param file provided, unless a valid output path was specified
                 string csvOutFile = $@"{new FileInfo(inputFile).Directory.FullName}\{param}.csv";
