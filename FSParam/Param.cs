@@ -434,11 +434,6 @@ namespace FSParam
                         throw new NotImplementedException($"Unsupported field type: {Def.DisplayType}");
                 }
             }
-
-            public uint GetByteOffset()
-            {
-                return _byteOffset;
-            }
         }
         
         /// <summary>

@@ -8,7 +8,6 @@ using FSParam;
 using ImGuiNET;
 using SoulsFormats;
 using StudioCore.Editor;
-using StudioCore.ParamEditor;
 
 namespace StudioCore.ParamEditor
 {
@@ -36,7 +35,13 @@ namespace StudioCore.ParamEditor
         {
             try
             {
-                Type type = column.GetColumnType();
+                Type type;
+                if (column.Item1 == PseudoColumn.ID)
+                    type = typeof(int);
+                else if (column.Item1 == PseudoColumn.Name)
+                    type = typeof(string);
+                else
+                    type = column.Item2.ValueType;
 
                 if (op.Equals("ref") && column.Item2 != null)
                 {
@@ -94,7 +99,7 @@ namespace StudioCore.ParamEditor
         {
             try
             {
-                string name = row.Get(c).ToString();
+                string name = c.Item1 == PseudoColumn.ID ? row.ID.ToString() : c.Item1 == PseudoColumn.Name ? row.Name : c.Item2.GetValue(row).ToString();
                 if (op.Equals("="))
                     return opparam[0];
                 else if (op.Equals("+"))
@@ -114,7 +119,7 @@ namespace StudioCore.ParamEditor
         {
             try
             {
-                dynamic val = row.Get(c);
+                dynamic val = c.Item1 == PseudoColumn.ID ? row.ID : c.Item1 == PseudoColumn.Name ? row.Name : c.Item2.GetValue(row);
                 dynamic opp = double.Parse(opparam[0]);
                 if (op.Equals("="))
                     return (T) (opp);
@@ -126,11 +131,6 @@ namespace StudioCore.ParamEditor
                     return (T) (val * opp);
                 else if (op.Equals("/"))
                     return (T) (val / opp);
-                else if (op.Equals("scale"))
-                {
-                    dynamic opp2 = double.Parse(opparam[1]);
-                    return (T) ((val - opp2) * opp + opp2);
-                }
             }
             catch
             {
@@ -194,8 +194,8 @@ namespace StudioCore.ParamEditor
         {
             if (MEGlobalOperation.globalOps.HandlesCommand(restOfStages.Split(" ", 2)[0]))
             {
-                (string[] c, var func) = MEGlobalOperation.globalOps.operations[restOfStages.Split(" ", 2)[0]];
-                bool result = func(context, c.Length == 0 ? new string[0] : restOfStages.Split(" ", 2)[1].Split(":", c.Length));
+                (int c, var func) = MEGlobalOperation.globalOps.operations[restOfStages.Split(" ", 2)[0]];
+                bool result = func(context, c == 0 ? new string[0] : restOfStages.Split(" ", 2)[1].Split(":", c));
                 return (new MassEditResult(result ? MassEditResultType.SUCCESS : MassEditResultType.OPERATIONERROR, "performing global operation "+restOfStages.Split(" ", 2)[0]), new List<EditorAction>());
             }
 
@@ -259,7 +259,7 @@ namespace StudioCore.ParamEditor
         {
             List<EditorAction> partialActions = new List<EditorAction>();
             try {
-                string[] argNames;
+
                 int argc;
                 Func<(string, Param.Row), string[], (Param, Param.Row)> rowFunc = null;
                 Func<(Param.Row, (PseudoColumn, Param.Column)), string[], object> cellFunc = null; 
@@ -267,30 +267,27 @@ namespace StudioCore.ParamEditor
                 {
                     if (!MERowOperation.rowOps.operations.ContainsKey(operation))
                             return (new MassEditResult(MassEditResultType.PARSEERROR, $@"Unknown operation "+operation), null);
-                    (argNames, rowFunc) = MERowOperation.rowOps.operations[operation];
+                    (argc, rowFunc) = MERowOperation.rowOps.operations[operation];
                 }
                 else
                 {
                     if (!MECellOperation.cellOps.operations.ContainsKey(operation))
                             return (new MassEditResult(MassEditResultType.PARSEERROR, $@"Unknown operation "+operation), null);
-                    (argNames, cellFunc) = MECellOperation.cellOps.operations[operation];
+                    (argc, cellFunc) = MECellOperation.cellOps.operations[operation];
                 }
-                argc = argNames.Length;
                 var argFuncs = MEOperationArgument.arg.getContextualArguments(argc, opargs);
                 if (isParamRowSelector)
                 {
                     Param activeParam = bank.Params[context.getActiveParam()];
-                    var paramArgFunc = argFuncs.Select((func, i) => func(0, activeParam));
+                    var paramArgFunc = argFuncs.Select((func, i) => func(activeParam));
                     if (argc != argFuncs.Length)
                         return (new MassEditResult(MassEditResultType.PARSEERROR, $@"Invalid number of arguments for operation {operation}"), null);
-                    int rowEditCount = -1;
                     foreach ((MassEditRowSource source, Param.Row row) in ParamAndRowSearchEngine.parse.Search(context, paramSelector, false, false))
                     {
-                        rowEditCount++;
-                        var rowArgFunc = paramArgFunc.Select((rowFunc, i) => rowFunc(rowEditCount, row)).ToArray();
+                        var rowArgFunc = paramArgFunc.Select((rowFunc, i) => rowFunc(row)).ToArray();
                         if (cellSelector == null)
                         {
-                            var rowArgValues = rowArgFunc.Select((argV, i) => argV(-1, (PseudoColumn.None, null))).ToArray();
+                            var rowArgValues = rowArgFunc.Select((argV, i) => argV((PseudoColumn.None, null))).ToArray();
                             var (p, rs) = rowFunc((source == MassEditRowSource.Selection ? context.getActiveParam() : ParamBank.ClipboardParam, row), rowArgValues);
                             if (p == null)
                                 return (new MassEditResult(MassEditResultType.OPERATIONERROR, $@"Could not perform operation {operation} {String.Join(' ', rowArgValues)} on row"), null);
@@ -299,11 +296,9 @@ namespace StudioCore.ParamEditor
                         }
                         else
                         {
-                            int cellEditCount = -1;
                             foreach ((PseudoColumn, Param.Column) col in CellSearchEngine.cse.Search((source == MassEditRowSource.Selection ? context.getActiveParam() : null, row), cellSelector, false, false))
                             {
-                                cellEditCount++;
-                                var cellArgValues = rowArgFunc.Select((argV, i) => argV(cellEditCount, col)).ToArray();
+                                var cellArgValues = rowArgFunc.Select((argV, i) => argV(col)).ToArray();
                                 var res = cellFunc((row, col), cellArgValues);
                                 if (res == null)
                                     return (new MassEditResult(MassEditResultType.OPERATIONERROR, $@"Could not perform operation {operation} {String.Join(' ', cellArgValues)} on field {col.Item2.Def.InternalName}"), null);
@@ -314,35 +309,28 @@ namespace StudioCore.ParamEditor
                 }
                 else
                 {
-                    int paramEditCount = -1;
                     foreach ((ParamBank b, Param p) in ParamSearchEngine.pse.Search(false, paramSelector, false, false))
                     {
-                        paramEditCount++;
-                        var paramArgFunc = argFuncs.Select((func, i) => func(paramEditCount, p));
+                        var paramArgFunc = argFuncs.Select((func, i) => func(p));
                         if (argc != argFuncs.Length)
                             return (new MassEditResult(MassEditResultType.PARSEERROR, $@"Invalid number of arguments for operation {operation}"), null);
                         string paramname = b.GetKeyForParam(p);
-                        int rowEditCount = -1;
                         foreach (Param.Row row in RowSearchEngine.rse.Search((b, p), rowSelector, false, false))
                         {
-                            rowEditCount++;
-                            var rowArgFunc = paramArgFunc.Select((rowFunc, i) => rowFunc(rowEditCount, row)).ToArray();
+                            var rowArgFunc = paramArgFunc.Select((rowFunc, i) => rowFunc(row)).ToArray();
                             if (cellSelector == null)
                             {
-                                var rowArgValues = rowArgFunc.Select((argV, i) => argV(-1, (PseudoColumn.None, null))).ToArray();
+                                var rowArgValues = rowArgFunc.Select((argV, i) => argV((PseudoColumn.None, null))).ToArray();
                                 var (p2, rs) = rowFunc((paramname, row), rowArgValues);
-                                if (p2 == null)
+                                if (p2 == null || rs == null)
                                     return (new MassEditResult(MassEditResultType.OPERATIONERROR, $@"Could not perform operation {operation} {String.Join(' ', rowArgValues)} on row"), null);
-                                if (rs != null)
-                                    partialActions.Add(new AddParamsAction(p2, "FromMassEdit", new List<Param.Row>{rs}, false, true));
+                                partialActions.Add(new AddParamsAction(p2, "FromMassEdit", new List<Param.Row>{rs}, false, true));
                             }
                             else
                             {
-                                int cellEditCount = -1;
                                 foreach ((PseudoColumn, Param.Column) col in CellSearchEngine.cse.Search((paramname, row), cellSelector, false, false))
                                 {
-                                    cellEditCount++;
-                                    var cellArgValues = rowArgFunc.Select((argV, i) => argV(cellEditCount, col)).ToArray();
+                                    var cellArgValues = rowArgFunc.Select((argV, i) => argV(col)).ToArray();
                                     var res = cellFunc((row, col), cellArgValues);
                                     if (res == null && col.Item1 == PseudoColumn.ID)
                                         return (new MassEditResult(MassEditResultType.OPERATIONERROR, $@"Could not perform operation {operation} {String.Join(' ', cellArgValues)} on ID"), null);
@@ -388,7 +376,12 @@ namespace StudioCore.ParamEditor
                 string name = row.Name==null ? "null" : row.Name.Replace(separator, '-');
                 string rowgen = $@"{row.ID}{separator}{name}";
                 foreach (Param.Column cell in row.Cells)
-                    rowgen += $@"{separator}{row[cell].ToParamEditorString()}";
+                {
+                    if (row[cell].Value.GetType() == typeof(byte[]))
+                        rowgen += $@"{separator}{ParamUtils.Dummy8Write((byte[])row[cell].Value)}";
+                    else
+                        rowgen += $@"{separator}{row[cell].Value}";
+                }
                 gen += rowgen + "\n";
             }
             return gen;
@@ -406,7 +399,7 @@ namespace StudioCore.ParamEditor
                 }
                 else
                 {
-                    rowgen = $@"{row.ID}{separator}{row[field].Value.ToParamEditorString()}";
+                    rowgen = $@"{row.ID}{separator}{row[field].Value.Value}";
                 }
                 gen += rowgen + "\n";
             }
@@ -551,7 +544,7 @@ namespace StudioCore.ParamEditor
 
     public class MEOperation<T, O>
     {
-        internal Dictionary<string, (string[], Func<T, string[], O>)> operations = new Dictionary<string, (string[], Func<T, string[], O>)>();
+        internal Dictionary<string, (int, Func<T, string[], O>)> operations = new Dictionary<string, (int, Func<T, string[], O>)>();
         internal MEOperation()
         {
             Setup();
@@ -563,9 +556,9 @@ namespace StudioCore.ParamEditor
         {
             return operations.ContainsKey(command);
         }
-        public List<(string, string[])> AvailableCommands()
+        public List<(string, int)> AvailableCommands()
         {
-            List<(string, string[])> options = new List<(string, string[])>();
+            List<(string, int)> options = new List<(string, int)>();
             foreach (string op in operations.Keys)
             {
                 options.Add((op, operations[op].Item1));
@@ -579,7 +572,7 @@ namespace StudioCore.ParamEditor
         public static MEGlobalOperation globalOps = new MEGlobalOperation();
         internal override void Setup()
         {
-            operations.Add("clear", (new string[0], (selectionState, args) => {
+            operations.Add("clear", (0, (selectionState, args) => {
                 ParamBank.ClipboardParam = null;
                 ParamBank.ClipboardRows.Clear();
                 return true;
@@ -591,7 +584,7 @@ namespace StudioCore.ParamEditor
         public static MERowOperation rowOps = new MERowOperation();
         internal override void Setup()
         {
-            operations.Add("copy", (new string[0], (paramAndRow, args) => {
+            operations.Add("copy", (0, (paramAndRow, args) => {
                 string paramKey = paramAndRow.Item1;
                 Param.Row row = paramAndRow.Item2;
                 if (paramKey == null)
@@ -608,7 +601,7 @@ namespace StudioCore.ParamEditor
                 ParamBank.ClipboardRows.Add(new Param.Row(row, p));
                 return (p, null);
             }));
-            operations.Add("paste", (new string[0], (paramAndRow, args) => {
+            operations.Add("paste", (0, (paramAndRow, args) => {
                 string paramKey = paramAndRow.Item1;
                 Param.Row row = paramAndRow.Item2;
                 if (paramKey == null)
@@ -618,7 +611,7 @@ namespace StudioCore.ParamEditor
                 Param p = ParamBank.PrimaryBank.Params[paramKey];
                 return (p, new Param.Row(row, p));
             }));  
-            operations.Add("migrate", (new string[]{"parambank name (only primary supported)"}, (paramAndRow, target) => {
+            operations.Add("migrate", (1, (paramAndRow, target) => {
                 if (!target[0].Trim().ToLower().Equals("primary"))
                     throw new Exception($@"Only migrating to primary is supported");
                 string paramKey = paramAndRow.Item1;
@@ -637,21 +630,20 @@ namespace StudioCore.ParamEditor
         public static MECellOperation cellOps = new MECellOperation();
         internal override void Setup()
         {
-            operations.Add("=", (new string[]{"number or text"}, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "=", args)));
-            operations.Add("+", (new string[]{"number or text"}, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "+", args)));
-            operations.Add("-", (new string[]{"number"}, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "-", args)));
-            operations.Add("*", (new string[]{"number"}, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "*", args)));
-            operations.Add("/", (new string[]{"number"}, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "/", args)));
-            operations.Add("%", (new string[]{"number"}, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "%", args)));
-            operations.Add("scale", (new string[]{"factor number", "center number"}, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "scale", args)));
-            operations.Add("replace", (new string[]{"text to replace", "new text"}, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "replace", args)));
+            operations.Add("=", (1, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "=", args)));
+            operations.Add("+", (1, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "+", args)));
+            operations.Add("-", (1, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "-", args)));
+            operations.Add("*", (1, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "*", args)));
+            operations.Add("/", (1, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "/", args)));
+            operations.Add("%", (1, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "%", args)));
+            operations.Add("replace", (2, (ctx, args) => MassParamEdit.PerformOperation(ParamBank.PrimaryBank, ctx.Item1, ctx.Item2, "replace", args)));
         }
     }
     public class MEOperationArgument
     {
         public static MEOperationArgument arg = new MEOperationArgument();
-        Dictionary<string, (string[], Func<string[], Func<int, Param, Func<int, Param.Row, Func<int, (PseudoColumn, Param.Column), string>>>>)> argumentGetters = new Dictionary<string, (string[], Func<string[], Func<int, Param, Func<int, Param.Row, Func<int, (PseudoColumn, Param.Column), string>>>>)>();
-        (string[], Func<string, Func<int, Param, Func<int, Param.Row, Func<int, (PseudoColumn, Param.Column), string>>>>) defaultGetter;
+        Dictionary<string, (int, Func<string[], Func<Param, Func<Param.Row, Func<(PseudoColumn, Param.Column), string>>>>)> argumentGetters = new Dictionary<string, (int, Func<string[], Func<Param, Func<Param.Row, Func<(PseudoColumn, Param.Column), string>>>>)>();
+        (int, Func<string, Func<Param, Func<Param.Row, Func<(PseudoColumn, Param.Column), string>>>>) defaultGetter;
 
         private MEOperationArgument()
         {
@@ -659,127 +651,106 @@ namespace StudioCore.ParamEditor
         }
         private void Setup()
         {
-            defaultGetter = (new string[0], (value) => (i, param) => (j, row) => (k, col) => value);
-            argumentGetters.Add("self", (new string[0], (empty) => (i, param) => (j, row) => (k, col) => {
-                return row.Get(col).ToParamEditorString();
+            defaultGetter = (0, (value) => (param) => (row) => (col) => value);
+            argumentGetters.Add("self", (0, (empty) => (param) => (row) => (col) => {
+                object val = col.Item1 == PseudoColumn.ID ? row.ID : col.Item1 == PseudoColumn.Name ? row.Name : row[col.Item2].Value;
+                return val.GetType() == typeof(byte[]) ? ParamUtils.Dummy8Write((byte[])val) : val.ToString();
             }));
-            argumentGetters.Add("field", (new string[]{"field internalName"}, (field) => (i, param) => {
-                var col = param.GetCol(field[0]);
-                if (!col.IsColumnValid())
+            argumentGetters.Add("field", (1, (field) => (param) => {
+                PseudoColumn pc = field[0].Equals("ID") ? PseudoColumn.ID : field[0].Equals("Name") ? PseudoColumn.Name : PseudoColumn.None;
+                Param.Column? col = param?[field[0]];
+                if (pc == PseudoColumn.None && col == null)
                     throw new Exception($@"Could not locate field {field[0]}");
-                return (j, row) => {
-                    string v = row.Get(col).ToParamEditorString();
-                    return (k, c) => v;
+                return (row) => {
+                    object val = pc == PseudoColumn.ID ? row.ID : pc == PseudoColumn.Name ? row.Name : row[col].Value;
+                    string v = val.GetType() == typeof(byte[]) ? ParamUtils.Dummy8Write((byte[])val) : val.ToString();
+                    return (c) => v;
                 };
             }));
-            argumentGetters.Add("vanilla", (new string[0], (empty) => {
+            argumentGetters.Add("vanilla", (0, (empty) => {
                 ParamBank bank = ParamBank.VanillaBank;
-                return (i, param) => {
+                return (param) => {
                     string paramName = ParamBank.PrimaryBank.GetKeyForParam(param);
                     if (!bank.Params.ContainsKey(paramName))
                         throw new Exception($@"Could not locate vanilla param for {param.ParamType}");
                     Param vParam = bank.Params[paramName];
-                    return (j, row) => {
+                    return (row) => {
                         Param.Row vRow = vParam?[row.ID];
                         if (vRow == null)
                             throw new Exception($@"Could not locate vanilla row {row.ID}");
-                        return (k, col) => {
+                        return (col) => {
                             if (col.Item1 == PseudoColumn.None && col.Item2 == null)
                                 throw new Exception($@"Could not locate given field or property");
-                            return vRow.Get(col).ToParamEditorString();
+                            object val = col.Item1 == PseudoColumn.ID ? vRow.ID : col.Item1 == PseudoColumn.Name ? vRow.Name : vRow[col.Item2].Value;
+                            return val.GetType() == typeof(byte[]) ? ParamUtils.Dummy8Write((byte[])val) : val.ToString();
                         };
                     };
                 };
             }));
-            argumentGetters.Add("aux", (new string[]{"parambank name"}, (bankName) => {
-                if (!ParamBank.AuxBanks.ContainsKey(bankName[0]))
-                    throw new Exception($@"Could not locate paramBank {bankName[0]}");
-                ParamBank bank = ParamBank.AuxBanks[bankName[0]];
-                return (i, param) => {
-                    string paramName = ParamBank.PrimaryBank.GetKeyForParam(param);
-                    if (!bank.Params.ContainsKey(paramName))
-                        throw new Exception($@"Could not locate aux param for {param.ParamType}");
-                    Param vParam = bank.Params[paramName];
-                    return (j, row) => {
-                        Param.Row vRow = vParam?[row.ID];
-                        if (vRow == null)
-                            throw new Exception($@"Could not locate aux row {row.ID}");
-                        return (k, col) => {
-                            if (!col.IsColumnValid())
-                                throw new Exception($@"Could not locate given field or property");
-                            return vRow.Get(col).ToParamEditorString();
-                        };
-                    };
-                };
-            }));
-            argumentGetters.Add("vanillafield", (new string[]{"field internalName"}, (field) => (i, param) => {
+            argumentGetters.Add("vanillafield", (1, (field) => (param) => {
                 var paramName = ParamBank.PrimaryBank.GetKeyForParam(param);
                 var vParam = ParamBank.VanillaBank.GetParamFromName(paramName);
                 if (vParam == null)
                     throw new Exception($@"Could not locate vanilla param for {param.ParamType}");
-                var col = vParam.GetCol(field[0]);
-                if (!col.IsColumnValid())
+                PseudoColumn pc = field[0].Equals("ID") ? PseudoColumn.ID : field[0].Equals("Name") ? PseudoColumn.Name : PseudoColumn.None;
+                Param.Column? col = vParam?[field[0]];
+                if (pc == PseudoColumn.None && col == null)
                     throw new Exception($@"Could not locate field {field[0]}");
-                return (j, row) => {
+                return (row) => {
                     Param.Row vRow = vParam?[row.ID];
                     if (vRow == null)
                         throw new Exception($@"Could not locate vanilla row {row.ID}");
-                    string v = vRow.Get(col).ToParamEditorString();
-                    return (k, c) => v;
+                    object val = pc == PseudoColumn.ID ? vRow.ID : pc == PseudoColumn.Name ? vRow.Name : vRow[col].Value;
+                    string v = val.GetType() == typeof(byte[]) ? ParamUtils.Dummy8Write((byte[])val) : val.ToString();
+                    return (c) => v;
                 };
             }));
-            argumentGetters.Add("auxfield", (new string[]{"parambank name", "field internalName"}, (bankAndField) => {
-                if (!ParamBank.AuxBanks.ContainsKey(bankAndField[0]))
-                    throw new Exception($@"Could not locate paramBank {bankAndField[0]}");
-                ParamBank bank = ParamBank.AuxBanks[bankAndField[0]];
-                return (i, param) => {
+            argumentGetters.Add("aux", (1, (bankName) => {
+                if (!ParamBank.AuxBanks.ContainsKey(bankName[0]))
+                    throw new Exception($@"Could not locate paramBank {bankName[0]}");
+                ParamBank bank = ParamBank.AuxBanks[bankName[0]];
+                return (param) => {
                     string paramName = ParamBank.PrimaryBank.GetKeyForParam(param);
                     if (!bank.Params.ContainsKey(paramName))
                         throw new Exception($@"Could not locate aux param for {param.ParamType}");
                     Param vParam = bank.Params[paramName];
-                    var col = vParam.GetCol(bankAndField[1]);
-                    if (!col.IsColumnValid())
-                        throw new Exception($@"Could not locate field {bankAndField[1]}");
-                    return (j, row) => {
+                    return (row) => {
                         Param.Row vRow = vParam?[row.ID];
                         if (vRow == null)
                             throw new Exception($@"Could not locate aux row {row.ID}");
-                        string v = vRow.Get(col).ToParamEditorString();
-                        return (k, c) => v;
+                        return (col) => {
+                            if (col.Item1 == PseudoColumn.None && col.Item2 == null)
+                                throw new Exception($@"Could not locate given field or property");
+                            object val = col.Item1 == PseudoColumn.ID ? vRow.ID : col.Item1 == PseudoColumn.Name ? vRow.Name : vRow[col.Item2].Value;
+                            return val.GetType() == typeof(byte[]) ? ParamUtils.Dummy8Write((byte[])val) : val.ToString();
+                        };
                     };
                 };
             }));
-            argumentGetters.Add("average", (new string[]{"field internalName", "row selector"}, (field) => (i, param) => {
-                var col = param.GetCol(field[0]);
-                if (!col.IsColumnValid())
-                    throw new Exception($@"Could not locate field {field[0]}");
-                Type colType = col.GetColumnType();
-                if (colType == typeof(string) || colType == typeof(byte[]))
-                    throw new Exception($@"Cannot average field {field[0]}");
-                var rows = RowSearchEngine.rse.Search((ParamBank.PrimaryBank, param), field[1], false, false);
-                var vals = rows.Select((row, i) =>row.Get(col));
-                double avg = vals.Average((val) => Convert.ToDouble(val));
-                return (j, row) => (k, c) => avg.ToString();
+            argumentGetters.Add("auxfield", (2, (bankAndField) => {
+                if (!ParamBank.AuxBanks.ContainsKey(bankAndField[0]))
+                    throw new Exception($@"Could not locate paramBank {bankAndField[0]}");
+                ParamBank bank = ParamBank.AuxBanks[bankAndField[0]];
+                return (param) => {
+                    string paramName = ParamBank.PrimaryBank.GetKeyForParam(param);
+                    if (!bank.Params.ContainsKey(paramName))
+                        throw new Exception($@"Could not locate aux param for {param.ParamType}");
+                    Param vParam = bank.Params[paramName];
+                    PseudoColumn pc = bankAndField[1].Equals("ID") ? PseudoColumn.ID : bankAndField[1].Equals("Name") ? PseudoColumn.Name : PseudoColumn.None;
+                    Param.Column? col = vParam?[bankAndField[1]];
+                    if (pc == PseudoColumn.None && col == null)
+                        throw new Exception($@"Could not locate field {bankAndField[1]}");
+                    return (row) => {
+                        Param.Row vRow = vParam?[row.ID];
+                        if (vRow == null)
+                            throw new Exception($@"Could not locate aux row {row.ID}");
+                        object val = pc == PseudoColumn.ID ? vRow.ID : pc == PseudoColumn.Name ? vRow.Name : vRow[col].Value;
+                        string v = val.GetType() == typeof(byte[]) ? ParamUtils.Dummy8Write((byte[])val) : val.ToString();
+                        return (c) => v;
+                    };
+                };
             }));
-            argumentGetters.Add("median", (new string[]{"field internalName", "row selector"}, (field) => (i, param) => {
-                var col = param.GetCol(field[0]);
-                if (!col.IsColumnValid())
-                    throw new Exception($@"Could not locate field {field[0]}");
-                var rows = RowSearchEngine.rse.Search((ParamBank.PrimaryBank, param), field[1], false, false);
-                var vals = rows.Select((row, i) => row.Get(col));
-                var avg = vals.OrderBy((val) => Convert.ToDouble(val)).ElementAt(vals.Count()/2);
-                return (j, row) => (k, c) => avg.ToParamEditorString();
-            }));
-            argumentGetters.Add("mode", (new string[]{"field internalName", "row selector"}, (field) => (i, param) => {
-                var col = param.GetCol(field[0]);
-                if (!col.IsColumnValid())
-                    throw new Exception($@"Could not locate field {field[0]}");
-                var rows = RowSearchEngine.rse.Search((ParamBank.PrimaryBank, param), field[1], false, false);
-                var vals = rows.Select((row, i) => row.Get(col));
-                var avg = vals.GroupBy((val) => val).OrderByDescending((g) => g.Count()).Select((g) => g.Key).First();
-                return (j, row) => (k, c) => avg.ToParamEditorString();
-            }));
-            argumentGetters.Add("random", (new string[]{"minimum number (inclusive)", "maximum number (exclusive)"}, (minAndMax) => {
+            argumentGetters.Add("random", (2, (minAndMax) => {
                 double min;
                 double max;
                 if (!double.TryParse(minAndMax[0], out min) || !double.TryParse(minAndMax[1], out max))
@@ -787,55 +758,46 @@ namespace StudioCore.ParamEditor
                 if (max <= min)
                     throw new Exception($@"Random max must be greater than min");
                 double range = max - min;
-                return (i, param) => (j, row) => (k, c) => (Random.Shared.NextDouble() * range + min).ToString();
+                return (param) => (row) => (c) => (Random.Shared.NextDouble() * range + min).ToString();
             }));
-            argumentGetters.Add("randint", (new string[]{"minimum integer (inclusive)", "maximum integer (inclusive)"}, (minAndMax) => {
+            argumentGetters.Add("randint", (2, (minAndMax) => {
                 int min;
                 int max;
                 if (!int.TryParse(minAndMax[0], out min) || !int.TryParse(minAndMax[1], out max))
                     throw new Exception($@"Could not parse min and max randint values");
                 if (max <= min)
                     throw new Exception($@"Random max must be greater than min");
-                return (i, param) => (j, row) => (k, c) => Random.Shared.NextInt64(min, max + 1).ToString();
+                return (param) => (row) => (c) => Random.Shared.NextInt64(min, max + 1).ToString();
             }));
-            argumentGetters.Add("randFrom", (new string[]{"param name", "field internalName", "row selector"}, (paramFieldRowSelector) => {
+            argumentGetters.Add("randFrom", (3, (paramFieldRowSelector) => {
                 Param srcParam = ParamBank.PrimaryBank.Params[paramFieldRowSelector[0]];
                 List<Param.Row> srcRows = RowSearchEngine.rse.Search((ParamBank.PrimaryBank, srcParam), paramFieldRowSelector[2], false, false);
                 object[] values = srcRows.Select((r, i) => r[paramFieldRowSelector[1]].Value.Value).ToArray();
-                return (i, param) => (j, row) => (k, c) => values[Random.Shared.NextInt64(values.Length)].ToString();
-            }));
-            argumentGetters.Add("paramIndex", (new string[0], (empty) => (i, param) => (j, row) => (k, col) => {
-                return i.ToParamEditorString();
-            }));
-            argumentGetters.Add("rowIndex", (new string[0], (empty) => (i, param) => (j, row) => (k, col) => {
-                return j.ToParamEditorString();
-            }));
-            argumentGetters.Add("fieldIndex", (new string[0], (empty) => (i, param) => (j, row) => (k, col) => {
-                return k.ToParamEditorString();
+                return (param) => (row) => (c) => values[Random.Shared.NextInt64(values.Length)].ToString();
             }));
         }
 
-        public List<(string, string[])> AvailableArguments()
+        public List<(string, int)> AvailableArguments()
         {
-            List<(string, string[])> options = new List<(string, string[])>();
+            List<(string, int)> options = new List<(string, int)>();
             foreach (string op in argumentGetters.Keys)
             {
                 options.Add((op, argumentGetters[op].Item1));
             }
             return options;
         }
-        internal Func<int, Param, Func<int, Param.Row, Func<int, (PseudoColumn, Param.Column), string>>>[] getContextualArguments(int argumentCount, string opData)
+        internal Func<Param, Func<Param.Row, Func<(PseudoColumn, Param.Column), string>>>[] getContextualArguments(int argumentCount, string opData)
         {
             string[] opArgs = opData == null ? new string[0] : opData.Split(':', argumentCount);
-            Func<int, Param, Func<int, Param.Row, Func<int, (PseudoColumn, Param.Column), string>>>[] contextualArgs = new Func<int, Param, Func<int, Param.Row, Func<int, (PseudoColumn, Param.Column), string>>>[opArgs.Length];
+            Func<Param, Func<Param.Row, Func<(PseudoColumn, Param.Column), string>>>[] contextualArgs = new Func<Param, Func<Param.Row, Func<(PseudoColumn, Param.Column), string>>>[opArgs.Length];
             for (int i=0; i<opArgs.Length; i++)
             {
                 string[] arg = opArgs[i].Split(" ", 2);
                 if (argumentGetters.ContainsKey(arg[0].Trim()))
                 {
                     var getter = argumentGetters[arg[0]];
-                    string[] opArgArgs = arg.Length > 1 ? arg[1].Split(" ", getter.Item1.Length) : new string[0];
-                    if (opArgArgs.Length != getter.Item1.Length)
+                    string[] opArgArgs = arg.Length > 1 ? arg[1].Split(" ", getter.Item1) : new string[0];
+                    if (opArgArgs.Length != getter.Item1)
                         throw new Exception(@$"Contextual value {arg[0]} has wrong number of arguments. Expected {opArgArgs.Length}");
                     contextualArgs[i] = getter.Item2(opArgArgs);
                 }
@@ -846,5 +808,12 @@ namespace StudioCore.ParamEditor
             }
             return contextualArgs;
         }
+    }
+
+    public enum PseudoColumn
+    {
+        None,
+        ID,
+        Name
     }
 }
