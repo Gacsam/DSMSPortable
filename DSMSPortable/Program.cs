@@ -12,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.6.0";
+        static readonly string VERSION = "1.6.1";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -60,6 +60,7 @@ namespace DSMSPortable
         static bool changesMade = false;
         static bool ignoreConflicts = false;
         static bool verbose = false;
+        static bool sort = false;
         static void Main(string[] args)
         {
             masseditFiles = new();
@@ -106,7 +107,7 @@ namespace DSMSPortable
             if (sblytbndFile != null)
             {
                 Console.Out.Write("Performing Layout merge for " + sblytbndFile + "...");
-                List<string> verboseOutput = LayoutMerge(sblytbndFile, layoutFiles, ignoreConflicts);
+                List<string> verboseOutput = LayoutMerge(sblytbndFile, layoutFiles, ignoreConflicts, sort);
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
@@ -447,7 +448,7 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        public static List<string> LayoutMerge(string sblytbndFile, List<string> layoutFiles, bool ignoreConflicts)
+        public static List<string> LayoutMerge(string sblytbndFile, List<string> layoutFiles, bool ignoreConflicts, bool sort)
         {
             if (sblytbndFile == null) return null;
             if (layoutFiles.Count == 0) return null;
@@ -492,9 +493,10 @@ namespace DSMSPortable
                         {   // Compare each SubTexture we're trying to merge by name
                             TextureAtlas.SubTexture conflictingSubTexture = oldLayout.Find(subTexture);
                             if (conflictingSubTexture == null)
-                            {   // If not found, add the subtexture and sort
+                            {   // If not found, add the subtexture
                                 oldLayout.SubTextures.Add(subTexture);
-                                oldLayout.SubTextures.Sort();
+                                // Sort if the -S switch was specified
+                                if(sort) oldLayout.SubTextures.Sort();
                                 verboseOutput.Add($@"Added SubTexture {subTexture.Name} to {Path.GetFileName(oldLayout.FileName)}");
                             }
                             // If the -I switch was set, or these are perfectly identical SubTextures, nothing needs to be done
@@ -771,19 +773,12 @@ namespace DSMSPortable
                 foreach (FMG.Entry entry in iterableEntries)
                 {
                     FMG.Entry existingEntry = sourceFmg.GetEntry(entry.ID);
-                    /*if (diffmode && existingEntry != null && existingEntry.Text == entry.Text)
-                    {   // Diff mode means stripping out every entry that already exists in the given reference
-                        fmg.Entries.Remove(entry);
-                        verboseOutput.Add($@"Removed Entry ID {entry.ID} from {Path.GetFileName(fmgPath)}");
-                        continue;
-                    }
-                    if (diffmode) continue;*/
                     if (existingEntry == null)
                     {
                         sourceFmg.AddEntry(entry);
                         verboseOutput.Add($@"Added Entry ID {entry.ID} to {Path.GetFileName(fmgPath)}");
                     }
-                    else if (!ignoreConflicts && existingEntry.Text != entry.Text)
+                    else if ((!ignoreConflicts || existingEntry.Text == "" || existingEntry.Text == "%null%") && existingEntry.Text != entry.Text)
                     {
                         existingEntry.Text = entry.Text;
                         verboseOutput.Add($@"Updated Entry ID {entry.ID} in {Path.GetFileName(fmgPath)}");
@@ -1490,6 +1485,9 @@ namespace DSMSPortable
                         case 'U':
                             mode = ParamMode.UPGRADE;
                             break;
+                        case 'S':
+                            sort = true;
+                            break;
                         case 'V':
                             verbose = true;
                             break;
@@ -1531,59 +1529,59 @@ namespace DSMSPortable
                     switch (mode)
                     {
                         case ParamMode.CSV:
-                            if (File.Exists(param) && (param.ToLower().EndsWith("csv") || param.ToLower().EndsWith("txt")))
-                                csvFiles.Add(param);
-                            else if (Directory.Exists(param))
+                            if (Directory.Exists(param))
                             {
                                 foreach (string file in Directory.EnumerateFiles(param))
                                 {
-                                    if (File.Exists(param) && param.ToLower().EndsWith("csv"))
+                                    if (File.Exists(param) && param.ToLower().EndsWith(".csv"))
                                         csvFiles.Add(file);
                                     else Console.Error.WriteLine("Warning: Invalid CSV filename given: " + param);
                                 }
                             }
+                            else if (File.Exists(param) && (param.ToLower().EndsWith(".csv") || param.ToLower().EndsWith(".txt")))
+                                csvFiles.Add(param);
                             else Console.Out.WriteLine("Warning: Invalid CSV filename given: " + param);
                             break;
                         case ParamMode.C2M:
-                            if (File.Exists(param) && (param.ToLower().EndsWith("csv") || param.ToLower().EndsWith("txt")))
-                                c2mFiles.Add(param);
-                            else if (Directory.Exists(param))
+                            if (Directory.Exists(param))
                             {
                                 foreach (string file in Directory.EnumerateFiles(param))
                                 {
-                                    if (File.Exists(param) && param.ToLower().EndsWith("csv"))
+                                    if (File.Exists(param) && param.ToLower().EndsWith(".csv"))
                                         c2mFiles.Add(file);
                                     else Console.Error.WriteLine("Warning: Invalid CSV filename given: " + param);
                                 }
                             }
+                            else if (File.Exists(param) && (param.ToLower().EndsWith(".csv") || param.ToLower().EndsWith(".txt")))
+                                c2mFiles.Add(param);
                             else Console.Out.WriteLine("Warning: Invalid CSV filename given: " + param);
                             break;
                         case ParamMode.MASSEDIT:
-                            if (File.Exists(param) && (param.ToLower().EndsWith("txt") || param.ToLower().EndsWith("massedit")))
-                                masseditFiles.Add(param);
-                            else if (Directory.Exists(param))
+                            if (Directory.Exists(param))
                             {
                                 foreach (string file in Directory.EnumerateFiles(param))
                                 {
-                                    if (File.Exists(param) && param.ToLower().EndsWith("massedit"))
+                                    if (File.Exists(param) && param.ToLower().EndsWith(".massedit"))
                                         masseditFiles.Add(file);
                                     else Console.Error.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
                                 }
                             }
+                            else if (File.Exists(param) && (param.ToLower().EndsWith(".txt") || param.ToLower().EndsWith(".massedit")))
+                                masseditFiles.Add(param);
                             else Console.Out.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
                             break;
                         case ParamMode.MASSEDITPLUS:
-                            if (File.Exists(param) && (param.ToLower().EndsWith("txt") || param.ToLower().EndsWith("massedit")))
-                                masseditpFiles.Add(param);
-                            else if (Directory.Exists(param))
+                            if (Directory.Exists(param))
                             {
                                 foreach (string file in Directory.EnumerateFiles(param))
                                 {
-                                    if (File.Exists(param) && param.ToLower().EndsWith("massedit"))
+                                    if (File.Exists(param) && param.ToLower().EndsWith(".massedit"))
                                         masseditpFiles.Add(file);
                                     else Console.Error.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
                                 }
                             }
+                            else if (File.Exists(param) && (param.ToLower().EndsWith(".txt") || param.ToLower().EndsWith(".massedit")))
+                                masseditpFiles.Add(param);
                             else Console.Out.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
                             break;
                         case ParamMode.OUTPUT:
@@ -1911,9 +1909,9 @@ namespace DSMSPortable
             Console.Out.WriteLine("  --animdiff [anibnd] [taefile1 taefile2 ...] [-V]");
             Console.Out.WriteLine("             Separate operation mode for stripping given TAE files into partial TAE's for merging containing");
             Console.Out.WriteLine("             only animations that do not match the given anibnd file. -G, -P, and -O still apply");
-            Console.Out.WriteLine("  --layoutmerge [sblytbndfile] [layoutfile1 layoutfile2 ...] [-I] [-V]");
+            Console.Out.WriteLine("  --layoutmerge [sblytbndfile] [layoutfile1 layoutfile2 ...] [-I] [-V] [-S]");
             Console.Out.WriteLine("             Separate operation mode for merging layout files into a sblytbnd file. -G, -P, and -O still apply");
-            Console.Out.WriteLine("             Same format as --fmgmerge and animerge");
+            Console.Out.WriteLine("             Specifying the -S switch will cause the merged layout file to be sorted by the name field.");
             Console.Out.WriteLine("  --texturemerge [tpffile] [ddsfile1 ddsfile2 ...] [-I] [-V]");
             Console.Out.WriteLine("             Separate operation mode for merging DDS textures into a TPF file. -P and -O still apply.");
             Console.Out.WriteLine("             Same format as other merge operations, but can only merge whole DDS files.");
