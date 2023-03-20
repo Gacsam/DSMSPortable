@@ -12,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.6.1";
+        static readonly string VERSION = "1.6.2";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -260,6 +260,7 @@ namespace DSMSPortable
         {
             mfile = "";
             bool addition = false;
+            bool versionMismatch = false;
             List<int> ids = new();
             // Compare every row for changes
             foreach (FSParam.Param.Row row in newParam.Rows)
@@ -292,15 +293,24 @@ namespace DSMSPortable
                         if (row.CellHandles[i].Value.GetType() == typeof(byte[]))
                         {
                             string value = ParamUtils.Dummy8Write((byte[])row.CellHandles[i].Value);
-                            string oldvalue = ParamUtils.Dummy8Write((byte[])oldRow.CellHandles[i].Value);
-                            if (!value.Equals(oldvalue))
+                            try
+                            {
+                                string oldvalue = ParamUtils.Dummy8Write((byte[])oldRow.CellHandles[i].Value);
+                                if (!value.Equals(oldvalue))
+                                    mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {value};" + "\n";
+                            }
+                            catch(Exception)
+                            {   // There's a version mismatch, write the new value anyway
                                 mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {value};" + "\n";
+                                versionMismatch = true;
+                            }
                         }
                         else if (!row.CellHandles[i].Value.Equals(oldRow.CellHandles[i].Value))
                             mfile += $@"param {paramName}: id {row.ID}: {row.CellHandles[i].Def.InternalName}: = {row.CellHandles[i].Value};" + "\n";
                     }
                 }
             }
+            if (versionMismatch) Console.Error.WriteLine("Warning: Version mismatch between given param files. Resulting file may contain extraneous entries.");
             return addition;
         }
         public static FSParam.Param.Row AddNewRow(int id, FSParam.Param param)
