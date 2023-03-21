@@ -2,6 +2,23 @@
 DS Map Studio is a standalone integrated modding tool for modern FromSoft games, which include Demon's Souls (PS3), the Dark Souls series, Bloodborne, Sekiro, and Elden Ring. It currently includes a map editor, a game param editor, and a text editor for editing in game text.
 
 ![msb-editor-screenshot](https://user-images.githubusercontent.com/44953920/209740902-ab75c7fb-e281-4833-aeab-4c2ea41da815.png)
+### DSMSPortable Error Codes
+* <0 .NET not installed
+* 1 Unhandled Exception
+* 2 Unhandled Exception processing arguments
+* 3 No gamepath specified
+* 4 Could not resolve output path
+* 5 Unrecognized argument switch
+* 7 Timed out loading param files
+* 8 Failed to save/overwrite file
+* 9 Failed to save param file
+* 10 Failed to generate temporary files
+* 11 Invalid FMG file specified
+* 12 XML parsing error
+* 13 Invalid in-line FMG entry
+* 14 Invalid sblytbnd file specified
+* 15 Invalid TPF file specified
+* 16 Invalid BND file specified
 
 ## Basic usage instructions
 ### Game instructions
