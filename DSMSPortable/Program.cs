@@ -1753,9 +1753,9 @@ namespace DSMSPortable
                             {
                                 foreach (string file in Directory.EnumerateFiles(param))
                                 {
-                                    if (File.Exists(param) && param.ToLower().EndsWith(".csv"))
+                                    if (File.Exists(file) && file.ToLower().EndsWith(".csv"))
                                         csvFiles.Add(file);
-                                    else Console.Error.WriteLine("Warning: Invalid CSV filename given: " + param);
+                                    else Console.Error.WriteLine("Warning: Invalid CSV filename given: " + file);
                                 }
                             }
                             else if (File.Exists(param) && (param.ToLower().EndsWith(".csv") || param.ToLower().EndsWith(".txt")))
@@ -1767,9 +1767,9 @@ namespace DSMSPortable
                             {
                                 foreach (string file in Directory.EnumerateFiles(param))
                                 {
-                                    if (File.Exists(param) && param.ToLower().EndsWith(".csv"))
+                                    if (File.Exists(file) && file.ToLower().EndsWith(".csv"))
                                         c2mFiles.Add(file);
-                                    else Console.Error.WriteLine("Warning: Invalid CSV filename given: " + param);
+                                    else Console.Error.WriteLine("Warning: Invalid CSV filename given: " + file);
                                 }
                             }
                             else if (File.Exists(param) && (param.ToLower().EndsWith(".csv") || param.ToLower().EndsWith(".txt")))
@@ -1781,9 +1781,9 @@ namespace DSMSPortable
                             {
                                 foreach (string file in Directory.EnumerateFiles(param))
                                 {
-                                    if (File.Exists(param) && param.ToLower().EndsWith(".massedit"))
+                                    if (File.Exists(file) && file.ToLower().EndsWith(".massedit"))
                                         masseditFiles.Add(file);
-                                    else Console.Error.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
+                                    else Console.Error.WriteLine("Warning: Invalid MASSEDIT filename given: " + file);
                                 }
                             }
                             else if (File.Exists(param) && (param.ToLower().EndsWith(".txt") || param.ToLower().EndsWith(".massedit")))
@@ -1795,9 +1795,9 @@ namespace DSMSPortable
                             {
                                 foreach (string file in Directory.EnumerateFiles(param))
                                 {
-                                    if (File.Exists(param) && param.ToLower().EndsWith(".massedit"))
+                                    if (File.Exists(file) && file.ToLower().EndsWith(".massedit"))
                                         masseditpFiles.Add(file);
-                                    else Console.Error.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
+                                    else Console.Error.WriteLine("Warning: Invalid MASSEDIT filename given: " + file);
                                 }
                             }
                             else if (File.Exists(param) && (param.ToLower().EndsWith(".txt") || param.ToLower().EndsWith(".massedit")))
