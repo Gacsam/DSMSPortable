@@ -9,6 +9,7 @@ DS Map Studio is a standalone integrated modding tool for modern FromSoft games,
 * 3 No gamepath specified
 * 4 Could not resolve output path
 * 5 Unrecognized argument switch
+* 6 Failed to read TAE file
 * 7 Timed out loading param files
 * 8 Failed to save/overwrite file
 * 9 Failed to save param file
