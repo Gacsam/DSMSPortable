@@ -38,7 +38,7 @@ namespace SoulsFormats
             {
                 SubTextures.Add(new SubTexture(subtextureNode));
             }
-            SubTextures.Sort();
+            //SubTextures.Sort();
         }
         /// <summary>
         /// Creates a TextureAtlas from its filename and an XML data string. The data string must be a valid XML format TextureAtlas or an Exception will be thrown.
@@ -53,7 +53,7 @@ namespace SoulsFormats
             {
                 SubTextures.Add(new SubTexture(subtextureNode));
             }
-            SubTextures.Sort();
+            //SubTextures.Sort();
         }
         protected override bool Is(BinaryReaderEx br)
         {
@@ -78,7 +78,7 @@ namespace SoulsFormats
             {
                 SubTextures.Add(new SubTexture(subtextureNode));
             }
-            SubTextures.Sort();
+            //SubTextures.Sort();
         }
         protected override void Write(BinaryWriterEx bw)
         {
