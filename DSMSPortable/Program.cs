@@ -12,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.6.3";
+        static readonly string VERSION = "1.6.4";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -1010,12 +1010,12 @@ namespace DSMSPortable
                 {
                     id = int.Parse(fmgstring.Split(":", 3)[1].Trim());
                 }
-                catch(Exception)
+                catch (Exception)
                 {
                     Console.Error.WriteLine("ERROR: \"" + fmgstring + "\" is not a valid FMG entry in the format [Name]:[ID]:[Text]");
                     Environment.Exit(13);
                 }
-                string text = fmgstring.Split(":", 3)[2].Trim().Replace("\\n","\n");
+                string text = fmgstring.Split(":", 3)[2].Trim().Replace("\\n", "\n");
                 // Find out which FMG we're dealing with
                 FMGBank.FMGInfo sourceFmg = null;
                 foreach (FMGBank.FMGInfo src in fmgBank)
@@ -1041,7 +1041,7 @@ namespace DSMSPortable
                 }
                 else if (existingEntry.Text != text)
                 {
-                    existingEntry.Text = text;
+                    existingEntry.Text = text.Replace("$0", existingEntry.Text);
                     verboseOutput.Add($@"Updated Entry ID {newEntry.ID} in {sourceFmg.FileName}");
                 }
             }
@@ -2115,7 +2115,8 @@ namespace DSMSPortable
             Console.Out.WriteLine("             Separate operation mode for adding individual FMG entries to a msgbnd file. -G -P -O still apply");
             Console.Out.WriteLine("             Each argument should be one string with the fmg name, id, and text separated by a colon:");
             Console.Out.WriteLine("             i.e. \"AccessoryName: 6200: Amulet of Defenestration\"");
-            Console.Out.WriteLine("             DSMSPortable will interpret new lines from the escape sequence \\n");
+            Console.Out.WriteLine("             DSMSPortable will interpret new lines from the escape sequence \\n, and will reference the");
+            Console.Out.WriteLine("             original text from the keyword $0, i.e  \"AccessoryInfo: 69: $0\\nNow explodes on equip\"");
             Console.Out.WriteLine("  --fmgmerge [msgbndfile] [fmgfile1 fmgfile2 ...] [-I] [-V]");
             Console.Out.WriteLine("             Separate operation mode for merging FMG edits into a msgbnd file. -G, -P, and -O still apply.");
             Console.Out.WriteLine("             First argument is a msgbnd file, with the extension .msgbnd.dcx, latter arguments are files");
