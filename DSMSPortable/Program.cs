@@ -283,8 +283,8 @@ namespace DSMSPortable
                 {
                     // Grab the new name if needed
                     if (row.Name.Replace("\r", "") != oldRow.Name.Replace("\r", ""))
-                    {
-                        mfile += $@"param {paramName}: id {row.ID}: Name: = {row.Name.Replace("\r", "")};" + "\n";
+                    {   // make sure to escape #'s to keep strings sanitized
+                        mfile += $@"param {paramName}: id {row.ID}: Name: = {row.Name.Replace("\r", "").Replace("#",$@"\#")};" + "\n";
                     }
                     // if something is different, check each cell for changes
                     for (int i = 0; i < row.CellHandles.Count; i++)
@@ -1476,8 +1476,9 @@ namespace DSMSPortable
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
-                // Allow for comments with #
-                opstring = Regex.Replace(opstring, $@"#(.[^\n]*)\n", "");
+                // Allow for comments with # and escapes with \#
+                opstring = Regex.Replace(opstring, $@"(?<!\\)#(.[^\n]*)\n", "");
+                opstring = Regex.Replace(opstring, $@"\\#", "#");
                 // Row addition logic
                 StringReader reader = new(opstring);
                 string line;
@@ -1522,8 +1523,9 @@ namespace DSMSPortable
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
-                // Allow for comments with #
-                opstring = Regex.Replace(opstring, $@"#(.[^\n]*)\n", "");
+                // Allow for comments with # and escapes with \#
+                opstring = Regex.Replace(opstring, $@"(?<!\\)#(.[^\n]*)\n", "");
+                opstring = Regex.Replace(opstring, $@"\\#", "#");
                 // Perform the massedit operation
                 (meresult, ActionManager tmp) = MassParamEditRegex.PerformMassEdit(ParamBank.PrimaryBank, opstring, new ParamEditorSelectionState());
                 if (meresult.Type == MassEditResultType.SUCCESS)
