@@ -601,25 +601,34 @@ namespace DSMSPortable
         private static List<string> PlaintextMerge(BinderFile destFile, BinderFile srcFile, bool diffmode)
         {
             List<string> verboseOutput = new();
-            if (destFile == null || srcFile == null || destFile.Bytes.Length == 0 || srcFile.Bytes.Length == 0) return verboseOutput;
+            if (srcFile == null || srcFile.Bytes.Length == 0) return verboseOutput;
             // Remove empty lines from both files
-            string utf8 = System.Text.Encoding.ASCII.GetString(destFile.Bytes, 0, destFile.Bytes.Length).Replace("\r", "");
-            while (utf8.Contains("\n\n")) utf8 = utf8.Replace("\n\n", "\n");
-            List<string> oldList = new(utf8.Split('\n'));
+            string utf8;
+            List<string> destList;
+            try
+            {
+                utf8 = System.Text.Encoding.ASCII.GetString(destFile.Bytes, 0, destFile.Bytes.Length).Replace("\r", "");
+                while (utf8.Contains("\n\n")) utf8 = utf8.Replace("\n\n", "\n");
+                destList = new(utf8.Split('\n'));
+            }
+            catch (Exception)
+            {
+                destList = new();
+            }
             utf8 = System.Text.Encoding.ASCII.GetString(srcFile.Bytes, 0, srcFile.Bytes.Length).Replace("\r", "");
             while (utf8.Contains("\n\n")) utf8 = utf8.Replace("\n\n", "\n");
-            List<string> newList = new(utf8.Split('\n'));
-            foreach (string newLine in new List<string>(newList))
+            List<string> srcList = new(utf8.Split('\n'));
+            foreach (string newLine in srcList)
             {
                 if (newLine == "") continue;
-                if (!diffmode && !oldList.Contains(newLine))
+                if (!diffmode && !destList.Contains(newLine))
                 {
-                    oldList.Add(newLine);
+                    destList.Add(newLine);
                     verboseOutput.Add($@"Added new entry {newLine} to {destFile.Name}");
                 }
-                else if (diffmode && oldList.Contains(newLine))
+                else if (diffmode && destList.Contains(newLine))
                 {
-                    oldList.Remove(newLine);
+                    destList.Remove(newLine);
                     verboseOutput.Add($@"Removed entry {newLine} from {destFile.Name}");
                 }
             }
@@ -627,7 +636,7 @@ namespace DSMSPortable
             if (verboseOutput.Count > 0)
             {
                 string outputString = "";
-                foreach(string res in oldList)
+                foreach(string res in destList)
                 {
                     if (res == "") continue;
                     outputString += res + "\n";
@@ -645,9 +654,7 @@ namespace DSMSPortable
             Dictionary<string, BinderFile> destbndict = new();
             // Convert to dictionary for performance
             foreach (BinderFile destFile in destbnd.Files)
-            {
                 destbndict.Add(destFile.Name.ToLower(), destFile);
-            }
             foreach (BinderFile srcFile in srcbnd.Files)
             {
                 BinderFile destFile;
@@ -667,7 +674,8 @@ namespace DSMSPortable
                     verboseOutput.Add($@"Added {srcFile.Name} to {Path.GetFileName(destbndFile)}");
                     continue;
                 }
-                if (destFile.Bytes.Length == 0) continue;
+                // No point in merging empty files
+                if (srcFile.Bytes.Length == 0) continue;
                 // We got a matching binder file name
                 if (!destFile.Bytes.SequenceEqual(srcFile.Bytes))
                 {
@@ -694,7 +702,7 @@ namespace DSMSPortable
                     else if (destFile.Name.EndsWith("bnd"))
                     {   // boy can this get hairy
                         if (destbnd is BND3) verboseOutput.AddRange(BndMerge(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes), ignoreConflicts));
-                        if (destbnd is BND4) verboseOutput.AddRange(BndMerge(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), ignoreConflicts));
+                        else if (destbnd is BND4) verboseOutput.AddRange(BndMerge(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), ignoreConflicts));
                     }
                     else if (!ignoreConflicts)
                     {
@@ -731,7 +739,7 @@ namespace DSMSPortable
                 {
                     continue;
                 }
-                if (destFile == null || destFile.Bytes.Length == 0) continue;
+                if (destFile == null) continue;
                 // We got a matching binder file
                 if (!destFile.Bytes.SequenceEqual(srcFile.Bytes))
                 {
@@ -739,10 +747,10 @@ namespace DSMSPortable
                     {
                         verboseOutput.AddRange(LayoutMerge(destFile, srcFile, false, true, true));
                     }
-                    else if (destFile.Name.EndsWith(".ffxreslist"))
+                    /*else if (destFile.Name.EndsWith(".ffxreslist"))
                     {
                         verboseOutput.AddRange(PlaintextMerge(destFile, srcFile, true));
-                    }
+                    }*/
                     else if (destFile.Name.EndsWith(".tpf"))
                     {
                         verboseOutput.AddRange(TextureMerge(destFile, srcFile, false, true));
@@ -758,11 +766,11 @@ namespace DSMSPortable
                     else if (destFile.Name.EndsWith("bnd"))
                     {   // boy can this get hairy
                         if (destbnd is BND3) verboseOutput.AddRange(BndDiff(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes)));
-                        if (destbnd is BND4) verboseOutput.AddRange(BndDiff(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes)));
+                        else if (destbnd is BND4) verboseOutput.AddRange(BndDiff(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes)));
                     }
                 }
-                else
-                {
+                else if (!destFile.Name.EndsWith(".ffxreslist"))
+                {   // These merge perfectly, so don't bother stripping them out
                     destbnd.Files.Remove(destFile);
                     verboseOutput.Add($@"Removed {destFile.Name} from {Path.GetFileName(destbndFile)}");
                 }
@@ -982,34 +990,31 @@ namespace DSMSPortable
                 Console.Error.WriteLine("ERROR: Could not read " + srcFile.Name + ": " + e.Message);
                 Environment.Exit(12);
             }
-            foreach (FMG.Entry newEntry in srcFmg.Entries)
+            Dictionary<int, FMG.Entry> destDict = new();
+            foreach (FMG.Entry destEntry in destFmg.Entries)
+                destDict.Add(destEntry.ID, destEntry);
+            foreach (FMG.Entry srcEntry in srcFmg.Entries)
             {
-                bool match = false;
-                foreach(FMG.Entry oldEntry in destFmg.Entries)
+                FMG.Entry destEntry = destDict[srcEntry.ID];
+                if (!diffmode && destEntry == null)
                 {
-                    if(oldEntry.ID == newEntry.ID)
+                    destFmg.Entries.Add(srcEntry);
+                    verboseOutput.Add($@"Added Entry ID {srcEntry.ID} to {destFile.Name}");
+                    continue;
+                }
+                else if (destEntry == null) continue;
+                if (diffmode)
+                {
+                    if(destEntry.Text == srcEntry.Text)
                     {
-                        match = true;
-                        if (diffmode)
-                        {
-                            if(oldEntry.Text == newEntry.Text)
-                            {
-                                destFmg.Entries.Remove(newEntry);
-                                verboseOutput.Add($@"Removed Entry ID {newEntry.ID} from {destFile.Name}");
-                            }
-                        }
-                        else if ((!ignoreConflicts || oldEntry.Text == "" || oldEntry.Text == "%null%") && oldEntry.Text != newEntry.Text)
-                        {
-                            oldEntry.Text = newEntry.Text;
-                            verboseOutput.Add($@"Updated Entry ID {oldEntry.ID} in {destFile.Name}");
-                        }
-                        break;
+                        destFmg.Entries.Remove(srcEntry);
+                        verboseOutput.Add($@"Removed Entry ID {srcEntry.ID} from {destFile.Name}");
                     }
                 }
-                if (!diffmode && !match)
+                else if ((!ignoreConflicts || destEntry.Text == "" || destEntry.Text == "%null%") && destEntry.Text != srcEntry.Text)
                 {
-                    destFmg.Entries.Add(newEntry);
-                    verboseOutput.Add($@"Added Entry ID {newEntry.ID} to {destFile.Name}");
+                    destEntry.Text = srcEntry.Text;
+                    verboseOutput.Add($@"Updated Entry ID {destEntry.ID} in {destFile.Name}");
                 }
             }
             if (verboseOutput.Count > 0) destFile.Bytes = destFmg.Write(destFmg.Compression);
@@ -1097,18 +1102,31 @@ namespace DSMSPortable
                     }
                 }
                 // Perform merge
+                Dictionary<int, FMG.Entry> srcDict = new();
+                // this is faster than using FMGInfo.GetEntry
+                foreach (FMG.Entry entry in sourceFmg.Fmg.Entries)
+                    srcDict.Add(entry.ID, entry);
                 foreach (FMG.Entry entry in fmg.Entries)
                 {
-                    FMG.Entry existingEntry = sourceFmg.GetEntry(entry.ID);
-                    if (existingEntry == null)
+                    FMG.Entry existingEntry;
+                    try
+                    {
+                        existingEntry = srcDict[entry.ID];
+                        if (existingEntry == null)
+                        {
+                            sourceFmg.AddEntry(entry);
+                            verboseOutput.Add($@"Added Entry ID {entry.ID} to {Path.GetFileName(fmgPath)}");
+                        }
+                        else if ((!ignoreConflicts || existingEntry.Text == "" || existingEntry.Text == "%null%") && existingEntry.Text != entry.Text)
+                        {
+                            existingEntry.Text = entry.Text;
+                            verboseOutput.Add($@"Updated Entry ID {entry.ID} in {Path.GetFileName(fmgPath)}");
+                        }
+                    }
+                    catch(KeyNotFoundException)
                     {
                         sourceFmg.AddEntry(entry);
                         verboseOutput.Add($@"Added Entry ID {entry.ID} to {Path.GetFileName(fmgPath)}");
-                    }
-                    else if ((!ignoreConflicts || existingEntry.Text == "" || existingEntry.Text == "%null%") && existingEntry.Text != entry.Text)
-                    {
-                        existingEntry.Text = entry.Text;
-                        verboseOutput.Add($@"Updated Entry ID {entry.ID} in {Path.GetFileName(fmgPath)}");
                     }
                 }
             }
