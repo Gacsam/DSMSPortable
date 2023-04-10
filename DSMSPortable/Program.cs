@@ -12,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.6.4";
+        static readonly string VERSION = "1.7";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -55,6 +55,7 @@ namespace DSMSPortable
         // bndmerge files
         static string srcbndFile = null;
         static string destbndFile = null;
+        static bool bndDiffmode = false;
         static bool gametypeContext = false;
         static bool folderMimic = false;
         static bool changesMade = false;
@@ -149,8 +150,9 @@ namespace DSMSPortable
             // Perform generic Binder Merging if specified
             if (srcbndFile != null && destbndFile != null)
             {
-                Console.Out.Write("Performing BND merge for " + destbndFile + "...");
-                List<string> verboseOutput = BndMerge(destbndFile, srcbndFile, ignoreConflicts);
+                if (bndDiffmode) Console.Out.Write("Creating partial bnd from diffs to " + srcbndFile + "...");
+                else Console.Out.Write("Performing BND merge for " + destbndFile + "...");
+                List<string> verboseOutput = BndMerge(destbndFile, srcbndFile, ignoreConflicts, bndDiffmode);
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
@@ -338,57 +340,56 @@ namespace DSMSPortable
         {
             return AnimationMerge(anibndFile, taeFiles, false, true);
         }
-        private static List<string> AnimationMerge(BinderFile oldFile, BinderFile newFile, bool ignoreConflicts, string diffFile)
+        private static List<string> AnimationMerge(BinderFile destFile, BinderFile srcFile, bool ignoreConflicts, string diffFile)
         {
             List<string> verboseOutput = new();
-            if (oldFile == null || newFile == null) return verboseOutput;
+            if (destFile == null || srcFile == null) return verboseOutput;
             bool diffmode = (diffFile != null);
-            TAE oldAnims = null;
-            TAE newAnims = null;
-            string taeName = Path.GetFileName(oldFile.Name);
+            TAE destAnims = null;
+            TAE srcAnims = null;
+            string taeName = Path.GetFileName(destFile.Name);
             try
             {
-                oldAnims = TAE.Read(oldFile.Bytes);
+                destAnims = TAE.Read(destFile.Bytes);
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($@"ERROR: Could not read TAE File {taeName} in {oldFile.Name}: {e.Message}");
+                Console.Error.WriteLine($@"ERROR: Could not read TAE File {taeName} in {destFile.Name}: {e.Message}");
                 Environment.Exit(6);
             }
             try
             {
-                newAnims = TAE.Read(newFile.Bytes);
+                srcAnims = TAE.Read(srcFile.Bytes);
             }
             catch (Exception e)
             {
                 if(diffFile != null) Console.Error.WriteLine($@"ERROR: Could not read TAE File {diffFile}: {e.Message}");
-                else Console.Error.WriteLine($@"ERROR: Could not read TAE File {taeName} in {newFile.Name}: {e.Message}");
+                else Console.Error.WriteLine($@"ERROR: Could not read TAE File {taeName} in {srcFile.Name}: {e.Message}");
                 Environment.Exit(6);
             }
-            List<TAE.Animation> iterableNewAnims = new(newAnims.Animations);
-            foreach (TAE.Animation anim in iterableNewAnims)
+            foreach (TAE.Animation anim in srcAnims.Animations)
             {   // Compare each Animation we're trying to merge by ID
-                TAE.Animation conflictingAnim = oldAnims.Animations.Find(x => x.ID == anim.ID);
+                TAE.Animation conflictingAnim = destAnims.Animations.Find(x => x.ID == anim.ID);
                 if (diffmode && conflictingAnim != null && anim.Equals(conflictingAnim))
                 {   // Diff mode means stripping out every animation that already exists in the given reference
-                    newAnims.Animations.Remove(anim);
+                    destAnims.Animations.Remove(anim);
                     verboseOutput.Add($@"Removed Animation ID {anim.ID} from {taeName}");
                     continue;
                 }
                 if (diffmode) continue;
                 if (conflictingAnim == null)
                 {   // If not found, add the Animation and sort
-                    oldAnims.Animations.Add(anim);
-                    oldAnims.Animations.Sort();
+                    destAnims.Animations.Add(anim);
+                    destAnims.Animations.Sort();
                     verboseOutput.Add($@"Added Animation ID {anim.ID} to {taeName}");
                 }
                 // If the -I switch was set, or these are perfectly identical Animations, nothing needs to be done
                 else if (ignoreConflicts || anim.Equals(conflictingAnim)) continue;
                 else
                 {   // Update the conflicting Animation to match the one we're trying to merge
-                    oldAnims.Animations.Remove(conflictingAnim);
-                    oldAnims.Animations.Add(anim);
-                    oldAnims.Animations.Sort();
+                    destAnims.Animations.Remove(conflictingAnim);
+                    destAnims.Animations.Add(anim);
+                    destAnims.Animations.Sort();
                     verboseOutput.Add($@"Updated Animation ID {anim.ID} in {taeName}");
                 }
             }
@@ -399,16 +400,16 @@ namespace DSMSPortable
                 if (outputFile != null && !Directory.Exists(outputFile)) path = new FileInfo(outputFile).Directory.FullName;
                 else if (outputFile != null) path = outputFile;
                 else path = new FileInfo(diffFile).Directory.FullName;
-                if (oldAnims.Animations.Count == 0)
+                if (destAnims.Animations.Count == 0)
                 {   // this partial TAE is now empty, delete it altogether.
                     verboseOutput.Add($@"Removed all animations from {taeName}");
                     if (File.Exists($@"{path}\{taeName}.partial"))
                         File.Delete($@"{path}\{taeName}.partial");
                 }
-                else File.WriteAllBytes($@"{path}\{taeName}.partial", newAnims.Write());
+                else File.WriteAllBytes($@"{path}\{taeName}.partial", srcAnims.Write());
             }
             // Write the changes we made to the binderfile
-            else if (verboseOutput.Count > 0) oldFile.Bytes = oldAnims.Write();
+            else if (!diffmode && verboseOutput.Count > 0) destFile.Bytes = destAnims.Write();
             return verboseOutput;
         }
         private static List<string> AnimationMerge(string anibndFile, List<string> taeFiles, bool ignoreConflicts, bool diffmode)
@@ -488,21 +489,29 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        private static List<string> LayoutMerge(BinderFile oldFile, BinderFile newFile, bool ignoreConflicts, bool sort)
+        private static List<string> LayoutMerge(BinderFile destFile, BinderFile srcFile, bool ignoreConflicts, bool sort, bool diffmode)
         {
             List<string> verboseOutput = new();
-            if (oldFile == null || newFile == null) return verboseOutput;
-            TextureAtlas oldLayout = new(oldFile);
-            TextureAtlas newLayout = new(newFile);
-            foreach (TextureAtlas.SubTexture subTexture in newLayout.SubTextures)
+            if (destFile == null || srcFile == null) return verboseOutput;
+            TextureAtlas destLayout = new(destFile);
+            TextureAtlas srcLayout = new(srcFile);
+            foreach (TextureAtlas.SubTexture subTexture in srcLayout.SubTextures)
             {   // Compare each SubTexture we're trying to merge by name
-                TextureAtlas.SubTexture conflictingSubTexture = oldLayout.Find(subTexture);
-                if (conflictingSubTexture == null)
+                TextureAtlas.SubTexture conflictingSubTexture = destLayout.Find(subTexture);
+                if (diffmode)
+                {
+                    if(conflictingSubTexture != null)
+                    {
+                        destLayout.SubTextures.Remove(conflictingSubTexture);
+                        verboseOutput.Add($@"Removed SubTexture {subTexture.Name} from {Path.GetFileName(destLayout.FileName)}");
+                    }
+                }
+                else if (conflictingSubTexture == null)
                 {   // If not found, add the subtexture
-                    oldLayout.SubTextures.Add(subTexture);
+                    destLayout.SubTextures.Add(subTexture);
                     // Sort if the -S switch was specified
-                    if (sort) oldLayout.SubTextures.Sort();
-                    verboseOutput.Add($@"Added SubTexture {subTexture.Name} to {Path.GetFileName(oldLayout.FileName)}");
+                    if (sort) destLayout.SubTextures.Sort();
+                    verboseOutput.Add($@"Added SubTexture {subTexture.Name} to {Path.GetFileName(destLayout.FileName)}");
                 }
                 // If the -I switch was set, or these are perfectly identical SubTextures, nothing needs to be done
                 else if (ignoreConflicts || subTexture.Equals(conflictingSubTexture)) continue;
@@ -513,11 +522,11 @@ namespace DSMSPortable
                     conflictingSubTexture.Width = subTexture.Width;
                     conflictingSubTexture.Height = subTexture.Height;
                     conflictingSubTexture.Half = subTexture.Half;
-                    verboseOutput.Add($@"Updated SubTexture {subTexture.Name} in {Path.GetFileName(oldLayout.FileName)}");
+                    verboseOutput.Add($@"Updated SubTexture {subTexture.Name} in {Path.GetFileName(destLayout.FileName)}");
                 }
             }
             // Write the changes we made to the binderfile
-            if (verboseOutput.Count > 0) oldFile.Bytes = oldLayout.Write();
+            if (verboseOutput.Count > 0) destFile.Bytes = destLayout.Write();
             return verboseOutput;
         }
         public static List<string> LayoutMerge(string sblytbndFile, List<string> layoutFiles, bool ignoreConflicts, bool sort)
@@ -559,7 +568,7 @@ namespace DSMSPortable
                         index = oldFile.ID;
                         flags = oldFile.Flags;
                         BinderFile newFile = new(flags, index, name, File.ReadAllBytes(layoutFile));
-                        verboseOutput.AddRange(LayoutMerge(oldFile, newFile, ignoreConflicts, sort));
+                        verboseOutput.AddRange(LayoutMerge(oldFile, newFile, ignoreConflicts, sort, false));
                         break;
                     }
                 }
@@ -589,18 +598,29 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        private static List<string> PlaintextMerge(BinderFile oldFile, BinderFile newFile)
+        private static List<string> PlaintextMerge(BinderFile destFile, BinderFile srcFile, bool diffmode)
         {
             List<string> verboseOutput = new();
-            if (oldFile == null || newFile == null) return verboseOutput;
-            List<string> oldList = new(System.Text.Encoding.ASCII.GetString(oldFile.Bytes, 0, oldFile.Bytes.Length).Replace("\r","").Split('\n'));
-            List<string> newList = new(System.Text.Encoding.ASCII.GetString(newFile.Bytes, 0, newFile.Bytes.Length).Replace("\r","").Split('\n'));
-            foreach (string newLine in newList)
+            if (destFile == null || srcFile == null || destFile.Bytes.Length == 0 || srcFile.Bytes.Length == 0) return verboseOutput;
+            // Remove empty lines from both files
+            string utf8 = System.Text.Encoding.ASCII.GetString(destFile.Bytes, 0, destFile.Bytes.Length).Replace("\r", "");
+            while (utf8.Contains("\n\n")) utf8 = utf8.Replace("\n\n", "\n");
+            List<string> oldList = new(utf8.Split('\n'));
+            utf8 = System.Text.Encoding.ASCII.GetString(srcFile.Bytes, 0, srcFile.Bytes.Length).Replace("\r", "");
+            while (utf8.Contains("\n\n")) utf8 = utf8.Replace("\n\n", "\n");
+            List<string> newList = new(utf8.Split('\n'));
+            foreach (string newLine in new List<string>(newList))
             {
-                if (!oldList.Contains(newLine))
+                if (newLine == "") continue;
+                if (!diffmode && !oldList.Contains(newLine))
                 {
                     oldList.Add(newLine);
-                    verboseOutput.Add($@"Added new entry {newLine} to {oldFile.Name}");
+                    verboseOutput.Add($@"Added new entry {newLine} to {destFile.Name}");
+                }
+                else if (diffmode && oldList.Contains(newLine))
+                {
+                    oldList.Remove(newLine);
+                    verboseOutput.Add($@"Removed entry {newLine} from {destFile.Name}");
                 }
             }
             // Write the changes we made to the binderfile
@@ -609,11 +629,12 @@ namespace DSMSPortable
                 string outputString = "";
                 foreach(string res in oldList)
                 {
+                    if (res == "") continue;
                     outputString += res + "\n";
                 }
                 BinaryWriterEx bw = new BinaryWriterEx(false);
                 bw.WriteASCII(outputString);
-                oldFile.Bytes = bw.FinishBytes();
+                destFile.Bytes = bw.FinishBytes();
             }
             return verboseOutput;
         }
@@ -621,59 +642,134 @@ namespace DSMSPortable
         {
             List<string> verboseOutput = new();
             if (destbnd == null || srcbnd == null) return verboseOutput;
+            Dictionary<string, BinderFile> destbndict = new();
+            // Convert to dictionary for performance
+            foreach (BinderFile destFile in destbnd.Files)
+            {
+                destbndict.Add(destFile.Name.ToLower(), destFile);
+            }
             foreach (BinderFile srcFile in srcbnd.Files)
             {
-                bool fileMatch = false;
-                foreach (BinderFile destFile in destbnd.Files)
+                BinderFile destFile;
+                try
                 {
-                    if (destFile.Name.ToLower() == srcFile.Name.ToLower())
-                    {   // We got a matching binder file name
-                        fileMatch = true;
-                        if (!destFile.Bytes.SequenceEqual(srcFile.Bytes))
-                        {
-                            if (destFile.Name.EndsWith(".layout"))
-                            {
-                                verboseOutput.AddRange(LayoutMerge(destFile, srcFile, ignoreConflicts, true));
-                            }
-                            else if (destFile.Name.EndsWith(".ffxreslist"))
-                            {
-                                verboseOutput.AddRange(PlaintextMerge(destFile, srcFile));
-                            }
-                            else if (destFile.Name.EndsWith(".tpf"))
-                            {
-                                verboseOutput.AddRange(TextureMerge(destFile, srcFile, ignoreConflicts));
-                            }
-                            else if (destFile.Name.EndsWith(".tae"))
-                            {
-                                verboseOutput.AddRange(AnimationMerge(destFile, srcFile, ignoreConflicts, null));
-                            }
-                            else if (destFile.Name.EndsWith(".fmg"))
-                            {
-                                verboseOutput.AddRange(FmgMerge(destFile, srcFile, ignoreConflicts));
-                            }
-                            else if (destFile.Name.EndsWith("bnd"))
-                            {   // boy can this get hairy
-                                if (destbnd is BND3) verboseOutput.AddRange(BndMerge(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes), ignoreConflicts));
-                                if (destbnd is BND4) verboseOutput.AddRange(BndMerge(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), ignoreConflicts));
-                            }
-                            else if (!ignoreConflicts)
-                            {
-                                destFile.Bytes = srcFile.Bytes;
-                                verboseOutput.Add($@"Overwrote {destFile.Name} in {Path.GetFileName(destbndFile)}");
-                            }
-                        }
-                        break;
-                    }
+                    destFile = destbndict[srcFile.Name.ToLower()];
                 }
-                if (!fileMatch)
+                catch (KeyNotFoundException)
                 {   // If the entire file was not found, add it
                     destbnd.Files.Add(srcFile);
                     verboseOutput.Add($@"Added {srcFile.Name} to {Path.GetFileName(destbndFile)}");
+                    continue;
+                }
+                if (destFile == null)
+                {
+                    destbnd.Files.Add(srcFile);
+                    verboseOutput.Add($@"Added {srcFile.Name} to {Path.GetFileName(destbndFile)}");
+                    continue;
+                }
+                if (destFile.Bytes.Length == 0) continue;
+                // We got a matching binder file name
+                if (!destFile.Bytes.SequenceEqual(srcFile.Bytes))
+                {
+                    if (destFile.Name.EndsWith(".layout"))
+                    {
+                        verboseOutput.AddRange(LayoutMerge(destFile, srcFile, ignoreConflicts, true, false));
+                    }
+                    else if (destFile.Name.EndsWith(".ffxreslist"))
+                    {
+                        verboseOutput.AddRange(PlaintextMerge(destFile, srcFile, false));
+                    }
+                    else if (destFile.Name.EndsWith(".tpf"))
+                    {
+                        verboseOutput.AddRange(TextureMerge(destFile, srcFile, ignoreConflicts, false));
+                    }
+                    else if (destFile.Name.EndsWith(".tae"))
+                    {
+                        verboseOutput.AddRange(AnimationMerge(destFile, srcFile, ignoreConflicts, null));
+                    }
+                    else if (destFile.Name.EndsWith(".fmg"))
+                    {
+                        verboseOutput.AddRange(FmgMerge(destFile, srcFile, ignoreConflicts, false));
+                    }
+                    else if (destFile.Name.EndsWith("bnd"))
+                    {   // boy can this get hairy
+                        if (destbnd is BND3) verboseOutput.AddRange(BndMerge(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes), ignoreConflicts));
+                        if (destbnd is BND4) verboseOutput.AddRange(BndMerge(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), ignoreConflicts));
+                    }
+                    else if (!ignoreConflicts)
+                    {
+                        destFile.Bytes = srcFile.Bytes;
+                        verboseOutput.Add($@"Overwrote {destFile.Name} in {Path.GetFileName(destbndFile)}");
+                    }
                 }
             }
             return verboseOutput;
         }
-        public static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts)
+        private static List<string> BndDiff(IBinder destbnd, IBinder srcbnd)
+        {
+            List<string> verboseOutput = new();
+            if (destbnd == null || srcbnd == null) return verboseOutput;
+            Dictionary<string, BinderFile> destbndict = new();
+            // Convert to dictionary for performance
+            foreach (BinderFile file in new List<BinderFile>(destbnd.Files))
+            {   // Remove 0 length files regardless
+                if (file.Bytes.Length == 0)
+                {
+                    destbnd.Files.Remove(file);
+                    verboseOutput.Add($@"Removed 0 byte file {file.Name} from {Path.GetFileName(destbndFile)}");
+                }
+                else destbndict.Add(file.Name.ToLower(), file);
+            }
+            foreach (BinderFile srcFile in srcbnd.Files)
+            {
+                BinderFile destFile;
+                try
+                {
+                    destFile = destbndict[srcFile.Name.ToLower()];
+                }
+                catch (KeyNotFoundException)
+                {
+                    continue;
+                }
+                if (destFile == null || destFile.Bytes.Length == 0) continue;
+                // We got a matching binder file
+                if (!destFile.Bytes.SequenceEqual(srcFile.Bytes))
+                {
+                    if (destFile.Name.EndsWith(".layout"))
+                    {
+                        verboseOutput.AddRange(LayoutMerge(destFile, srcFile, false, true, true));
+                    }
+                    else if (destFile.Name.EndsWith(".ffxreslist"))
+                    {
+                        verboseOutput.AddRange(PlaintextMerge(destFile, srcFile, true));
+                    }
+                    else if (destFile.Name.EndsWith(".tpf"))
+                    {
+                        verboseOutput.AddRange(TextureMerge(destFile, srcFile, false, true));
+                    }
+                    else if (destFile.Name.EndsWith(".tae"))
+                    {
+                        verboseOutput.AddRange(AnimationMerge(destFile, srcFile, false, destFile.Name));
+                    }
+                    else if (destFile.Name.EndsWith(".fmg"))
+                    {
+                        verboseOutput.AddRange(FmgMerge(destFile, srcFile, false, true));
+                    }
+                    else if (destFile.Name.EndsWith("bnd"))
+                    {   // boy can this get hairy
+                        if (destbnd is BND3) verboseOutput.AddRange(BndDiff(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes)));
+                        if (destbnd is BND4) verboseOutput.AddRange(BndDiff(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes)));
+                    }
+                }
+                else
+                {
+                    destbnd.Files.Remove(destFile);
+                    verboseOutput.Add($@"Removed {destFile.Name} from {Path.GetFileName(destbndFile)}");
+                }
+            }
+            return verboseOutput;
+        }
+        public static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts, bool diffmode)
         {
             if (destbndFile == null || srcbndFile == null) return null;
             List<string> verboseOutput = new();
@@ -697,19 +793,22 @@ namespace DSMSPortable
                 Console.Error.WriteLine($@"ERROR: Could not read one or more binder files {destbnd}, {srcbnd}: {e.Message}");
                 Environment.Exit(16);
             }
-            verboseOutput.AddRange(BndMerge(destbnd, srcbnd, ignoreConflicts));
+            if (!diffmode) verboseOutput.AddRange(BndMerge(destbnd, srcbnd, ignoreConflicts));
+            else verboseOutput.AddRange(BndDiff(destbnd, srcbnd));
             if (verboseOutput.Count == 0) return null;
             // If changes were detected, save the binder
             string savePath;
             if (outputFile != null && !Directory.Exists(outputFile)) savePath = new FileInfo(outputFile).Directory.FullName;
             else if (outputFile != null) savePath = outputFile;
             else savePath = new FileInfo(destbndFile).Directory.FullName;
+            string filename = Path.GetFileName(destbndFile).Replace(".partial", "");
+            if (diffmode) filename += ".partial";
             try
             {
                 if (destbnd is BND3 bnd3)
-                    Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(destbndFile), bnd3);
+                    Utils.WriteWithBackup(gamepath, savePath, filename, bnd3);
                 else if (destbnd is BND4 bnd4)
-                    Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(destbndFile), bnd4);
+                    Utils.WriteWithBackup(gamepath, savePath, filename, bnd4);
             }
             catch (Exception e)
             {
@@ -718,61 +817,66 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        public static List<string> TextureMerge(BinderFile oldFile, BinderFile newFile, bool ignoreConflicts)
+        public static List<string> TextureMerge(BinderFile destFile, BinderFile srcFile, bool ignoreConflicts, bool diffmode)
         {
             List<string> verboseOutput = new();
-            if (oldFile == null || newFile == null) return verboseOutput;
-            TPF oldtpf = null;
-            TPF newtpf = null;
+            if (destFile == null || srcFile == null) return verboseOutput;
+            TPF destTPF = null;
+            TPF srcTPF = null;
             DCX.Type compression = DCX.Type.None;
             try // Attempt to read the TPF files
             {
-                if (oldFile.Name.ToLower().EndsWith(".dcx"))
-                    oldtpf = TPF.Read(DCX.Decompress(oldFile.Bytes, out compression));
-                else oldtpf = TPF.Read(oldFile.Bytes);
+                if (destFile.Name.ToLower().EndsWith(".dcx"))
+                    destTPF = TPF.Read(DCX.Decompress(destFile.Bytes, out compression));
+                else destTPF = TPF.Read(destFile.Bytes);
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($@"ERROR: Could not read TPF File {oldFile}: {e.Message}");
+                Console.Error.WriteLine($@"ERROR: Could not read TPF File {destFile}: {e.Message}");
                 Environment.Exit(15);
             }
             try // Attempt to read the TPF files
             {
-                if (newFile.Name.ToLower().EndsWith(".dcx"))
-                    newtpf = TPF.Read(DCX.Decompress(newFile.Bytes, out compression));
-                else newtpf = TPF.Read(newFile.Bytes);
+                if (srcFile.Name.ToLower().EndsWith(".dcx"))
+                    srcTPF = TPF.Read(DCX.Decompress(srcFile.Bytes, out compression));
+                else srcTPF = TPF.Read(srcFile.Bytes);
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($@"ERROR: Could not read TPF File {newFile}: {e.Message}");
+                Console.Error.WriteLine($@"ERROR: Could not read TPF File {srcFile}: {e.Message}");
                 Environment.Exit(15);
             }
-            foreach(TPF.Texture newTexture in newtpf.Textures)
+            foreach(TPF.Texture srcTexture in srcTPF.Textures)
             {
                 bool match = false;
-                foreach(TPF.Texture oldTexture in oldtpf.Textures)
+                foreach(TPF.Texture destTexture in new List<TPF.Texture>(destTPF.Textures))
                 {
-                    if(newTexture.Name == oldTexture.Name)
+                    if(srcTexture.Name == destTexture.Name)
                     {
                         match = true;
-                        if(newTexture.Bytes != oldTexture.Bytes)
+                        if(!diffmode && !srcTexture.Bytes.SequenceEqual(destTexture.Bytes))
                         {
                             if(!ignoreConflicts)
                             {
-                                oldTexture.Bytes = newTexture.Bytes;
-                                verboseOutput.Add($@"Updated Texture {oldTexture.Name} in {Path.GetFileName(oldFile.Name)}");
+                                destTexture.Bytes = srcTexture.Bytes;
+                                verboseOutput.Add($@"Updated Texture {destTexture.Name} in {Path.GetFileName(destFile.Name)}");
                             }
+                        }
+                        else if(diffmode && srcTexture.Bytes.SequenceEqual(destTexture.Bytes))
+                        {
+                            destTPF.Textures.Remove(destTexture);
+                            verboseOutput.Add($@"Removed Texture {destTexture.Name} from {Path.GetFileName(destFile.Name)}");
                         }
                         break;
                     }
                 }
-                if (!match)
+                if (!match && !diffmode)
                 {
-                    oldtpf.Textures.Add(newTexture);
-                    verboseOutput.Add($@"Added Texture {newTexture.Name} to {Path.GetFileName(oldFile.Name)}");
+                    destTPF.Textures.Add(srcTexture);
+                    verboseOutput.Add($@"Added Texture {srcTexture.Name} to {Path.GetFileName(destFile.Name)}");
                 }
             }
-            if(verboseOutput.Count > 0) oldFile.Bytes = oldtpf.Write(compression);
+            if (verboseOutput.Count > 0) destFile.Bytes = destTPF.Write(compression);
             return verboseOutput;
         }
         public static List<string> TextureMerge(string tpfFile, List<string> ddsFiles, bool ignoreConflicts)
@@ -854,53 +958,61 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        private static List<string> FmgMerge(BinderFile oldFile, BinderFile newFile, bool ignoreConflicts)
+        private static List<string> FmgMerge(BinderFile destFile, BinderFile srcFile, bool ignoreConflicts, bool diffmode)
         {
             List<string> verboseOutput = new();
-            if (oldFile == null || newFile == null) return verboseOutput;
-            FMG oldFmg = null;
-            FMG newFmg = null;
+            if (destFile == null || srcFile == null) return verboseOutput;
+            FMG destFmg = null;
+            FMG srcFmg = null;
             try
             {
-                oldFmg = FMG.Read(oldFile.Bytes);
+                destFmg = FMG.Read(destFile.Bytes);
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine("ERROR: Could not read " + oldFile.Name + ": " + e.Message);
+                Console.Error.WriteLine("ERROR: Could not read " + destFile.Name + ": " + e.Message);
                 Environment.Exit(12);
             }
             try
             {
-                newFmg = FMG.Read(newFile.Bytes);
+                srcFmg = FMG.Read(srcFile.Bytes);
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine("ERROR: Could not read " + newFile.Name + ": " + e.Message);
+                Console.Error.WriteLine("ERROR: Could not read " + srcFile.Name + ": " + e.Message);
                 Environment.Exit(12);
             }
-            foreach (FMG.Entry newEntry in newFmg.Entries)
+            foreach (FMG.Entry newEntry in srcFmg.Entries)
             {
                 bool match = false;
-                foreach(FMG.Entry oldEntry in oldFmg.Entries)
+                foreach(FMG.Entry oldEntry in destFmg.Entries)
                 {
                     if(oldEntry.ID == newEntry.ID)
                     {
                         match = true;
-                        if ((!ignoreConflicts || oldEntry.Text == "" || oldEntry.Text == "%null%") && oldEntry.Text != newEntry.Text)
+                        if (diffmode)
+                        {
+                            if(oldEntry.Text == newEntry.Text)
+                            {
+                                destFmg.Entries.Remove(newEntry);
+                                verboseOutput.Add($@"Removed Entry ID {newEntry.ID} from {destFile.Name}");
+                            }
+                        }
+                        else if ((!ignoreConflicts || oldEntry.Text == "" || oldEntry.Text == "%null%") && oldEntry.Text != newEntry.Text)
                         {
                             oldEntry.Text = newEntry.Text;
-                            verboseOutput.Add($@"Updated Entry ID {oldEntry.ID} in {oldFile.Name}");
+                            verboseOutput.Add($@"Updated Entry ID {oldEntry.ID} in {destFile.Name}");
                         }
                         break;
                     }
                 }
-                if (!match)
+                if (!diffmode && !match)
                 {
-                    oldFmg.Entries.Add(newEntry);
-                    verboseOutput.Add($@"Added Entry ID {newEntry.ID} to {oldFile.Name}");
+                    destFmg.Entries.Add(newEntry);
+                    verboseOutput.Add($@"Added Entry ID {newEntry.ID} to {destFile.Name}");
                 }
             }
-            if (verboseOutput.Count > 0) oldFile.Bytes = oldFmg.Write(oldFmg.Compression);
+            if (verboseOutput.Count > 0) destFile.Bytes = destFmg.Write(destFmg.Compression);
             return verboseOutput;
         }
         public static List<string> FmgMerge(string msgbndFile, List<string> fmgFiles, bool ignoreConflicts)
@@ -985,8 +1097,7 @@ namespace DSMSPortable
                     }
                 }
                 // Perform merge
-                List<FMG.Entry> iterableEntries = new(fmg.Entries);
-                foreach (FMG.Entry entry in iterableEntries)
+                foreach (FMG.Entry entry in fmg.Entries)
                 {
                     FMG.Entry existingEntry = sourceFmg.GetEntry(entry.ID);
                     if (existingEntry == null)
@@ -1473,12 +1584,12 @@ namespace DSMSPortable
             foreach (string mepfile in masseditpFiles)
             {
                 opstring = File.ReadAllText(mepfile).ReplaceLineEndings("\n").Trim();
+                // Allow for comments with # and escapes with \#
+                opstring = Regex.Replace(opstring, $@"(?<!\\)#(.[^\n]*)\n", "\n");
+                opstring = Regex.Replace(opstring, $@"\\#", "#");
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
-                // Allow for comments with # and escapes with \#
-                opstring = Regex.Replace(opstring, $@"(?<!\\)#(.[^\n]*)\n", "");
-                opstring = Regex.Replace(opstring, $@"\\#", "#");
                 // Row addition logic
                 StringReader reader = new(opstring);
                 string line;
@@ -1520,12 +1631,12 @@ namespace DSMSPortable
             foreach (string mefile in masseditFiles)
             {
                 opstring = File.ReadAllText(mefile).ReplaceLineEndings("\n").Trim();
+                // Allow for comments with # and escapes with \#
+                opstring = Regex.Replace(opstring, $@"(?<!\\)#(.[^\n]*)\n", "\n");
+                opstring = Regex.Replace(opstring, $@"\\#", "#");
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
-                // Allow for comments with # and escapes with \#
-                opstring = Regex.Replace(opstring, $@"(?<!\\)#(.[^\n]*)\n", "");
-                opstring = Regex.Replace(opstring, $@"\\#", "#");
                 // Perform the massedit operation
                 (meresult, ActionManager tmp) = MassParamEditRegex.PerformMassEdit(ParamBank.PrimaryBank, opstring, new ParamEditorSelectionState());
                 if (meresult.Type == MassEditResultType.SUCCESS)
@@ -1731,6 +1842,11 @@ namespace DSMSPortable
                                 mode = ParamMode.DDSMERGE;
                             else if (param.ToLower() == "--bndmerge")
                                 mode = ParamMode.BNDMERGE;
+                            else if (param.ToLower() == "--bnddiff")
+                            {
+                                bndDiffmode = true;
+                                mode = ParamMode.BNDDIFF;
+                            }
                             else if (param.ToLower() == "--animerge")
                                 mode = ParamMode.ANIMERGE;
                             else if (param.ToLower() == "--animdiff")
@@ -2016,7 +2132,7 @@ namespace DSMSPortable
                         case ParamMode.BNDMERGE:
                             if (destbndFile == null)
                             {
-                                if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx")))
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx") || param.ToLower().EndsWith("bnd")))
                                 {
                                     Console.Error.WriteLine("ERROR: Invalid bnd file specified");
                                     Environment.Exit(15);
@@ -2025,9 +2141,32 @@ namespace DSMSPortable
                             }
                             else if (srcbndFile == null)
                             {
-                                if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx")))
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx") || param.ToLower().EndsWith("bnd") || 
+                                    param.ToLower().EndsWith("bnd.dcx.partial") || param.ToLower().EndsWith("bnd.partial")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid bnd file or partial bnd file specified");
+                                    Environment.Exit(15);
+                                }
+                                srcbndFile = param;
+                            }
+                            else Console.Error.WriteLine("Warning: Extra file specified: " + param);
+                            break;
+                        case ParamMode.BNDDIFF:
+                            if (destbndFile == null)
+                            {
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx") || param.ToLower().EndsWith("bnd")))
                                 {
                                     Console.Error.WriteLine("ERROR: Invalid bnd file specified");
+                                    Environment.Exit(15);
+                                }
+                                destbndFile = param;
+                            }
+                            else if (srcbndFile == null)
+                            {
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx") || param.ToLower().EndsWith("bnd") ||
+                                    param.ToLower().EndsWith("bnd.dcx.partial") || param.ToLower().EndsWith("bnd.partial")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid bnd file or partial bnd file specified");
                                     Environment.Exit(15);
                                 }
                                 srcbndFile = param;
@@ -2141,6 +2280,9 @@ namespace DSMSPortable
             Console.Out.WriteLine("  --bndmerge [destbndfile] [srcbndfile] [-I] [-V]");
             Console.Out.WriteLine("             Generic operation mode for merging two binder files. -G, -P, and -O still apply");
             Console.Out.WriteLine("             Any files in srcbndfile not found in destbndfile will be added to destbndfile.");
+            Console.Out.WriteLine("  --bnddiff [destbndfile] [srcbndfile] [-V]");
+            Console.Out.WriteLine("             Strips all matching files with srcbndfile out of destbndfile and creates a partial BND file for");
+            Console.Out.WriteLine("             more precise BND merging with --bndmerge. -G, -P, and -O still apply");
             if (pause) Console.ReadKey(true);
             Environment.Exit(0);
         }
@@ -2165,7 +2307,8 @@ namespace DSMSPortable
             DDSMERGE,
             ANIMERGE,
             ANIMDIFF,
-            BNDMERGE
+            BNDMERGE,
+            BNDDIFF
         }
         // No reason to be anal about the exact switch character used, any of these is fine
         private static bool IsSwitch(string arg)
