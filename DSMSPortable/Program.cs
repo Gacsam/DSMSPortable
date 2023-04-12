@@ -12,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.7";
+        static readonly string VERSION = "1.7.1";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -394,7 +394,7 @@ namespace DSMSPortable
                 }
             }
             // If we're in diffmode, save a partial version of the TAE given
-            if (diffmode && verboseOutput.Count > 0)
+            if (diffmode)
             {
                 string path;
                 if (outputFile != null && !Directory.Exists(outputFile)) path = new FileInfo(outputFile).Directory.FullName;
