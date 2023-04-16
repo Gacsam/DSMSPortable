@@ -1608,6 +1608,8 @@ namespace DSMSPortable
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
+                // Omit first line as well if its a comment
+                if (opstring.StartsWith("#")) opstring = opstring.Split('\n', 2)[1];
                 // Row addition logic
                 StringReader reader = new(opstring);
                 string line;
@@ -1655,6 +1657,8 @@ namespace DSMSPortable
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
+                // Omit first line as well if its a comment
+                if (opstring.StartsWith("#")) opstring = opstring.Split('\n', 2)[1];
                 // Perform the massedit operation
                 (meresult, ActionManager tmp) = MassParamEditRegex.PerformMassEdit(ParamBank.PrimaryBank, opstring, new ParamEditorSelectionState());
                 if (meresult.Type == MassEditResultType.SUCCESS)
