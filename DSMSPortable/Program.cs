@@ -12,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.7.1";
+        static readonly string VERSION = "1.7.2";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -152,7 +152,7 @@ namespace DSMSPortable
             {
                 if (bndDiffmode) Console.Out.Write("Creating partial bnd from diffs to " + srcbndFile + "...");
                 else Console.Out.Write("Performing BND merge for " + destbndFile + "...");
-                List<string> verboseOutput = BndMerge(destbndFile, srcbndFile, ignoreConflicts, bndDiffmode);
+                List<string> verboseOutput = BndMerge(destbndFile, srcbndFile, ignoreConflicts, sort, bndDiffmode);
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
@@ -598,7 +598,7 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        private static List<string> PlaintextMerge(BinderFile destFile, BinderFile srcFile, bool diffmode)
+        private static List<string> PlaintextMerge(BinderFile destFile, BinderFile srcFile, bool sort, bool diffmode)
         {
             List<string> verboseOutput = new();
             if (srcFile == null || srcFile.Bytes.Length == 0) return verboseOutput;
@@ -618,6 +618,13 @@ namespace DSMSPortable
             utf8 = System.Text.Encoding.ASCII.GetString(srcFile.Bytes, 0, srcFile.Bytes.Length).Replace("\r", "");
             while (utf8.Contains("\n\n")) utf8 = utf8.Replace("\n\n", "\n");
             List<string> srcList = new(utf8.Split('\n'));
+            // Check if destList is a subset of srcList as a way to preserve ordering
+            if(!sort && !diffmode && destList.All(i=>srcList.Contains(i)))
+            {   // srcList already contains destList, just overwrite instead of merging
+                destFile.Bytes = srcFile.Bytes;
+                verboseOutput.Add($@"Overwrote file {destFile.Name}");
+                return verboseOutput;
+            }
             foreach (string newLine in srcList)
             {
                 if (newLine == "") continue;
@@ -635,6 +642,7 @@ namespace DSMSPortable
             // Write the changes we made to the binderfile
             if (verboseOutput.Count > 0)
             {
+                if (sort) destList.Sort();
                 string outputString = "";
                 foreach(string res in destList)
                 {
@@ -647,30 +655,44 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        private static List<string> BndMerge(IBinder destbnd, IBinder srcbnd, bool ignoreConflicts)
+        private static List<string> BndMerge(IBinder destbnd, IBinder srcbnd, bool ignoreConflicts, bool sort)
         {
             List<string> verboseOutput = new();
             if (destbnd == null || srcbnd == null) return verboseOutput;
+            // Dictionary for fast searching of files by their full path name
             Dictionary<string, BinderFile> destbndict = new();
+            // Dictionary for making sure we don't accidentally add duplicate ID's
+            Dictionary<int, BinderFile> destbndindex = new();
             // Convert to dictionary for performance
             foreach (BinderFile destFile in destbnd.Files)
+            {   // If the ID for the file we're adding is taken, search for an available ID
+                while (destbndindex.ContainsKey(destFile.ID))
+                    destFile.ID++;
+                destbndindex.Add(destFile.ID, destFile);
                 destbndict.Add(destFile.Name.ToLower(), destFile);
+            }
             foreach (BinderFile srcFile in srcbnd.Files)
             {
                 BinderFile destFile;
                 try
-                {
+                {   // Check to see if the file exists. If not, add it
                     destFile = destbndict[srcFile.Name.ToLower()];
                 }
                 catch (KeyNotFoundException)
-                {   // If the entire file was not found, add it
+                {   // If the ID for the file we're adding is taken, search for an available ID
+                    while (destbndindex.ContainsKey(srcFile.ID))
+                        srcFile.ID++;
                     destbnd.Files.Add(srcFile);
+                    destbndindex.Add(srcFile.ID, srcFile);
                     verboseOutput.Add($@"Added {srcFile.Name} to {Path.GetFileName(destbndFile)}");
                     continue;
                 }
                 if (destFile == null)
                 {
+                    while (destbndindex.ContainsKey(srcFile.ID))
+                        srcFile.ID++;
                     destbnd.Files.Add(srcFile);
+                    destbndindex.Add(srcFile.ID, srcFile);
                     verboseOutput.Add($@"Added {srcFile.Name} to {Path.GetFileName(destbndFile)}");
                     continue;
                 }
@@ -681,11 +703,11 @@ namespace DSMSPortable
                 {
                     if (destFile.Name.EndsWith(".layout"))
                     {
-                        verboseOutput.AddRange(LayoutMerge(destFile, srcFile, ignoreConflicts, true, false));
+                        verboseOutput.AddRange(LayoutMerge(destFile, srcFile, ignoreConflicts, sort, false));
                     }
                     else if (destFile.Name.EndsWith(".ffxreslist"))
                     {
-                        verboseOutput.AddRange(PlaintextMerge(destFile, srcFile, false));
+                        verboseOutput.AddRange(PlaintextMerge(destFile, srcFile, sort, false));
                     }
                     else if (destFile.Name.EndsWith(".tpf"))
                     {
@@ -701,8 +723,8 @@ namespace DSMSPortable
                     }
                     else if (destFile.Name.EndsWith("bnd"))
                     {   // boy can this get hairy
-                        if (destbnd is BND3) verboseOutput.AddRange(BndMerge(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes), ignoreConflicts));
-                        else if (destbnd is BND4) verboseOutput.AddRange(BndMerge(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), ignoreConflicts));
+                        if (destbnd is BND3) verboseOutput.AddRange(BndMerge(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes), ignoreConflicts, sort));
+                        else if (destbnd is BND4) verboseOutput.AddRange(BndMerge(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), ignoreConflicts, sort));
                     }
                     else if (!ignoreConflicts)
                     {
@@ -777,7 +799,7 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        public static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts, bool diffmode)
+        public static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts, bool sort, bool diffmode)
         {
             if (destbndFile == null || srcbndFile == null) return null;
             List<string> verboseOutput = new();
@@ -801,7 +823,7 @@ namespace DSMSPortable
                 Console.Error.WriteLine($@"ERROR: Could not read one or more binder files {destbnd}, {srcbnd}: {e.Message}");
                 Environment.Exit(16);
             }
-            if (!diffmode) verboseOutput.AddRange(BndMerge(destbnd, srcbnd, ignoreConflicts));
+            if (!diffmode) verboseOutput.AddRange(BndMerge(destbnd, srcbnd, ignoreConflicts, sort));
             else verboseOutput.AddRange(BndDiff(destbnd, srcbnd));
             if (verboseOutput.Count == 0) return null;
             // If changes were detected, save the binder
@@ -1608,8 +1630,8 @@ namespace DSMSPortable
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
-                // Omit first line as well if its a comment
-                if (opstring.StartsWith("#")) opstring = opstring.Split('\n', 2)[1];
+                // Omit first line as well if its an empty line
+                if (opstring.StartsWith("\n")) opstring = opstring.Split('\n', 2)[1];
                 // Row addition logic
                 StringReader reader = new(opstring);
                 string line;
@@ -1657,8 +1679,8 @@ namespace DSMSPortable
                 // MassEdit throws errors if there are any empty lines
                 while (!opstring.Equals(opstring.Replace("\n\n", "\n")))
                     opstring = opstring.Replace("\n\n", "\n");
-                // Omit first line as well if its a comment
-                if (opstring.StartsWith("#")) opstring = opstring.Split('\n', 2)[1];
+                // Omit first line as well if its an empty line
+                if (opstring.StartsWith("\n")) opstring = opstring.Split('\n', 2)[1];
                 // Perform the massedit operation
                 (meresult, ActionManager tmp) = MassParamEditRegex.PerformMassEdit(ParamBank.PrimaryBank, opstring, new ParamEditorSelectionState());
                 if (meresult.Type == MassEditResultType.SUCCESS)
@@ -2299,7 +2321,7 @@ namespace DSMSPortable
             Console.Out.WriteLine("  --texturemerge [tpffile] [ddsfile1 ddsfile2 ...] [-I] [-V]");
             Console.Out.WriteLine("             Separate operation mode for merging DDS textures into a TPF file. -P and -O still apply.");
             Console.Out.WriteLine("             Same format as other merge operations, but can only merge whole DDS files.");
-            Console.Out.WriteLine("  --bndmerge [destbndfile] [srcbndfile] [-I] [-V]");
+            Console.Out.WriteLine("  --bndmerge [destbndfile] [srcbndfile] [-I] [-V] [-S]");
             Console.Out.WriteLine("             Generic operation mode for merging two binder files. -G, -P, and -O still apply");
             Console.Out.WriteLine("             Any files in srcbndfile not found in destbndfile will be added to destbndfile.");
             Console.Out.WriteLine("  --bnddiff [destbndfile] [srcbndfile] [-V]");
