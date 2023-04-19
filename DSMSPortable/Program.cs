@@ -1504,8 +1504,8 @@ namespace DSMSPortable
             {
                 // Write the output in the same directory as the param file provided, unless a valid output path was specified
                 string meOutFile = $@"{new FileInfo(compareParamFile).Directory.FullName}\{Path.GetFileNameWithoutExtension(compareParamFile)}_diff.MASSEDIT";
-                if (outputFile != null && File.Exists(outputFile))
-                    meOutFile = $@"{new FileInfo(outputFile).Directory.FullName}\{Path.GetFileNameWithoutExtension(compareParamFile)}_diff.MASSEDIT";
+                if (outputFile != null && (outputFile.ToLower().EndsWith(".massedit") || outputFile.ToLower().EndsWith(".txt")))
+                    meOutFile = new FileInfo(outputFile).FullName;
                 else if (outputFile != null && Directory.Exists(outputFile))
                     meOutFile = $@"{outputFile}\{Path.GetFileNameWithoutExtension(compareParamFile)}_diff.MASSEDIT";
                 try
