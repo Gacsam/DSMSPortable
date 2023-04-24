@@ -2359,6 +2359,9 @@ namespace DSMSPortable
             Console.Out.WriteLine("       DSMSPortable --texturemerge [tpffile] [ddsfile1 ddsfile2 ...] [-I] [-V]");
             Console.Out.WriteLine("       DSMSPortable --animerge [anibnd] [taefile1 taefile2 ...] [-I] [-V]");
             Console.Out.WriteLine("       DSMSPortable --animdiff [anibnd] [taefile1 taefile2 ...] [-V]");
+            Console.Out.WriteLine("       DSMSPortable --bndmerge [destbndfile] [srcbndfile] [-I] [-V] [-S]");
+            Console.Out.WriteLine("       DSMSPortable --bnddiff [destbndfile] [srcbndfile] [-V]");
+            Console.Out.WriteLine("       DSMSPortable --hksmerge [hksfile] [luafile1 luafile2 ...] [-V]");
             Console.Out.WriteLine();
             Console.Out.WriteLine("  paramfile  Path to regulation.bin file (or respective param file for other FromSoft games) to modify");
             Console.Out.WriteLine("  -G gametype");
