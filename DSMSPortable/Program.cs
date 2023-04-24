@@ -12,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.7.2";
+        static readonly string VERSION = "1.7.3";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -52,6 +52,9 @@ namespace DSMSPortable
         static string anibndFile = null;
         static List<string> taeFiles;
         static bool animDiffmode = false;
+        // hksmerge files
+        static string hksFile = null;
+        static List<string> luaFiles;
         // bndmerge files
         static string srcbndFile = null;
         static string destbndFile = null;
@@ -75,6 +78,7 @@ namespace DSMSPortable
             layoutFiles = new();
             ddsFiles = new();
             taeFiles = new();
+            luaFiles = new();
             manager = new();
             // Set culture to invariant, so doubles don't try to parse with floating commas
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
@@ -138,6 +142,20 @@ namespace DSMSPortable
                 if(animDiffmode) Console.Out.Write("Creating partial animations from diffs to " + anibndFile + "...");
                 else Console.Out.Write("Performing Animation merge for " + anibndFile + "...");
                 List<string> verboseOutput = AnimationMerge(anibndFile, taeFiles, ignoreConflicts, animDiffmode);
+                if (verboseOutput == null)
+                    Console.Out.WriteLine("No changes detected.");
+                else
+                {
+                    Console.Out.WriteLine("Success!");
+                    if (verbose) foreach (string output in verboseOutput) Console.Out.WriteLine(output);
+                }
+                return;
+            }
+            // Perform HKS Merging if specified
+            if (hksFile != null)
+            {
+                Console.Out.Write("Performing HKS merge for " + hksFile + "...");
+                List<string> verboseOutput = HKSMerge(hksFile, luaFiles);
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
@@ -986,6 +1004,69 @@ namespace DSMSPortable
                 Console.Error.WriteLine("ERROR: " + e.Message);
                 Environment.Exit(8);
             }
+            return verboseOutput;
+        }
+        public static List<string> HKSMerge(string hksFile, List<string> luaFiles)
+        {
+            if (hksFile == null) return null;
+            if (luaFiles.Count == 0) return null;
+            List<string> verboseOutput = new();
+            LuaFile destFile = null;
+            List<LuaFile> srcFiles = new();
+            try
+            {
+                destFile = new LuaFile(hksFile);
+            }
+            catch(Exception e)
+            {
+                Console.Error.WriteLine($@"ERROR: Could not read lua file {hksFile}");
+                Console.Error.WriteLine(e.Message);
+                Console.Error.WriteLine(e.StackTrace);
+                Environment.Exit(17);
+            }
+            foreach(string file in luaFiles)
+            {
+                try
+                {
+                    srcFiles.Add(new LuaFile(file));
+                }
+                catch (Exception e)
+                {
+                    Console.Error.WriteLine($@"ERROR: Could not read lua file {file}");
+                    Console.Error.WriteLine(e.Message);
+                    Console.Error.WriteLine(e.StackTrace);
+                    Environment.Exit(17);
+                }
+            }
+            foreach(LuaFile srcFile in srcFiles)
+            {
+                foreach(LuaString line in srcFile.source)
+                {
+                    if(line is LuaFunction function)
+                    {
+                        bool overwrite = destFile.AddFunction(function);
+                        if (overwrite) verboseOutput.Add($@"Updated function {function.functionName} in {Path.GetFileName(hksFile)}");
+                        else verboseOutput.Add($@"Added new function {function.functionName} to {Path.GetFileName(hksFile)}");
+                    }
+                }
+            }
+            if (verboseOutput.Count == 0) return null;
+            // If changes were detected, save the HKS file
+            if (outputFile != null)
+            {
+                string savePath = outputFile;
+                if (Directory.Exists(outputFile)) savePath += $@"\{Path.GetFileName(hksFile)}";
+                try
+                {
+                    destFile.SaveAs(savePath);
+                }
+                catch (Exception e)
+                {
+                    Console.Error.WriteLine("ERROR: " + e.Message);
+                    Environment.Exit(8);
+                }
+            }
+            else destFile.Save();
             return verboseOutput;
         }
         private static List<string> FmgMerge(BinderFile destFile, BinderFile srcFile, bool ignoreConflicts, bool diffmode)
@@ -1898,6 +1979,8 @@ namespace DSMSPortable
                                 animDiffmode = true;
                                 mode = ParamMode.ANIMDIFF;
                             }
+                            else if (param.ToLower() == "--hksmerge")
+                                mode = ParamMode.HKSMERGE;
                             else
                             {
                                 Console.Error.WriteLine("ERROR: Invalid switch: " + param);
@@ -2217,6 +2300,32 @@ namespace DSMSPortable
                             }
                             else Console.Error.WriteLine("Warning: Extra file specified: " + param);
                             break;
+                        case ParamMode.HKSMERGE:
+                            if (hksFile == null)
+                            {
+                                if (!File.Exists(param) || !param.ToLower().EndsWith(".hks"))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid HKS file specified");
+                                    Environment.Exit(14);
+                                }
+                                hksFile = param;
+                            }
+                            else
+                            {
+                                if (Directory.Exists(param))
+                                {
+                                    foreach (string file in Directory.EnumerateFiles(param))
+                                    {
+                                        if (File.Exists(file) && (file.ToLower().EndsWith(".lua") || file.ToLower().EndsWith(".hks")))
+                                            luaFiles.Add(file);
+                                        else Console.Error.WriteLine("Warning: Invalid lua file specified: " + file);
+                                    }
+                                }
+                                else if (File.Exists(param) && (param.ToLower().EndsWith(".lua") || param.ToLower().EndsWith(".hks")))
+                                    luaFiles.Add(param);
+                                else Console.Error.WriteLine("Warning: Invalid lua file specified: " + param);
+                            }
+                            break;
                         case ParamMode.NONE:
                             if (param.ToLower().Equals("help") || param.Equals("?"))
                             {
@@ -2327,6 +2436,8 @@ namespace DSMSPortable
             Console.Out.WriteLine("  --bnddiff [destbndfile] [srcbndfile] [-V]");
             Console.Out.WriteLine("             Strips all matching files with srcbndfile out of destbndfile and creates a partial BND file for");
             Console.Out.WriteLine("             more precise BND merging with --bndmerge. -G, -P, and -O still apply");
+            Console.Out.WriteLine("  --hksmerge [hksfile] [luafile1 luafile2 ...] [-V]");
+            Console.Out.WriteLine("             Merges given lua functions into a decompiled hks file. Will overwrite any overloaded functions.");
             if (pause) Console.ReadKey(true);
             Environment.Exit(0);
         }
@@ -2352,7 +2463,8 @@ namespace DSMSPortable
             ANIMERGE,
             ANIMDIFF,
             BNDMERGE,
-            BNDDIFF
+            BNDDIFF,
+            HKSMERGE
         }
         // No reason to be anal about the exact switch character used, any of these is fine
         private static bool IsSwitch(string arg)
