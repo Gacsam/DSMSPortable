@@ -411,23 +411,8 @@ namespace DSMSPortable
                     verboseOutput.Add($@"Updated Animation ID {anim.ID} in {taeName}");
                 }
             }
-            // If we're in diffmode, save a partial version of the TAE given
-            if (diffmode)
-            {
-                string path;
-                if (outputFile != null && !Directory.Exists(outputFile)) path = new FileInfo(outputFile).Directory.FullName;
-                else if (outputFile != null) path = outputFile;
-                else path = new FileInfo(diffFile).Directory.FullName;
-                if (destAnims.Animations.Count == 0)
-                {   // this partial TAE is now empty, delete it altogether.
-                    verboseOutput.Add($@"Removed all animations from {taeName}");
-                    if (File.Exists($@"{path}\{taeName}.partial"))
-                        File.Delete($@"{path}\{taeName}.partial");
-                }
-                else File.WriteAllBytes($@"{path}\{taeName}.partial", srcAnims.Write());
-            }
             // Write the changes we made to the binderfile
-            else if (!diffmode && verboseOutput.Count > 0) destFile.Bytes = destAnims.Write();
+            if (verboseOutput.Count > 0) destFile.Bytes = destAnims.Write();
             return verboseOutput;
         }
         private static List<string> AnimationMerge(string anibndFile, List<string> taeFiles, bool ignoreConflicts, bool diffmode)
