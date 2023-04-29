@@ -427,7 +427,7 @@ namespace DSMSPortable
                 else File.WriteAllBytes($@"{path}\{taeName}.partial", srcAnims.Write());
             }
             // Write the changes we made to the binderfile
-            else if (!diffmode && verboseOutput.Count > 0) destFile.Bytes = destAnims.Write();
+            else if ((!diffmode || bndmode) && verboseOutput.Count > 0) destFile.Bytes = destAnims.Write();
             return verboseOutput;
         }
         private static List<string> AnimationMerge(string anibndFile, List<string> taeFiles, bool ignoreConflicts, bool diffmode)
