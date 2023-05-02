@@ -12,7 +12,7 @@ namespace DSMSPortable
 {
     class DSMSPortable
     {
-        static readonly string VERSION = "1.7.3";
+        static readonly string VERSION = "1.7.4";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -625,7 +625,7 @@ namespace DSMSPortable
             List<string> destList;
             try
             {
-                utf8 = System.Text.Encoding.ASCII.GetString(destFile.Bytes, 0, destFile.Bytes.Length).Replace("\r", "");
+                utf8 = System.Text.Encoding.UTF8.GetString(destFile.Bytes, 0, destFile.Bytes.Length).Replace("\r", "");
                 while (utf8.Contains("\n\n")) utf8 = utf8.Replace("\n\n", "\n");
                 destList = new(utf8.Split('\n'));
             }
@@ -633,7 +633,7 @@ namespace DSMSPortable
             {
                 destList = new();
             }
-            utf8 = System.Text.Encoding.ASCII.GetString(srcFile.Bytes, 0, srcFile.Bytes.Length).Replace("\r", "");
+            utf8 = System.Text.Encoding.UTF8.GetString(srcFile.Bytes, 0, srcFile.Bytes.Length).Replace("\r", "");
             while (utf8.Contains("\n\n")) utf8 = utf8.Replace("\n\n", "\n");
             List<string> srcList = new(utf8.Split('\n'));
             // Check if destList is a subset of srcList as a way to preserve ordering
@@ -1129,10 +1129,18 @@ namespace DSMSPortable
             List<string> verboseOutput = new();
             // Read msgbndfile
             List<FMGBank.FMGInfo> fmgBank = new();
-            IBinder fmgBinder;
-            if (gameType == GameType.DemonsSouls || gameType == GameType.DarkSoulsPTDE || gameType == GameType.DarkSoulsRemastered)
-                fmgBinder = BND3.Read(msgbndFile);
-            else fmgBinder = BND4.Read(msgbndFile);
+            IBinder fmgBinder = null;
+            try
+            {
+                if (gameType == GameType.DemonsSouls || gameType == GameType.DarkSoulsPTDE || gameType == GameType.DarkSoulsRemastered)
+                    fmgBinder = BND3.Read(msgbndFile);
+                else fmgBinder = BND4.Read(msgbndFile);
+            }
+            catch(Exception e)
+            {
+                Console.Error.WriteLine($@"ERROR: Could not read {msgbndFile}: {e.Message}");
+                Environment.Exit(18);
+            }
             foreach (var file in fmgBinder.Files)
                 fmgBank.Add(FMGBank.GenerateFMGInfo(file));
             // Read fmg files provided
