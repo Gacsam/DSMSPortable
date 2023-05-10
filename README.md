@@ -20,6 +20,9 @@ DS Map Studio is a standalone integrated modding tool for modern FromSoft games,
 * 14 Invalid sblytbnd file specified
 * 15 Invalid TPF file specified
 * 16 Invalid BND file specified
+* 17 Invalid HKS/Lua file specified
+* 18 Invalid msgbnd file specified
+* 19 Invalid anibnd file specified
 
 ## Basic usage instructions
 ### Game instructions
