@@ -10,6 +10,9 @@ using StudioCore.TextEditor;
 
 namespace DSMSPortable
 {
+    /// <summary>
+    /// class <c>DSMSPortable</c> which contains a main method for executing the application
+    /// </summary>
     class DSMSPortable
     {
         static readonly string VERSION = "1.7.4";
@@ -65,6 +68,11 @@ namespace DSMSPortable
         static bool ignoreConflicts = false;
         static bool verbose = false;
         static bool sort = false;
+        /// <summary>
+        /// <c>Main</c> method for launching DSMSPortable
+        /// </summary>
+        /// <param name="args">Parameters that determine what function(s) are to be executed. 
+        /// First parameter should either be a param file (i.e. regulation.bin) to use as input or a --switch for another operation mode.</param>
         static void Main(string[] args)
         {
             masseditFiles = new();
@@ -98,7 +106,7 @@ namespace DSMSPortable
             if (msgbndFile != null)
             {
                 Console.Out.Write("Performing FMG merge for " + msgbndFile + "...");
-                List<string> verboseOutput = FmgMerge(msgbndFile, fmgFiles, ignoreConflicts);
+                List<string> verboseOutput = FmgMerge(msgbndFile, fmgFiles, fmgAdditions, ignoreConflicts);
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
@@ -276,6 +284,14 @@ namespace DSMSPortable
                 ExportParams();
             }
         }
+        /// <summary>
+        /// Takes all differences between two <c>FSParam.Param</c> objects and represents them as a massedit script
+        /// </summary>
+        /// <param name="oldParam">Param to use as a baseline for determining differences</param>
+        /// <param name="newParam">Param whose differences will be represented in massedit</param>
+        /// <param name="paramName">The name of the param currently being diff'd. Case sensitive.</param>
+        /// <param name="mfile">The full massedit script to output, as a string</param>
+        /// <returns><c>true</c> if there were any row additions detected, otherwise <c>false</c></returns>
         public static bool ConvertToMassedit(FSParam.Param oldParam, FSParam.Param newParam, string paramName, out string mfile)
         {
             mfile = "";
@@ -333,6 +349,12 @@ namespace DSMSPortable
             if (versionMismatch) Console.Error.WriteLine("Warning: Version mismatch between given param files. Resulting file may contain extraneous entries.");
             return addition;
         }
+        /// <summary>
+        /// Inserts a new row to the given param at the specified <paramref name="id"/>, with default (-1 or 0) values
+        /// </summary>
+        /// <param name="id">The index of the param at which to insert a new row.</param>
+        /// <param name="param">The <c>FSParam.Param</c> object in which to insert a row.</param>
+        /// <returns>The added row, represented as an <c>FSParam.Param.Row</c> object. If the row already exist in the param, returns <c>false</c> instead.</returns>
         public static FSParam.Param.Row AddNewRow(int id, FSParam.Param param)
         {
             if (param[id] != null) return null;
@@ -350,10 +372,25 @@ namespace DSMSPortable
             param.AddRow(newRow);
             return newRow;
         }
+        /// <summary>
+        /// Merges given TAE files into an anibnd file
+        /// </summary>
+        /// <param name="anibndFile">Path to an anibnd or anibnd.dcx file</param>
+        /// <param name="taeFiles">List of paths to tae or tae.partial files</param>
+        /// <param name="ignoreConflicts">Whether or not to ignore merging animations that already exist in <c>anibndFile</c></param>
+        /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
+        /// <remarks>Application will exit and return error code 14 if <paramref name="anibndFile"/> cannot be opened, error code 6 if one of its containing tae files cannot be read, or error code 8 if it cannot be written to.</remarks>
         public static List<string> AnimationMerge(string anibndFile, List<string> taeFiles, bool ignoreConflicts)
         {
             return AnimationMerge(anibndFile, taeFiles, ignoreConflicts, false);
         }
+        /// <summary>
+        /// Creates partial TAE files containing differences from a given anibnd file
+        /// </summary>
+        /// <param name="anibndFile">Path to an anibnd or anibnd.dcx file</param>
+        /// <param name="taeFiles">List of paths to tae or tae.partial files</param>
+        /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
+        /// <remarks>Application will exit and return error code 19 if <paramref name="anibndFile"/> cannot be opened, or error code 6 if one of its containing tae files cannot be read.</remarks>
         public static List<string> AnimationDiff(string anibndFile, List<string> taeFiles)
         {
             return AnimationMerge(anibndFile, taeFiles, false, true);
@@ -445,7 +482,7 @@ namespace DSMSPortable
             catch (Exception e)
             {
                 Console.Error.WriteLine($@"ERROR: Could not read anibnd File {anibndFile}: {e.Message}");
-                Environment.Exit(14);
+                Environment.Exit(19);
             }
             foreach (string taeFile in taeFiles)
             {
@@ -547,6 +584,15 @@ namespace DSMSPortable
             if (verboseOutput.Count > 0) destFile.Bytes = destLayout.Write();
             return verboseOutput;
         }
+        /// <summary>
+        /// Merges given layout files into a sblytbnd file
+        /// </summary>
+        /// <param name="sblytbndFile">Path to a sblytbnd.dcx file</param>
+        /// <param name="layoutFiles">List of paths to layout files</param>
+        /// <param name="ignoreConflicts">Whether or not to ignore merging TextureAtlas entries that already exist in <c>sblytbndFile</c></param>
+        /// <param name="sort">Whether or not to sort all entries in modified layout files by name, otherwise new entries will be appended to the end.</param>
+        /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
+        /// <remarks>Application will exit and return error code 14 if <paramref name="sblytbndFile"/> cannot be opened, or error code 8 if it cannot be written to.</remarks>
         public static List<string> LayoutMerge(string sblytbndFile, List<string> layoutFiles, bool ignoreConflicts, bool sort)
         {
             if (sblytbndFile == null) return null;
@@ -817,7 +863,31 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        public static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts, bool sort, bool diffmode)
+        /// <summary>
+        /// Merges a given bnd file into another bnd file
+        /// </summary>
+        /// <param name="destbndFile">Path to a bnd or bnd.dcx file to merge into</param>
+        /// <param name="srcbndFile">Path to a bnd or bnd.dcx file to merge edits from</param>
+        /// <param name="ignoreConflicts">Whether or not to ignore files or edits that conflict (varies depending on filetype)</param>
+        /// <param name="sort">Whether or not to sort modified files when applicable</param>
+        /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
+        /// <remarks>Application will exit and return error code 16 if either bnd file cannot be opened, or other error codes pending file types contained in the bnd file.</remarks>
+        public static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts, bool sort)
+        {
+            return BndMerge(destbndFile, srcbndFile, ignoreConflicts, sort, false);
+        }
+        /// <summary>
+        /// Creates a partial bnd file containing differences between two bnd files.
+        /// </summary>
+        /// <param name="destbndFile">Path to a bnd or bnd.dcx file to strip overlapping files or entries from</param>
+        /// <param name="srcbndFile">Path to a bnd or bnd.dcd file to use as a base for taking diffs</param>
+        /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
+        /// <remarks>Application will exit and return error code 16 if either bnd file cannot be opened, or other error codes pending file types contained in the bnd file.</remarks>
+        public static List<string> BndDiff(string destbndFile, string srcbndFile)
+        {
+            return BndMerge(destbndFile, srcbndFile, false, false, true);
+        }
+        private static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts, bool sort, bool diffmode)
         {
             if (destbndFile == null || srcbndFile == null) return null;
             List<string> verboseOutput = new();
@@ -865,7 +935,7 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        public static List<string> TextureMerge(BinderFile destFile, BinderFile srcFile, bool ignoreConflicts, bool diffmode)
+        private static List<string> TextureMerge(BinderFile destFile, BinderFile srcFile, bool ignoreConflicts, bool diffmode)
         {
             List<string> verboseOutput = new();
             if (destFile == null || srcFile == null) return verboseOutput;
@@ -927,6 +997,14 @@ namespace DSMSPortable
             if (verboseOutput.Count > 0) destFile.Bytes = destTPF.Write(compression);
             return verboseOutput;
         }
+        /// <summary>
+        /// Merges given DDS files into a TPF file
+        /// </summary>
+        /// <param name="tpfFile">Path to a tpf or tpf.dcx file</param>
+        /// <param name="ddsFiles">List of paths to dds files</param>
+        /// <param name="ignoreConflicts">Whether or not to ignore DDS files with conflicting filenames</param>
+        /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
+        /// <remarks>Application will exit and return error code 15 if <paramref name="tpfFile"/> cannot be opened, or error code 8 if it cannot be written to.</remarks>
         public static List<string> TextureMerge(string tpfFile, List<string> ddsFiles, bool ignoreConflicts)
         {
             if (tpfFile == null) return null;
@@ -1006,6 +1084,14 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
+        /// <summary>
+        /// Merges functions from given lua files into an HKS file.
+        /// </summary>
+        /// <param name="hksFile">Path to a decompiled HKS file</param>
+        /// <param name="luaFiles">List of paths to lua files</param>
+        /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
+        /// <remarks>Application will exit and return error code 17 if <paramref name="hksFile"/> or any of the files specified in 
+        /// <paramref name="luaFiles"/> cannot be opened, or error code 8 if <paramref name="hksFile"/> cannot be written to.</remarks>
         public static List<string> HKSMerge(string hksFile, List<string> luaFiles)
         {
             if (hksFile == null) return null;
@@ -1123,9 +1209,36 @@ namespace DSMSPortable
             if (verboseOutput.Count > 0) destFile.Bytes = destFmg.Write(destFmg.Compression);
             return verboseOutput;
         }
+        /// <summary>
+        /// Merges entries from given fmg files into a msgbnd file
+        /// </summary>
+        /// <param name="msgbndFile">Path to a msgbnd.dcx file</param>
+        /// <param name="fmgFiles">List of paths to fmg, xml, or json files containing fmg entries</param>
+        /// <param name="ignoreConflicts">Whether or not to ignore conflicting entries with the same ID in the same FMGBank</param>
+        /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
+        /// <remarks>Application will exit and return error code 18 if <paramref name="msgbndFile"/> cannot be opened, 
+        /// or error code 12 if any of the files in <paramref name="fmgFiles"/> could not be parsed.</remarks>
         public static List<string> FmgMerge(string msgbndFile, List<string> fmgFiles, bool ignoreConflicts)
         {
-            if (msgbndFile == null || fmgFiles == null) return null;
+            return FmgMerge(msgbndFile, fmgFiles, null, ignoreConflicts);
+        }
+        /// <summary>
+        /// Adds entries to a msgbnd file directly
+        /// </summary>
+        /// <param name="msgbndFile">Path to a msgbnd.dcx file</param>
+        /// <param name="fmgAdditions">List of strings representing fmg entries in the format "FMGName:ID:String", will process "\n" as a new line</param>
+        /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
+        /// <remarks>Application will exit and return error code 18 if <paramref name="msgbndFile"/> cannot be opened, 
+        /// or error code 11 if any of the entries in <paramref name="fmgAdditions"/> could not be parsed.</remarks>
+        public static List<string> FmgEntry(string msgbndFile, List<string> fmgAdditions)
+        {
+            return FmgMerge(msgbndFile, null, fmgAdditions, false);
+        }
+        private static List<string> FmgMerge(string msgbndFile, List<string> fmgFiles, List<string> fmgAdditions, bool ignoreConflicts)
+        {
+            if (msgbndFile == null) return null;
+            fmgFiles ??= new();
+            fmgAdditions ??= new();
             List<string> verboseOutput = new();
             // Read msgbndfile
             List<FMGBank.FMGInfo> fmgBank = new();
@@ -2244,7 +2357,7 @@ namespace DSMSPortable
                                 if (!File.Exists(param) || !(param.ToLower().EndsWith(".anibnd") || param.ToLower().EndsWith(".anibnd.dcx")))
                                 {
                                     Console.Error.WriteLine("ERROR: Invalid anibnd file specified");
-                                    Environment.Exit(14);
+                                    Environment.Exit(19);
                                 }
                                 anibndFile = param;
                             }
@@ -2314,7 +2427,7 @@ namespace DSMSPortable
                                 if (!File.Exists(param) || !param.ToLower().EndsWith(".hks"))
                                 {
                                     Console.Error.WriteLine("ERROR: Invalid HKS file specified");
-                                    Environment.Exit(14);
+                                    Environment.Exit(17);
                                 }
                                 hksFile = param;
                             }
@@ -2363,7 +2476,7 @@ namespace DSMSPortable
             Console.Out.WriteLine("                                [-D diffparamfile] [-O outputpath]\n");
             Console.Out.WriteLine("       DSMSPortable --fmgentry [msgbndfile] [name1:id1:text1] [name2:id2:text2] ...");
             Console.Out.WriteLine("       DSMSPortable --fmgmerge [msgbndfile] [fmgfile1 fmgfile2 ...] [-I] [-V]");
-            Console.Out.WriteLine("       DSMSPortable --layoutmerge [sblytbndfile] [layoutfile1 layoutfile2 ...] [-I] [-V]");
+            Console.Out.WriteLine("       DSMSPortable --layoutmerge [sblytbndfile] [layoutfile1 layoutfile2 ...] [-I] [-V] [-S]");
             Console.Out.WriteLine("       DSMSPortable --texturemerge [tpffile] [ddsfile1 ddsfile2 ...] [-I] [-V]");
             Console.Out.WriteLine("       DSMSPortable --animerge [anibnd] [taefile1 taefile2 ...] [-I] [-V]");
             Console.Out.WriteLine("       DSMSPortable --animdiff [anibnd] [taefile1 taefile2 ...] [-V]");
