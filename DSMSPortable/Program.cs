@@ -15,7 +15,7 @@ namespace DSMSPortable
     /// </summary>
     class DSMSPortable
     {
-        static readonly string VERSION = "1.7.4";
+        static readonly string VERSION = "1.7.5";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -871,7 +871,8 @@ namespace DSMSPortable
         /// <param name="ignoreConflicts">Whether or not to ignore files or edits that conflict (varies depending on filetype)</param>
         /// <param name="sort">Whether or not to sort modified files when applicable</param>
         /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
-        /// <remarks>Application will exit and return error code 16 if either bnd file cannot be opened, or other error codes pending file types contained in the bnd file.</remarks>
+        /// <remarks>Application will exit and return error code 16 if either bnd file cannot be opened, or other error codes pending file types contained in the bnd file.
+        /// If destbndFile is not a valid file, a copy of srcbndFile will be created instead.</remarks>
         public static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts, bool sort)
         {
             return BndMerge(destbndFile, srcbndFile, ignoreConflicts, sort, false);
@@ -908,8 +909,19 @@ namespace DSMSPortable
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($@"ERROR: Could not read one or more binder files {destbnd}, {srcbnd}: {e.Message}");
-                Environment.Exit(16);
+                if (diffmode || srcbndFile.EndsWith(".partial"))
+                {
+                    Console.Error.WriteLine($@"ERROR: Could not read one or more binder files {destbndFile}, {srcbndFile}: {e.Message}");
+                    Environment.Exit(16);
+                }
+                if (srcbnd == null)
+                {
+                    Console.Error.WriteLine($@"ERROR: Could not read binder file {srcbndFile}: {e.Message}");
+                    Environment.Exit(16);
+                }
+                Console.Error.WriteLine($@"Warning: Could not read binder file {destbndFile}: {e.Message}");
+                destbnd = srcbnd;
+                verboseOutput.Add($@"Copied {srcbndFile} to {destbndFile}");
             }
             if (!diffmode) verboseOutput.AddRange(BndMerge(destbnd, srcbnd, ignoreConflicts, sort));
             else verboseOutput.AddRange(BndDiff(destbnd, srcbnd));
@@ -1339,18 +1351,18 @@ namespace DSMSPortable
                         if (existingEntry == null)
                         {
                             sourceFmg.AddEntry(entry);
-                            verboseOutput.Add($@"Added Entry ID {entry.ID} to {Path.GetFileName(fmgPath)}");
+                            verboseOutput.Add($@"Added Entry ID {entry.ID} to {Path.GetFileNameWithoutExtension(fmgPath)}");
                         }
                         else if ((!ignoreConflicts || existingEntry.Text == "" || existingEntry.Text == "%null%") && existingEntry.Text != entry.Text)
                         {
                             existingEntry.Text = entry.Text;
-                            verboseOutput.Add($@"Updated Entry ID {entry.ID} in {Path.GetFileName(fmgPath)}");
+                            verboseOutput.Add($@"Updated Entry ID {entry.ID} in {Path.GetFileNameWithoutExtension(fmgPath)}");
                         }
                     }
                     catch (KeyNotFoundException)
                     {
                         sourceFmg.AddEntry(entry);
-                        verboseOutput.Add($@"Added Entry ID {entry.ID} to {Path.GetFileName(fmgPath)}");
+                        verboseOutput.Add($@"Added Entry ID {entry.ID} to {Path.GetFileNameWithoutExtension(fmgPath)}");
                     }
                 }
             }
