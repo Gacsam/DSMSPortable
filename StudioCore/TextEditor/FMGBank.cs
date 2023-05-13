@@ -967,7 +967,7 @@ namespace StudioCore.TextEditor
 
                 _languageFolder = languageFolder;
 
-                ActiveUITypes.Clear();
+                ActiveUITypes = new();
                 foreach (var e in Enum.GetValues(typeof(FmgUICategory)))
                 {
                     ActiveUITypes.Add((FmgUICategory)e, false);
@@ -992,10 +992,10 @@ namespace StudioCore.TextEditor
                 AssetDescription itemMsgPath = AssetLocator.GetItemMsgbnd(_languageFolder);
                 AssetDescription menuMsgPath = AssetLocator.GetMenuMsgbnd(_languageFolder);
 
-                _fmgInfoBank.Clear();
+                _fmgInfoBank = new();
                 if (!LoadItemMenuMsgBnds(itemMsgPath, menuMsgPath))
                 {
-                    _fmgInfoBank.Clear();
+                    _fmgInfoBank = new();
                     IsLoaded = false;
                     IsLoading = false;
                     return;
@@ -1029,7 +1029,7 @@ namespace StudioCore.TextEditor
             }
 
             var files = Directory.GetFileSystemEntries($@"{AssetLocator.GameRootDirectory}\{desc.AssetPath}", @"*.fmg").ToList();
-            _fmgInfoBank.Clear();
+            _fmgInfoBank = new();
             foreach (var file in files)
             {
                 var modfile = $@"{AssetLocator.GameModDirectory}\{desc.AssetPath}\{Path.GetFileName(file)}";
