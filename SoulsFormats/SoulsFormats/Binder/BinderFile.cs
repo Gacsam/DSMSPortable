@@ -1,11 +1,12 @@
-﻿using static SoulsFormats.Binder;
+﻿using System;
+using static SoulsFormats.Binder;
 
 namespace SoulsFormats
 {
     /// <summary>
     /// A generic file in a BND3, BND4, BXF3, or BXF4 container.
     /// </summary>
-    public class BinderFile
+    public class BinderFile : IComparable<BinderFile>
     {
         /// <summary>
         /// Flags indicating compression, and possibly other things.
@@ -70,6 +71,11 @@ namespace SoulsFormats
         public override string ToString()
         {
             return $"Flags: 0x{(byte)Flags:X2} | ID: {ID} | Name: {Name} | Length: {Bytes.Length}";
+        }
+
+        public int CompareTo(BinderFile other)
+        {
+            return ID.CompareTo(other.ID);
         }
     }
 }

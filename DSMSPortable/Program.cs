@@ -833,10 +833,10 @@ namespace DSMSPortable
                     {
                         verboseOutput.AddRange(LayoutMerge(destFile, srcFile, false, true, true));
                     }
-                    /*else if (destFile.Name.EndsWith(".ffxreslist"))
+                    else if (destFile.Name.EndsWith(".ffxreslist"))
                     {
-                        verboseOutput.AddRange(PlaintextMerge(destFile, srcFile, true));
-                    }*/
+                        verboseOutput.AddRange(PlaintextMerge(destFile, srcFile, false, true));
+                    }
                     else if (destFile.Name.EndsWith(".tpf"))
                     {
                         verboseOutput.AddRange(TextureMerge(destFile, srcFile, false, true));
@@ -855,7 +855,7 @@ namespace DSMSPortable
                         else if (destbnd is BND4) verboseOutput.AddRange(BndDiff(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes)));
                     }
                 }
-                else if (!destFile.Name.EndsWith(".ffxreslist"))
+                else
                 {   // These merge perfectly, so don't bother stripping them out
                     destbnd.Files.Remove(destFile);
                     verboseOutput.Add($@"Removed {destFile.Name} from {Path.GetFileName(destbndFile)}");
@@ -929,13 +929,19 @@ namespace DSMSPortable
             if (verboseOutput.Count == 0) return null;
             // If changes were detected, save the binder
             string savePath;
-            if (outputFile != null && !Directory.Exists(outputFile)) savePath = new FileInfo(outputFile).Directory.FullName;
-            else if (outputFile != null) savePath = outputFile;
-            else savePath = new FileInfo(destbndFile).Directory.FullName;
             string filename = Path.GetFileName(destbndFile).Replace(".partial", "");
+            if (outputFile != null)
+            {
+                savePath = new FileInfo(outputFile).Directory.FullName;
+                if (!Directory.Exists(outputFile)) filename = Path.GetFileName(outputFile);
+            }
+            else savePath = new FileInfo(destbndFile).Directory.FullName;
             if (diffmode) filename += ".partial";
+            Console.Out.Write("Sorting...");
+            destbnd.Files.Sort();
             try
             {
+                Console.Out.Write("Compressing...");
                 if (destbnd is BND3 bnd3)
                     Utils.WriteWithBackup(gamepath, savePath, filename, bnd3);
                 else if (destbnd is BND4 bnd4)
