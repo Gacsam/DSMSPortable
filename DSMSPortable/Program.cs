@@ -897,29 +897,30 @@ namespace DSMSPortable
             try // Attempt to read the binder files
             {
                 if (gameType == GameType.DemonsSouls || gameType == GameType.DarkSoulsPTDE || gameType == GameType.DarkSoulsRemastered)
-                {
-                    destbnd = BND3.Read(destbndFile);
                     srcbnd = BND3.Read(srcbndFile);
-                }
                 else
-                {
-                    destbnd = BND4.Read(destbndFile);
                     srcbnd = BND4.Read(srcbndFile);
-                }
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($@"ERROR: Could not read binder file {srcbndFile}:{"\n\t"}{e.Message}");
+                Environment.Exit(16);
+            }
+            try
+            {
+                if (gameType == GameType.DemonsSouls || gameType == GameType.DarkSoulsPTDE || gameType == GameType.DarkSoulsRemastered)
+                    destbnd = BND3.Read(destbndFile);
+                else
+                    destbnd = BND4.Read(destbndFile);
             }
             catch (Exception e)
             {
                 if (diffmode || srcbndFile.EndsWith(".partial"))
                 {
-                    Console.Error.WriteLine($@"ERROR: Could not read one or more binder files {destbndFile}, {srcbndFile}: {e.Message}");
+                    Console.Error.WriteLine($@"ERROR: Could not read binder file {destbndFile}:{"\n\t"}{e.Message}");
                     Environment.Exit(16);
                 }
-                if (srcbnd == null)
-                {
-                    Console.Error.WriteLine($@"ERROR: Could not read binder file {srcbndFile}: {e.Message}");
-                    Environment.Exit(16);
-                }
-                Console.Error.WriteLine($@"Warning: Could not read binder file {destbndFile}: {e.Message}");
+                Console.Error.WriteLine($@"Warning: Could not read binder file {destbndFile}");
                 destbnd = srcbnd;
                 verboseOutput.Add($@"Copied {srcbndFile} to {destbndFile}");
             }
@@ -2392,9 +2393,9 @@ namespace DSMSPortable
                         case ParamMode.BNDMERGE:
                             if (destbndFile == null)
                             {
-                                if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx") || param.ToLower().EndsWith("bnd")))
+                                if (!(param.ToLower().EndsWith("bnd.dcx") || param.ToLower().EndsWith("bnd")))
                                 {
-                                    Console.Error.WriteLine("ERROR: Invalid bnd file specified");
+                                    Console.Error.WriteLine("ERROR: Invalid bnd file specified: " + param);
                                     Environment.Exit(15);
                                 }
                                 destbndFile = param;
@@ -2404,7 +2405,7 @@ namespace DSMSPortable
                                 if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx") || param.ToLower().EndsWith("bnd") ||
                                     param.ToLower().EndsWith("bnd.dcx.partial") || param.ToLower().EndsWith("bnd.partial")))
                                 {
-                                    Console.Error.WriteLine("ERROR: Invalid bnd file or partial bnd file specified");
+                                    Console.Error.WriteLine("ERROR: Invalid bnd file or partial bnd file specified: " + param);
                                     Environment.Exit(15);
                                 }
                                 srcbndFile = param;
