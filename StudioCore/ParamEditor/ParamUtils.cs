@@ -156,7 +156,7 @@ namespace StudioCore.ParamEditor
                 float boundry = Math.Max(0, level80 - boundry_value);
                 float lateScaling = level80S * boundry_inclination_soul * boundry;
                 float earlyScaling = level80S * init_inclination_soul;
-                values[level] = float.Floor(lateScaling + earlyScaling + adjustment_value);
+                values[level] = (float)Math.Floor(lateScaling + earlyScaling + adjustment_value);
             }
             return (values, values[values.Length-1]);
         }

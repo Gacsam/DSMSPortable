@@ -799,10 +799,11 @@ namespace StudioCore.ParamEditor
         }
         private void ExtRefItem(Param.Row keyRow, string fieldKey, string menuText, List<string> matchedExtRefPath, string dir)
         {
-            bool exist = CacheBank.GetCached(_paramEditor, keyRow, $"extRef{menuText}{fieldKey}", () => Path.Exists(Path.Join(dir, matchedExtRefPath[0])));
+            string path = Path.Join(dir, matchedExtRefPath[0]);
+            bool exist = CacheBank.GetCached(_paramEditor, keyRow, $"extRef{menuText}{fieldKey}", () => Directory.Exists(path) || File.Exists(path));
             if (exist && ImGui.Selectable($"Go to {menuText} file..."))
             {
-                string path = ResolveExtRefPath(matchedExtRefPath, dir);
+                path = ResolveExtRefPath(matchedExtRefPath, dir);
                 if (File.Exists(path))
                     Process.Start("explorer.exe", $"/select,\"{path}\"");
                 else
