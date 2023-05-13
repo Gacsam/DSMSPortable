@@ -72,7 +72,9 @@ namespace SoulsFormats
         {
             return $"Flags: 0x{(byte)Flags:X2} | ID: {ID} | Name: {Name} | Length: {Bytes.Length}";
         }
-
+        /// <summary>
+        /// Compares a BinderFile to another using by ID for sorting
+        /// </summary>
         public int CompareTo(BinderFile other)
         {
             return ID.CompareTo(other.ID);
