@@ -50,6 +50,19 @@ namespace StudioCore.MsbEditor
             return null;
         }
 
+        public int GetLoadedMapCount()
+        {
+            int i = 0;
+            foreach (var map in LoadedObjectContainers)
+            {
+                if (map.Value != null)
+                {
+                    i++;  
+                }
+            }
+            return i;
+        }
+
         public GameType GameType => _assetLocator.Type;
 
         public bool postLoad = false;
@@ -397,13 +410,6 @@ namespace StudioCore.MsbEditor
                     row.Name = "generator_" + row.ID.ToString();
                 }
 
-                // Offset the generators by the map offset
-                row.GetCellHandleOrThrow("PositionX").SetValue(
-                    (float)row.GetCellHandleOrThrow("PositionX").Value + map.MapOffset.Position.X);
-                row.GetCellHandleOrThrow("PositionY").SetValue(
-                    (float)row.GetCellHandleOrThrow("PositionY").Value + map.MapOffset.Position.Y);
-                row.GetCellHandleOrThrow("PositionZ").SetValue(
-                    (float)row.GetCellHandleOrThrow("PositionZ").Value + map.MapOffset.Position.Z);
                 
                 var mergedRow = new MergedParamRow();
                 mergedRow.AddRow("generator-loc", row);
@@ -412,6 +418,7 @@ namespace StudioCore.MsbEditor
                 var obj = new MapEntity(map, mergedRow, MapEntity.MapEntityType.DS2Generator);
                 generatorObjs.Add(row.ID, obj);
                 map.AddObject(obj);
+                map.MapOffsetNode.AddChild(obj);
             }
 
             var chrsToLoad = new HashSet<AssetDescription>();
@@ -477,17 +484,10 @@ namespace StudioCore.MsbEditor
                     row.Name = "eventloc_" + row.ID.ToString();
                 }
                 eventLocationParams.Add(row.ID, row);
-
-                // Offset the generators by the map offset
-                row.GetCellHandleOrThrow("PositionX").SetValue(
-                    (float)row.GetCellHandleOrThrow("PositionX").Value + map.MapOffset.Position.X);
-                row.GetCellHandleOrThrow("PositionY").SetValue(
-                    (float)row.GetCellHandleOrThrow("PositionY").Value + map.MapOffset.Position.Y);
-                row.GetCellHandleOrThrow("PositionZ").SetValue(
-                    (float)row.GetCellHandleOrThrow("PositionZ").Value + map.MapOffset.Position.Z);
-
+                
                 var obj = new MapEntity(map, row, MapEntity.MapEntityType.DS2EventLocation);
                 map.AddObject(obj);
+                map.MapOffsetNode.AddChild(obj);
 
                 // Try rendering as a box for now
                 var mesh = DebugPrimitiveRenderableProxy.GetBoxRegionProxy(_renderScene);
@@ -533,6 +533,16 @@ namespace StudioCore.MsbEditor
             }
         }
 
+        public void LoadRelatedMaps(string mapid, Dictionary<string, ObjectContainer> maps)
+        {
+            var relatedMaps = SpecialMapConnections.GetRelatedMaps(GameType.EldenRing, mapid, maps.Keys);
+            foreach (var map in relatedMaps)
+            {
+                LoadMap(map.Key);
+            }
+            return;
+        }
+
         public bool LoadMap(string mapid, bool selectOnLoad = false)
         {
             if (_assetLocator.Type == GameType.DarkSoulsIISOTFS
@@ -550,7 +560,6 @@ namespace StudioCore.MsbEditor
             }
             LoadMapAsync(mapid, selectOnLoad);
             return true;
-
         }
 
         public BTL ReturnBTL(AssetDescription ad)
@@ -901,17 +910,14 @@ namespace StudioCore.MsbEditor
                 }
                 // Check for duplicate EntityIDs
                 CheckDupeEntityIDs(map);
-
-                return;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
 #if DEBUG
                 throw;
 #else
                 // Store async exception so it can be caught by crash handler.
                 LoadMapExceptions = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e);
-                return;
 #endif
             }
         }
