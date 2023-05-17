@@ -7,16 +7,17 @@ namespace DSMSPortable
         readonly string pattern = @$"(?<![-\t ])function (.[^()]*)\((.*)\).*((\n[-\t ]+.*)*\nend)";
         public Regex parse;
         public List<LuaString> source;
+        public Dictionary<string, LuaFunction> functions;
         public int head = 0;
         public string sourceFile;
         public LuaFile(string sourceFile)
         {
             this.sourceFile = sourceFile;
             source = new();
+            functions = new();
             parse = new Regex(pattern);
             string sourceText = File.ReadAllText(sourceFile).ReplaceLineEndings("\n");
             while (sourceText.Contains("\n\n")) sourceText = sourceText.Replace("\n\n", "\n");
-            Dictionary<string, LuaFunction> functions = new();
             Dictionary<string, int> duplicates = new();
             foreach (Match match in parse.Matches(sourceText))
             {
@@ -67,6 +68,7 @@ namespace DSMSPortable
                 }
             }
             source.Insert(head, newFunction);
+            functions.Add(newFunction.functionName, newFunction);
             return false;
         }
         public override string ToString()

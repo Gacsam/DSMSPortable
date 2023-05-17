@@ -15,7 +15,7 @@ namespace DSMSPortable
     /// </summary>
     class DSMSPortable
     {
-        static readonly string VERSION = "1.7.5";
+        static readonly string VERSION = "1.7.6";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -163,7 +163,7 @@ namespace DSMSPortable
             if (hksFile != null)
             {
                 Console.Out.Write("Performing HKS merge for " + hksFile + "...");
-                List<string> verboseOutput = HKSMerge(hksFile, luaFiles);
+                List<string> verboseOutput = HKSMerge(hksFile, luaFiles, ignoreConflicts);
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
@@ -484,6 +484,15 @@ namespace DSMSPortable
                 Console.Error.WriteLine($@"ERROR: Could not read anibnd File {anibndFile}: {e.Message}");
                 Environment.Exit(19);
             }
+            // Dictionary for making sure we don't accidentally add duplicate ID's
+            Dictionary<int, BinderFile> anibndindex = new();
+            // Convert to dictionary for performance
+            foreach (BinderFile destFile in animBinder.Files)
+            {   // If the ID for the file we're adding is taken, search for an available ID
+                while (anibndindex.ContainsKey(destFile.ID))
+                    destFile.ID++;
+                anibndindex.Add(destFile.ID, destFile);
+            }
             foreach (string taeFile in taeFiles)
             {
                 if (!File.Exists(taeFile))
@@ -519,13 +528,17 @@ namespace DSMSPortable
                 }
                 if (!fileMatch && !diffmode)
                 {
-                    animBinder.Files.Add(new BinderFile(flags, ID, binderFilename, File.ReadAllBytes(taeFile)));
+                    while (anibndindex.ContainsKey(ID)) ID++;
+                    BinderFile addition = new(flags, ID, binderFilename, File.ReadAllBytes(taeFile));
+                    anibndindex.Add(ID, addition);
+                    animBinder.Files.Add(addition);
                     verboseOutput.Add($@"Added {binderFilename} to {anibndFile}");
                 }
             }
             if (verboseOutput.Count == 0) return null;
             if (diffmode) return verboseOutput;
-            // If changes were detected, save the anibnd file
+            // If changes were detected, sort and save the anibnd file
+            animBinder.Files.Sort();
             string savePath;
             if (outputFile != null && !Directory.Exists(outputFile)) savePath = new FileInfo(outputFile).Directory.FullName;
             else if (outputFile != null) savePath = outputFile;
@@ -1111,7 +1124,7 @@ namespace DSMSPortable
         /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
         /// <remarks>Application will exit and return error code 17 if <paramref name="hksFile"/> or any of the files specified in 
         /// <paramref name="luaFiles"/> cannot be opened, or error code 8 if <paramref name="hksFile"/> cannot be written to.</remarks>
-        public static List<string> HKSMerge(string hksFile, List<string> luaFiles)
+        public static List<string> HKSMerge(string hksFile, List<string> luaFiles, bool ignoreConflicts)
         {
             if (hksFile == null) return null;
             if (luaFiles.Count == 0) return null;
@@ -1149,6 +1162,8 @@ namespace DSMSPortable
                 {
                     if (line is LuaFunction function)
                     {
+                        if (ignoreConflicts && destFile.functions.ContainsKey(function.functionName))
+                            continue;
                         bool overwrite = destFile.AddFunction(function);
                         if (overwrite) verboseOutput.Add($@"Updated function {function.functionName} in {Path.GetFileName(hksFile)}");
                         else verboseOutput.Add($@"Added new function {function.functionName} to {Path.GetFileName(hksFile)}");
@@ -2501,7 +2516,7 @@ namespace DSMSPortable
             Console.Out.WriteLine("       DSMSPortable --animdiff [anibnd] [taefile1 taefile2 ...] [-V]");
             Console.Out.WriteLine("       DSMSPortable --bndmerge [destbndfile] [srcbndfile] [-I] [-V] [-S]");
             Console.Out.WriteLine("       DSMSPortable --bnddiff [destbndfile] [srcbndfile] [-V]");
-            Console.Out.WriteLine("       DSMSPortable --hksmerge [hksfile] [luafile1 luafile2 ...] [-V]");
+            Console.Out.WriteLine("       DSMSPortable --hksmerge [hksfile] [luafile1 luafile2 ...] [-I] [-V]");
             Console.Out.WriteLine();
             Console.Out.WriteLine("  paramfile  Path to regulation.bin file (or respective param file for other FromSoft games) to modify");
             Console.Out.WriteLine("  -G gametype");
@@ -2579,7 +2594,7 @@ namespace DSMSPortable
             Console.Out.WriteLine("  --bnddiff [destbndfile] [srcbndfile] [-V]");
             Console.Out.WriteLine("             Strips all matching files with srcbndfile out of destbndfile and creates a partial BND file for");
             Console.Out.WriteLine("             more precise BND merging with --bndmerge. -G, -P, and -O still apply");
-            Console.Out.WriteLine("  --hksmerge [hksfile] [luafile1 luafile2 ...] [-V]");
+            Console.Out.WriteLine("  --hksmerge [hksfile] [luafile1 luafile2 ...] [-I] [-V]");
             Console.Out.WriteLine("             Merges given lua functions into a decompiled hks file. Will overwrite any overloaded functions.");
             if (pause) Console.ReadKey(true);
             Environment.Exit(0);
