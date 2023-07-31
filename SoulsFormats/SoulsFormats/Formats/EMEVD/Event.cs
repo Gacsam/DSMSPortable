@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SoulsFormats
 {
@@ -7,7 +9,7 @@ namespace SoulsFormats
         /// <summary>
         /// An event containing instructions to be executed.
         /// </summary>
-        public class Event
+        public class Event : IComparable<Event>
         {
             /// <summary>
             /// The ID of the event.
@@ -43,6 +45,18 @@ namespace SoulsFormats
                 Instructions = new List<Instruction>();
                 Parameters = new List<Parameter>();
                 RestBehavior = restBehavior;
+            }
+            /// <summary>
+            /// Returns true if this Event has identical instructions to another
+            /// </summary>
+            /// <param name="other">Event to check for equality against</param>
+            /// <returns></returns>
+            public bool Equals(Event other)
+            {
+                if (ID != other.ID) return false;
+                if (Instructions.Count != other.Instructions.Count) return false;
+                if (Parameters.Count != other.Parameters.Count) return false;
+                return Instructions.SequenceEqual(other.Instructions);
             }
 
             internal Event(BinaryReaderEx br, Game format, Offsets offsets)
@@ -120,6 +134,15 @@ namespace SoulsFormats
 
                 for (int i = 0; i < Parameters.Count; i++)
                     Parameters[i].Write(bw, format);
+            }
+            /// <summary>
+            /// Comparator for sorting Events by ID
+            /// </summary>
+            /// <param name="other">Event to check ID's against</param>
+            /// <returns>1 if this Event's ID is greater than the other, -1 if lower, 0 if equal</returns>
+            public int CompareTo(Event other)
+            {
+                return ID.CompareTo(other.ID);
             }
 
             /// <summary>

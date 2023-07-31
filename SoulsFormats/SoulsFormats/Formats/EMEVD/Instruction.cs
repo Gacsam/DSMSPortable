@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace SoulsFormats
 {
@@ -9,7 +10,7 @@ namespace SoulsFormats
         /// <summary>
         /// A single instruction to be executed by an event.
         /// </summary>
-        public class Instruction
+        public class Instruction : IEquatable<Instruction>
         {
             /// <summary>
             /// The bank from which to select the instruction.
@@ -117,6 +118,30 @@ namespace SoulsFormats
                 ID = id;
                 Layer = layerMask;
                 PackArgs(args);
+            }
+            /// <summary>
+            /// Overrides default Equality comparer
+            /// </summary>
+            /// <param name="other">Other object to check to see if it an Instruction with identical values</param>
+            /// <returns>true if this Instruction is equal to the other instruction, false otherwise</returns>
+            public override bool Equals(Object other)
+            {
+                if (other is Instruction otherinstruction)
+                    return Equals(otherinstruction);
+                return false;
+            }
+            /// <summary>
+            /// Overrides default Equality comparer
+            /// </summary>
+            /// <param name="otherinstruction">Other object to check to see if it an Instruction with identical values</param>
+            /// <returns>true if this Instruction is equal to the other instruction, false otherwise</returns>
+            public bool Equals(Instruction otherinstruction)
+            {
+                if (ID != otherinstruction.ID) return false;
+                if (Bank != otherinstruction.Bank) return false;
+                if (!ArgData.SequenceEqual(otherinstruction.ArgData)) return false;
+                if (Layer != otherinstruction.Layer) return false;
+                return true;
             }
 
             internal Instruction(BinaryReaderEx br, Game format, Offsets offsets)

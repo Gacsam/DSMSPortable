@@ -15,7 +15,7 @@ namespace DSMSPortable
     /// </summary>
     class DSMSPortable
     {
-        static readonly string VERSION = "1.7.6";
+        static readonly string VERSION = "1.8";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -45,6 +45,10 @@ namespace DSMSPortable
         static string msgbndFile = null;
         static List<string> fmgFiles;
         static List<string> fmgAdditions;
+        // emevdmerge files
+        static string destEmevdFile = null;
+        static string srcEmevdFile = null;
+        static bool emevdDiffmode = false;
         // layoutmerge files
         static string sblytbndFile = null;
         static List<string> layoutFiles;
@@ -107,6 +111,20 @@ namespace DSMSPortable
             {
                 Console.Out.Write("Performing FMG merge for " + msgbndFile + "...");
                 List<string> verboseOutput = FmgMerge(msgbndFile, fmgFiles, fmgAdditions, ignoreConflicts);
+                if (verboseOutput == null)
+                    Console.Out.WriteLine("No changes detected.");
+                else
+                {
+                    Console.Out.WriteLine("Success!");
+                    if (verbose) foreach (string output in verboseOutput) Console.Out.WriteLine(output);
+                }
+                return;
+            }
+            // Perform EmevdMerging if specified
+            if (destEmevdFile != null)
+            {
+                Console.Out.Write("Performing EMEVD merge for " + destEmevdFile + "...");
+                List<string> verboseOutput = EmevdMerge(destEmevdFile, srcEmevdFile, removeParams, ignoreConflicts, sort, emevdDiffmode);
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
@@ -943,13 +961,18 @@ namespace DSMSPortable
             // If changes were detected, save the binder
             string savePath;
             string filename = Path.GetFileName(destbndFile).Replace(".partial", "");
+            if (diffmode) filename += ".partial";
             if (outputFile != null)
             {
-                savePath = new FileInfo(outputFile).Directory.FullName;
-                if (!Directory.Exists(outputFile)) filename = Path.GetFileName(outputFile);
+                if (Directory.Exists(outputFile)) 
+                    savePath = new FileInfo(outputFile).FullName;
+                else
+                {
+                    filename = Path.GetFileName(outputFile);
+                    savePath = new FileInfo(outputFile).Directory.FullName;
+                }
             }
             else savePath = new FileInfo(destbndFile).Directory.FullName;
-            if (diffmode) filename += ".partial";
             Console.Out.Write("Sorting...");
             destbnd.Files.Sort();
             try
@@ -1450,6 +1473,126 @@ namespace DSMSPortable
                 Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(msgbndFile), bnd3);
             else if (fmgBinder is BND4 bnd4)
                 Utils.WriteWithBackup(gamepath, savePath, Path.GetFileName(msgbndFile), bnd4);
+            return verboseOutput;
+        }
+
+        /// <summary>
+        /// Adds entries to an EMEVD file
+        /// </summary>
+        /// <param name="destEmevdFile">Path to a emevd.dcx file to merge into</param>
+        /// <param name="srcEmevdFile">Path to a emevd.dcx or .partial file to merge from</param>
+        /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
+        /// <remarks>Application will exit and return error code 20 if <paramref name="destEmevdFile"/> cannot be opened, 
+        /// or error code 21 if any emevd ID's could not be parsed.</remarks>
+        public static List<string> EmevdMerge(string destEmevdFile, string srcEmevdFile, List<string> emevdRemovals, bool ignoreConflicts, bool sort)
+        {
+            return EmevdMerge(destEmevdFile, srcEmevdFile, emevdRemovals, ignoreConflicts, sort, false);
+        }
+        public static List<string> EmevdDiff(string destEmevdFile, string srcEmevdFile)
+        {
+            return EmevdMerge(destEmevdFile, srcEmevdFile, null, false, false, true);
+        }
+        private static List<string> EmevdMerge(string destEmevdFile, string srcEmevdFile, List<string> emevdRemovals, bool ignoreConflicts, bool sort, bool diffmode)
+        {
+            if (destEmevdFile == null) return null;
+            List<string> verboseOutput = new();
+            EMEVD destEmevd = null;
+            EMEVD srcEmevd = null;
+            try
+            {
+                destEmevd = EMEVD.Read(destEmevdFile);
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($@"ERROR: Could not read {destEmevdFile}: {e.Message}");
+                Environment.Exit(20);
+            }
+            try
+            {
+                srcEmevd = EMEVD.Read(srcEmevdFile);
+            }
+            catch (NullReferenceException)
+            {
+                if(diffmode || emevdRemovals == null || emevdRemovals.Count == 0)
+                {
+                    Console.Error.WriteLine($@"ERROR: No emevd file specified to compare from");
+                    Environment.Exit(20);
+                }
+                Console.Error.WriteLine($@"ERROR: No emevd file specified to compare from");
+                srcEmevd = destEmevd;
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($@"ERROR: Could not read {srcEmevdFile}: {e.Message}");
+                Environment.Exit(20);
+            }
+            foreach (EMEVD.Event srcEvent in srcEmevd.Events)
+            {
+                bool match = false;
+                foreach (EMEVD.Event destEvent in new List<EMEVD.Event>(destEmevd.Events))
+                {
+                    if (srcEvent.ID == destEvent.ID)
+                    {
+                        match = true;
+                        if (!diffmode && !srcEvent.Equals(destEvent))
+                        {
+                            if (!ignoreConflicts)
+                            {
+                                destEvent.Instructions = srcEvent.Instructions;
+                                destEvent.Parameters = srcEvent.Parameters;
+                                destEvent.RestBehavior = srcEvent.RestBehavior;
+                                destEvent.Name = srcEvent.Name;
+                                verboseOutput.Add($@"Updated Event {destEvent.ID} in {Path.GetFileName(destEmevdFile)}");
+                            }
+                        }
+                        else if (diffmode && srcEvent.Equals(destEvent))
+                        {
+                            destEmevd.Events.Remove(destEvent);
+                            verboseOutput.Add($@"Removed Event {destEvent.ID} from {Path.GetFileName(destEmevdFile)}");
+                        }
+                        break;
+                    }
+                }
+                if (!match && !diffmode)
+                {
+                    destEmevd.Events.Add(srcEvent);
+                    verboseOutput.Add($@"Added Event {srcEvent.ID} to {Path.GetFileName(destEmevdFile)}");
+                }
+            }
+            // Sort if necessary
+            if (sort) destEmevd.Events.Sort();
+            // Perform removals
+            foreach (string emevdstring in emevdRemovals)
+            {
+                long id = 0;
+                try
+                {
+                    id = long.Parse(emevdstring);
+                }
+                catch (Exception)
+                {
+                    Console.Error.WriteLine("ERROR: \"" + emevdstring + "\" is not a valid emevd id");
+                    Environment.Exit(21);
+                }
+                if(destEmevd.Events.Remove(destEmevd.Events.Find(x => x.ID == id)))
+                    verboseOutput.Add("Removed event at ID " + id + " from " + destEmevdFile);
+            }
+            if (verboseOutput.Count == 0) return null;
+            string savePath;
+            string filename = Path.GetFileName(destEmevdFile).Replace(".partial", "");
+            if (diffmode) filename += ".partial";
+            if (outputFile != null)
+            {
+                if (Directory.Exists(outputFile))
+                    savePath = new FileInfo(outputFile).FullName;
+                else
+                {
+                    filename = Path.GetFileName(outputFile);
+                    savePath = new FileInfo(outputFile).Directory.FullName;
+                }
+            }
+            else savePath = new FileInfo(destEmevdFile).Directory.FullName;
+            Utils.WriteWithBackup(gamepath, savePath, filename, destEmevd);
             return verboseOutput;
         }
         private static void LoadParams()
@@ -2120,6 +2263,13 @@ namespace DSMSPortable
                                 mode = ParamMode.LAYOUTMERGE;
                             else if (param.ToLower() == "--texturemerge")
                                 mode = ParamMode.DDSMERGE;
+                            else if (param.ToLower() == "--emevdmerge")
+                                mode = ParamMode.EMEVDMERGE;
+                            else if (param.ToLower() == "--emevddiff")
+                            {
+                                emevdDiffmode = true;
+                                mode = ParamMode.EMEVDDIFF;
+                            }
                             else if (param.ToLower() == "--bndmerge")
                                 mode = ParamMode.BNDMERGE;
                             else if (param.ToLower() == "--bnddiff")
@@ -2332,6 +2482,51 @@ namespace DSMSPortable
                             }
                             else fmgAdditions.Add(param);
                             break;
+                        case ParamMode.EMEVDMERGE:
+                            if (destEmevdFile == null)
+                            {
+                                if (!(param.ToLower().EndsWith("emevd.dcx") || param.ToLower().EndsWith("emevd")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid emevd file specified: " + param);
+                                    Environment.Exit(20);
+                                }
+                                destEmevdFile = param;
+                            }
+                            else if (srcEmevdFile == null)
+                            {
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith("emevd.dcx") || param.ToLower().EndsWith("emevd") ||
+                                    param.ToLower().EndsWith("emevd.dcx.partial") || param.ToLower().EndsWith("emevd.partial")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid emevd file or partial emevd file specified: " + param);
+                                    Environment.Exit(20);
+                                }
+                                srcEmevdFile = param;
+                            }
+                            else Console.Error.WriteLine("Warning: Extra file specified: " + param);
+                            break;
+                        case ParamMode.EMEVDDIFF:
+                            if (destEmevdFile == null)
+                            {
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith("emevd.dcx") || param.ToLower().EndsWith("emevd") ||
+                                    param.ToLower().EndsWith("emevd.dcx.partial") || param.ToLower().EndsWith("emevd.partial")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid emevd file or partial emevd file specified");
+                                    Environment.Exit(20);
+                                }
+                                destEmevdFile = param;
+                            }
+                            else if (srcEmevdFile == null)
+                            {
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith("emevd.dcx") || param.ToLower().EndsWith("emevd") ||
+                                    param.ToLower().EndsWith("emevd.dcx.partial") || param.ToLower().EndsWith("emevd.partial")))
+                                {
+                                    Console.Error.WriteLine("ERROR: Invalid emevd file or partial emevd file specified");
+                                    Environment.Exit(20);
+                                }
+                                srcEmevdFile = param;
+                            }
+                            else Console.Error.WriteLine("Warning: Extra file specified: " + param);
+                            break;
                         case ParamMode.LAYOUTMERGE:
                             if (sblytbndFile == null)
                             {
@@ -2436,9 +2631,10 @@ namespace DSMSPortable
                         case ParamMode.BNDDIFF:
                             if (destbndFile == null)
                             {
-                                if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx") || param.ToLower().EndsWith("bnd")))
+                                if (!File.Exists(param) || !(param.ToLower().EndsWith("bnd.dcx") || param.ToLower().EndsWith("bnd") ||
+                                    param.ToLower().EndsWith("bnd.dcx.partial") || param.ToLower().EndsWith("bnd.partial")))
                                 {
-                                    Console.Error.WriteLine("ERROR: Invalid bnd file specified");
+                                    Console.Error.WriteLine("ERROR: Invalid bnd file or partial bnd file specified");
                                     Environment.Exit(15);
                                 }
                                 destbndFile = param;
@@ -2596,6 +2792,13 @@ namespace DSMSPortable
             Console.Out.WriteLine("             more precise BND merging with --bndmerge. -G, -P, and -O still apply");
             Console.Out.WriteLine("  --hksmerge [hksfile] [luafile1 luafile2 ...] [-I] [-V]");
             Console.Out.WriteLine("             Merges given lua functions into a decompiled hks file. Will overwrite any overloaded functions.");
+            Console.Out.WriteLine("  --emevdmerge [destemevdfile] [srcemevdfile] [-I] [-V] [-S] [-R eventID]");
+            Console.Out.WriteLine("             Separate operation mode for merging events into an emevd file. -G, -P, and -O still apply");
+            Console.Out.WriteLine("             Any files in srcemevdfile not found in destemevdfile will be added to destemevdfile.");
+            Console.Out.WriteLine("             -R can be used to specify event ID's to remove entirely.");
+            Console.Out.WriteLine("  --emevddiff [destemevdfile] [srcemevdfile] [-V]");
+            Console.Out.WriteLine("             Strips all matching events with srcemevdfile out of destemevdfile and creates a partial EMEVD file for");
+            Console.Out.WriteLine("             more precise EMEVD merging with --emevdmerge. -G, -P, and -O still apply");
             if (pause) Console.ReadKey(true);
             Environment.Exit(0);
         }
@@ -2622,7 +2825,9 @@ namespace DSMSPortable
             ANIMDIFF,
             BNDMERGE,
             BNDDIFF,
-            HKSMERGE
+            HKSMERGE,
+            EMEVDMERGE,
+            EMEVDDIFF
         }
         // No reason to be anal about the exact switch character used, any of these is fine
         private static bool IsSwitch(string arg)
