@@ -1321,8 +1321,8 @@ namespace DSMSPortable
                 // Find out which FMG we're dealing with
                 foreach (FMGBank.FMGInfo src in fmgBank)
                 {
-                    if (src.Name.ToLower() == Path.GetFileNameWithoutExtension(fmgPath).Split(".")[0].ToLower() ||
-                        src.FileName.Split(".")[0].ToLower() == Path.GetFileNameWithoutExtension(fmgPath).Split(".")[0].ToLower())
+                    if (Path.GetFileNameWithoutExtension(fmgPath).Split(".")[0].ToLower().StartsWith(src.Name.ToLower()) ||
+                        Path.GetFileNameWithoutExtension(fmgPath).Split(".")[0].ToLower().StartsWith(src.FileName.Split(".")[0].ToLower()))
                     {
                         sourceFmg = src;
                         break;
@@ -1396,7 +1396,7 @@ namespace DSMSPortable
                         if (existingEntry == null)
                         {
                             sourceFmg.AddEntry(entry);
-                            verboseOutput.Add($@"Added Entry ID {entry.ID} to {Path.GetFileNameWithoutExtension(fmgPath)}");
+                            verboseOutput.Add($@"Added Entry ID {entry.ID} to {sourceFmg.FileName}");
                         }
                         else if ((!ignoreConflicts || existingEntry.Text == "" || existingEntry.Text == "%null%") && existingEntry.Text != entry.Text)
                         {
@@ -1447,12 +1447,12 @@ namespace DSMSPortable
                 if (existingEntry == null)
                 {
                     sourceFmg.AddEntry(newEntry);
-                    verboseOutput.Add($@"Added Entry ID {newEntry.ID} to {sourceFmg.FileName}");
+                    verboseOutput.Add($@"Added Entry ID {newEntry.ID} to {Path.GetFileName(sourceFmg.FileName)}");
                 }
                 else if (existingEntry.Text != text)
                 {
                     existingEntry.Text = text.Replace("$0", existingEntry.Text);
-                    verboseOutput.Add($@"Updated Entry ID {newEntry.ID} in {sourceFmg.FileName}");
+                    verboseOutput.Add($@"Updated Entry ID {newEntry.ID} in {Path.GetFileName(sourceFmg.FileName)}");
                 }
             }
             // Save msgbnd file if necessary
@@ -1511,20 +1511,14 @@ namespace DSMSPortable
             {
                 srcEmevd = EMEVD.Read(srcEmevdFile);
             }
-            catch (NullReferenceException)
-            {
-                if(diffmode || emevdRemovals == null || emevdRemovals.Count == 0)
-                {
-                    Console.Error.WriteLine($@"ERROR: No emevd file specified to compare from");
-                    Environment.Exit(20);
-                }
-                Console.Error.WriteLine($@"ERROR: No emevd file specified to compare from");
-                srcEmevd = destEmevd;
-            }
             catch (Exception e)
             {
-                Console.Error.WriteLine($@"ERROR: Could not read {srcEmevdFile}: {e.Message}");
-                Environment.Exit(20);
+                if (diffmode || emevdRemovals == null || emevdRemovals.Count == 0)
+                {
+                    Console.Error.WriteLine($@"ERROR: Could not read {srcEmevdFile}: {e.Message}");
+                    Environment.Exit(20);
+                }
+                srcEmevd = destEmevd;
             }
             foreach (EMEVD.Event srcEvent in srcEmevd.Events)
             {
