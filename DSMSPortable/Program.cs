@@ -15,7 +15,7 @@ namespace DSMSPortable
     /// </summary>
     class DSMSPortable
     {
-        static readonly string VERSION = "1.8";
+        static readonly string VERSION = "1.8.1";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -24,6 +24,11 @@ namespace DSMSPortable
         static readonly string DS3_PARAMFILE_NAME = "Data0.bdt";
         static readonly string OTHER_PARAMFILE_NAME = "gameparam.parambnd.dcx";
         static readonly string OTHER_PARAMFILE_PATH = "param\\gameparam";
+        static readonly int FXR_OFFSET = 0;
+        static readonly int TPF_OFFSET = 100000;
+        static readonly int FLV_OFFSET = 200000;
+        static readonly int ANI_OFFSET = 300000;
+        static readonly int RES_OFFSET = 400000;
         static string gamepath = null;
         static List<string> csvFiles;
         static List<string> c2mFiles;
@@ -750,7 +755,7 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        private static List<string> BndMerge(IBinder destbnd, IBinder srcbnd, bool ignoreConflicts, bool sort)
+        private static List<string> BndMerge(IBinder destbnd, IBinder srcbnd, bool ignoreConflicts, bool sort, bool ffxbnd)
         {
             List<string> verboseOutput = new();
             if (destbnd == null || srcbnd == null) return verboseOutput;
@@ -762,7 +767,23 @@ namespace DSMSPortable
             foreach (BinderFile destFile in destbnd.Files)
             {   // If the ID for the file we're adding is taken, search for an available ID
                 while (destbndindex.ContainsKey(destFile.ID))
+                {
                     destFile.ID++;
+                    if (ffxbnd)
+                    {
+                        destFile.ID %= 100000;
+                        if (destFile.Name.ToLower().EndsWith(".fxr"))
+                            destFile.ID += FXR_OFFSET;
+                        else if (destFile.Name.ToLower().EndsWith(".anibnd"))
+                            destFile.ID += ANI_OFFSET;
+                        else if (destFile.Name.ToLower().EndsWith(".flver"))
+                            destFile.ID += FLV_OFFSET;
+                        else if (destFile.Name.ToLower().EndsWith(".ffxreslist"))
+                            destFile.ID += RES_OFFSET;
+                        else if (destFile.Name.ToLower().EndsWith(".tpf"))
+                            destFile.ID += TPF_OFFSET;
+                    }
+                }
                 destbndindex.Add(destFile.ID, destFile);
                 destbndict.Add(destFile.Name.ToLower(), destFile);
             }
@@ -818,8 +839,8 @@ namespace DSMSPortable
                     }
                     else if (destFile.Name.EndsWith("bnd"))
                     {   // boy can this get hairy
-                        if (destbnd is BND3) verboseOutput.AddRange(BndMerge(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes), ignoreConflicts, sort));
-                        else if (destbnd is BND4) verboseOutput.AddRange(BndMerge(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), ignoreConflicts, sort));
+                        if (destbnd is BND3) verboseOutput.AddRange(BndMerge(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes), ignoreConflicts, sort, destFile.Name.ToLower().Contains(".ffxbnd")));
+                        else if (destbnd is BND4) verboseOutput.AddRange(BndMerge(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), ignoreConflicts, sort, destFile.Name.ToLower().Contains(".ffxbnd")));
                     }
                     else if (!ignoreConflicts)
                     {
@@ -955,7 +976,7 @@ namespace DSMSPortable
                 destbnd = srcbnd;
                 verboseOutput.Add($@"Copied {srcbndFile} to {destbndFile}");
             }
-            if (!diffmode) verboseOutput.AddRange(BndMerge(destbnd, srcbnd, ignoreConflicts, sort));
+            if (!diffmode) verboseOutput.AddRange(BndMerge(destbnd, srcbnd, ignoreConflicts, sort, destbndFile.ToLower().Contains(".ffxbnd"));
             else verboseOutput.AddRange(BndDiff(destbnd, srcbnd));
             if (verboseOutput.Count == 0) return null;
             // If changes were detected, save the binder
