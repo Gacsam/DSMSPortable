@@ -976,7 +976,7 @@ namespace DSMSPortable
                 destbnd = srcbnd;
                 verboseOutput.Add($@"Copied {srcbndFile} to {destbndFile}");
             }
-            if (!diffmode) verboseOutput.AddRange(BndMerge(destbnd, srcbnd, ignoreConflicts, sort, destbndFile.ToLower().Contains(".ffxbnd"));
+            if (!diffmode) verboseOutput.AddRange(BndMerge(destbnd, srcbnd, ignoreConflicts, sort, destbndFile.ToLower().Contains(".ffxbnd")));
             else verboseOutput.AddRange(BndDiff(destbnd, srcbnd));
             if (verboseOutput.Count == 0) return null;
             // If changes were detected, save the binder
