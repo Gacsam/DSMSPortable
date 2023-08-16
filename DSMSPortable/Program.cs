@@ -15,7 +15,7 @@ namespace DSMSPortable
     /// </summary>
     class DSMSPortable
     {
-        static readonly string VERSION = "1.8.1";
+        static readonly string VERSION = "1.8.2";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -771,17 +771,31 @@ namespace DSMSPortable
                     destFile.ID++;
                     if (ffxbnd)
                     {
-                        destFile.ID %= 100000;
                         if (destFile.Name.ToLower().EndsWith(".fxr"))
+                        {
+                            destFile.ID %= 100000;
                             destFile.ID += FXR_OFFSET;
+                        }
                         else if (destFile.Name.ToLower().EndsWith(".anibnd"))
+                        {
+                            destFile.ID %= 100000;
                             destFile.ID += ANI_OFFSET;
+                        }
                         else if (destFile.Name.ToLower().EndsWith(".flver"))
+                        {
+                            destFile.ID %= 100000;
                             destFile.ID += FLV_OFFSET;
+                        }
                         else if (destFile.Name.ToLower().EndsWith(".ffxreslist"))
+                        {
+                            destFile.ID %= 100000;
                             destFile.ID += RES_OFFSET;
+                        }
                         else if (destFile.Name.ToLower().EndsWith(".tpf"))
+                        {
+                            destFile.ID %= 100000;
                             destFile.ID += TPF_OFFSET;
+                        }
                     }
                 }
                 destbndindex.Add(destFile.ID, destFile);
@@ -1278,7 +1292,12 @@ namespace DSMSPortable
                         verboseOutput.Add($@"Removed Entry ID {srcEntry.ID} from {destFile.Name}");
                     }
                 }
-                else if ((!ignoreConflicts || destEntry.Text == "" || destEntry.Text == "%null%") && destEntry.Text != srcEntry.Text)
+                else if (ignoreConflicts && (destEntry.Text == null || destEntry.Text == "" || destEntry.Text == "%null%") && destEntry.Text != srcEntry.Text)
+                {   // Entry exists but is null, do not ignore conflict
+                    destEntry.Text = srcEntry.Text;
+                    verboseOutput.Add($@"Added Entry ID {destEntry.ID} in {destFile.Name}");
+                }
+                else if (!ignoreConflicts && srcEntry.Text != null && srcEntry.Text != "" && srcEntry.Text != "%null%" && destEntry.Text != srcEntry.Text)
                 {
                     destEntry.Text = srcEntry.Text;
                     verboseOutput.Add($@"Updated Entry ID {destEntry.ID} in {destFile.Name}");
@@ -1419,7 +1438,12 @@ namespace DSMSPortable
                             sourceFmg.AddEntry(entry);
                             verboseOutput.Add($@"Added Entry ID {entry.ID} to {sourceFmg.FileName}");
                         }
-                        else if ((!ignoreConflicts || existingEntry.Text == "" || existingEntry.Text == "%null%") && existingEntry.Text != entry.Text)
+                        else if (ignoreConflicts && (existingEntry.Text == null || existingEntry.Text == "" || existingEntry.Text == "%null%") && existingEntry.Text != entry.Text)
+                        {   // Entry exists but is null, do not ignore conflict
+                            existingEntry.Text = entry.Text;
+                            verboseOutput.Add($@"Added Entry ID {entry.ID} in {Path.GetFileNameWithoutExtension(fmgPath)}");
+                        }
+                        else if (!ignoreConflicts && entry.Text != null && entry.Text != "" && entry.Text != "%null%" && existingEntry.Text != entry.Text)
                         {
                             existingEntry.Text = entry.Text;
                             verboseOutput.Add($@"Updated Entry ID {entry.ID} in {Path.GetFileNameWithoutExtension(fmgPath)}");
