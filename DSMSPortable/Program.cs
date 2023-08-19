@@ -1575,7 +1575,20 @@ namespace DSMSPortable
                         match = true;
                         if (!diffmode && !srcEvent.Equals(destEvent))
                         {
-                            if (!ignoreConflicts)
+                            if (srcEvent.ID == 0 || srcEvent.ID == 50)
+                            {   // Events 0 and 50 initialize other events, so add all initialization instructions (2000[00])
+                                int count = 0;
+                                foreach(EMEVD.Instruction instruction in srcEvent.Instructions.FindAll(x => !destEvent.Instructions.Contains(x)))
+                                {
+                                    if (instruction.ID == 0 && instruction.Bank == 2000)
+                                    {
+                                        destEvent.Instructions.Add(instruction);
+                                        count++;
+                                    }
+                                }
+                                if (count > 0) verboseOutput.Add($@"Added {count} initialization instruction(s) to Event {destEvent.ID} in {Path.GetFileName(destEmevdFile)}");
+                            }
+                            else if (!ignoreConflicts)
                             {
                                 destEvent.Instructions = srcEvent.Instructions;
                                 destEvent.Parameters = srcEvent.Parameters;
