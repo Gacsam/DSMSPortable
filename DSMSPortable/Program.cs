@@ -1576,17 +1576,25 @@ namespace DSMSPortable
                         if (!diffmode && !srcEvent.Equals(destEvent))
                         {
                             if (srcEvent.ID == 0 || srcEvent.ID == 50)
-                            {   // Events 0 and 50 initialize other events, so add all initialization instructions (2000[00])
-                                int count = 0;
+                            {   // Events 0 and 50 initialize other events, so add all event initialization instructions 2000[00]
+                                // and event flag initialization instructions 2003[66]
+                                int eventCount = 0;
+                                int flagCount = 0;
                                 foreach(EMEVD.Instruction instruction in srcEvent.Instructions.FindAll(x => !destEvent.Instructions.Contains(x)))
                                 {
                                     if (instruction.ID == 0 && instruction.Bank == 2000)
                                     {
                                         destEvent.Instructions.Add(instruction);
-                                        count++;
+                                        eventCount++;
+                                    }
+                                    else if (instruction.ID == 66 && instruction.Bank == 2003)
+                                    {
+                                        destEvent.Instructions.Add(instruction);
+                                        flagCount++;
                                     }
                                 }
-                                if (count > 0) verboseOutput.Add($@"Added {count} initialization instruction(s) to Event {destEvent.ID} in {Path.GetFileName(destEmevdFile)}");
+                                if (eventCount > 0) verboseOutput.Add($@"Added {eventCount} event initialization instruction(s) to Event {destEvent.ID} in {Path.GetFileName(destEmevdFile)}");
+                                if (flagCount > 0) verboseOutput.Add($@"Added {flagCount} flag initialization instruction(s) to Event {destEvent.ID} in {Path.GetFileName(destEmevdFile)}");
                             }
                             else if (!ignoreConflicts)
                             {
