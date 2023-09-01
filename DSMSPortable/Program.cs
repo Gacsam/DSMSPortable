@@ -15,7 +15,7 @@ namespace DSMSPortable
     /// </summary>
     class DSMSPortable
     {
-        static readonly string VERSION = "1.8.3";
+        static readonly string VERSION = "1.8.4";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -1436,23 +1436,23 @@ namespace DSMSPortable
                         if (existingEntry == null)
                         {
                             sourceFmg.AddEntry(entry);
-                            verboseOutput.Add($@"Added Entry ID {entry.ID} to {sourceFmg.FileName}");
+                            verboseOutput.Add($@"Added Entry ID {entry.ID} to {Path.GetFileName(sourceFmg.FileName)}");
                         }
                         else if (ignoreConflicts && (existingEntry.Text == null || existingEntry.Text == "" || existingEntry.Text == "%null%") && existingEntry.Text != entry.Text)
                         {   // Entry exists but is null, do not ignore conflict
                             existingEntry.Text = entry.Text;
-                            verboseOutput.Add($@"Added Entry ID {entry.ID} in {Path.GetFileNameWithoutExtension(fmgPath)}");
+                            verboseOutput.Add($@"Added Entry ID {entry.ID} in {Path.GetFileName(sourceFmg.FileName)}");
                         }
                         else if (!ignoreConflicts && entry.Text != null && entry.Text != "" && entry.Text != "%null%" && existingEntry.Text != entry.Text)
                         {
                             existingEntry.Text = entry.Text;
-                            verboseOutput.Add($@"Updated Entry ID {entry.ID} in {Path.GetFileNameWithoutExtension(fmgPath)}");
+                            verboseOutput.Add($@"Updated Entry ID {entry.ID} in {Path.GetFileName(sourceFmg.FileName)}");
                         }
                     }
                     catch (KeyNotFoundException)
                     {
                         sourceFmg.AddEntry(entry);
-                        verboseOutput.Add($@"Added Entry ID {entry.ID} to {Path.GetFileNameWithoutExtension(fmgPath)}");
+                        verboseOutput.Add($@"Added Entry ID {entry.ID} to {Path.GetFileName(sourceFmg.FileName)}");
                     }
                 }
             }

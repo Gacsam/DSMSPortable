@@ -347,6 +347,7 @@ namespace StudioCore.ParamEditor
                 if (argc != paramArgFuncs.Length)
                     return new MassEditResult(MassEditResultType.PARSEERROR, $@"Invalid number of arguments for operation {operationForPrint}");
                 string paramname = b.GetKeyForParam(p);
+                context.setActiveParam(paramname);
                 var res = ExecRowStage(paramArgFunc, paramname, b, p, partialActions);
                 if (res.Type != MassEditResultType.SUCCESS)
                     return res;
