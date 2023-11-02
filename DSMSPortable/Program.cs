@@ -37,6 +37,7 @@ namespace DSMSPortable
         static List<string> sortingRows;
         static List<string> exportParams = null;
         static List<string> removeParams;
+        static List<string> auxParams;
         static ActionManager manager;
         static GameType gameType = GameType.EldenRing;
         static string paramFileName;
@@ -86,6 +87,7 @@ namespace DSMSPortable
         {
             masseditFiles = new();
             masseditpFiles = new();
+            auxParams = new();
             csvFiles = new();
             c2mFiles = new();
             sortingRows = new();
@@ -1712,6 +1714,11 @@ namespace DSMSPortable
             // Build diff cache in case we need to use the "modified" query
             ParamBank.PrimaryBank.RefreshParamDiffCaches();
             Console.Out.WriteLine("Done!");
+            // Load aux params
+            foreach(string auxparam in auxParams)
+            {   // Not even gonna pretend to support DS2 with this feature
+                ParamBank.LoadAuxBank(auxparam, auxparam, auxparam);
+            }
         }
         private static void UpgradeParamFile()
         {
@@ -2102,7 +2109,11 @@ namespace DSMSPortable
                     changesMade = true;
                     Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(mepfile)} {meresult.Type}: {meresult.Information}");
                 }
-                else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mepfile)} {meresult.Type}: {meresult.Information}");
+                else
+                {
+                    Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mepfile)} {meresult.Type}: {meresult.Information}");
+                    Environment.Exit(20);
+                }
             }
         }
         private static void ProcessMassedit()
@@ -2127,7 +2138,11 @@ namespace DSMSPortable
                     changesMade = true;
                     Console.Out.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
                 }
-                else Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
+                else
+                {
+                    Console.Error.WriteLine($@"{Path.GetFileNameWithoutExtension(mefile)} {meresult.Type}: {meresult.Information}");
+                    Environment.Exit(20);
+                }
             }
         }
         private static void SaveParamFile()
@@ -2278,6 +2293,9 @@ namespace DSMSPortable
                             if (param.Length > 2 && param[2] == '+') mode = ParamMode.MASSEDITPLUS;
                             else mode = ParamMode.MASSEDIT;
                             break;
+                        case 'A':
+                            mode = ParamMode.AUXPARAM;
+                            break;
                         case 'O':
                             mode = ParamMode.OUTPUT;
                             break;
@@ -2413,6 +2431,11 @@ namespace DSMSPortable
                             else if (File.Exists(param) && (param.ToLower().EndsWith(".txt") || param.ToLower().EndsWith(".massedit")))
                                 masseditpFiles.Add(param);
                             else Console.Out.WriteLine("Warning: Invalid MASSEDIT filename given: " + param);
+                            break;
+                        case ParamMode.AUXPARAM:
+                            if (File.Exists(param))
+                                auxParams.Add(param);
+                            else Console.Out.WriteLine("Warning: Invalid aux param filename given: " + param);
                             break;
                         case ParamMode.OUTPUT:
                             if (outputFile != null)
@@ -2805,6 +2828,9 @@ namespace DSMSPortable
             Console.Out.WriteLine("             Edit scripts of the same type are processed in the order in which they are specified.");
             Console.Out.WriteLine("             If -M+ is specified, any individual ID's found that do not exist in the param file will be");
             Console.Out.WriteLine("             created and populated with default values (usually whatever is in the first entry of the param).");
+            Console.Out.WriteLine("  -A auxparamfile1 auxparamfile2 ...");
+            Console.Out.WriteLine("             Loads an auxiliary param file for reference in massedit scripts passed in the same command.");
+            Console.Out.WriteLine("             Auxparams must be referenced by the name of their containing directory, as in DSMapStudio.");
             Console.Out.WriteLine("  -X paramname1[:query] paramname2 ...");
             Console.Out.WriteLine("             Exports the specified params to CSV, where paramname is the name of the param to be exported,");
             Console.Out.WriteLine("             and the query narrows down the export criteria, e.g. SpEffectParam: name Crucible && modified");
@@ -2869,6 +2895,7 @@ namespace DSMSPortable
             C2M,
             MASSEDIT,
             MASSEDITPLUS,
+            AUXPARAM,
             OUTPUT,
             SETGAMETYPE,
             SETGAMEPATH,

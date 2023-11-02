@@ -1,5 +1,5 @@
 ## About DSMSPortable:
-DSMSPortable is a command line utility for scripting/deploying edits to FromSoftware games, and merging or comparing various types of game files, powered by DSMapStudio's core libraries. **For applications other than scripting or mod deployment, use [DS Map Studio](https://github.com/soulsmods/DSMapStudio#readme) instead.**
+DSMSPortable is a command line utility for scripting/deploying edits to FromSoftware games, and merging or comparing various types of game files, powered by DSMapStudio's core libraries. **For applications other than scripting, merging, or mod deployment, use [DS Map Studio](https://github.com/soulsmods/DSMapStudio#readme) instead.**
 
 ### DSMSPortable Error Codes
 * <0 .NET not installed
@@ -22,6 +22,7 @@ DSMSPortable is a command line utility for scripting/deploying edits to FromSoft
 * 17 Invalid HKS/Lua file specified
 * 18 Invalid msgbnd file specified
 * 19 Invalid anibnd file specified
+* 20 Massedit parse error
 
 ## Requirements
 * Microsoft .NET Core 6.0 **Desktop** Runtime (https://aka.ms/dotnet/6.0/windowsdesktop-runtime-win-x64.exe)
