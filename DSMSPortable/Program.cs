@@ -7,6 +7,7 @@ using StudioCore;
 using StudioCore.Editor;
 using StudioCore.ParamEditor;
 using StudioCore.TextEditor;
+using Veldrid.Utilities;
 
 namespace DSMSPortable
 {
@@ -15,7 +16,7 @@ namespace DSMSPortable
     /// </summary>
     class DSMSPortable
     {
-        static readonly string VERSION = "1.8.4";
+        static readonly string VERSION = "1.8.5";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -29,6 +30,7 @@ namespace DSMSPortable
         static readonly int FLV_OFFSET = 200000;
         static readonly int ANI_OFFSET = 300000;
         static readonly int RES_OFFSET = 400000;
+        static readonly int TAE_OFFSET = 5000000;
         static string gamepath = null;
         static List<string> csvFiles;
         static List<string> c2mFiles;
@@ -512,11 +514,14 @@ namespace DSMSPortable
             // Dictionary for making sure we don't accidentally add duplicate ID's
             Dictionary<int, BinderFile> anibndindex = new();
             // Convert to dictionary for performance
-            foreach (BinderFile destFile in animBinder.Files)
+            foreach (BinderFile destFile in animBinder.Files.ToArray())
             {   // If the ID for the file we're adding is taken, search for an available ID
-                while (anibndindex.ContainsKey(destFile.ID))
-                    destFile.ID++;
-                anibndindex.Add(destFile.ID, destFile);
+                if (anibndindex.ContainsKey(destFile.ID))
+                {
+                    Console.WriteLine("Warning: Duplicate TAE found for ID " + destFile.ID + ": " + destFile.Name);
+                    animBinder.Files.Remove(destFile);
+                }
+                else anibndindex.Add(destFile.ID, destFile);
             }
             foreach (string taeFile in taeFiles)
             {
@@ -528,14 +533,14 @@ namespace DSMSPortable
                 string binderFilename = null;
                 string taeName = Path.GetFileName(taeFile).Replace(".partial", "");
                 bool fileMatch = false;
-                int ID = 0;
+                int ID;
                 Binder.FileFlags flags = Binder.FileFlags.Flag1;
                 // Check to make sure there isn't an existing tae file with the same name (non case sensitive)
                 foreach (BinderFile oldFile in animBinder.Files)
                 {
                     if (!TAE.Is(oldFile.Bytes)) continue;
                     flags = oldFile.Flags;
-                    ID = oldFile.ID + 1;
+                    ID = oldFile.ID;
                     binderFilename ??= $@"{new FileInfo(oldFile.Name).Directory.FullName}\{taeName}";
                     // Check to make sure there isn't an existing TAE file with the same name (non case sensitive)
                     if (Path.GetFileName(oldFile.Name).ToLower() == taeName.ToLower())
@@ -553,7 +558,20 @@ namespace DSMSPortable
                 }
                 if (!fileMatch && !diffmode)
                 {
-                    while (anibndindex.ContainsKey(ID)) ID++;
+                    // Double check the ID for errors
+                    Match idMatch = Regex.Match(taeName, $@"a([0-9]+).*");
+                    if (!idMatch.Success)
+                    {
+                        Console.WriteLine("Warning: Invalid TAE name: " + taeName);
+                        continue;
+                    }
+                    ID = TAE_OFFSET + int.Parse(idMatch.Groups[1].Value);
+                    if (anibndindex.ContainsKey(ID))
+                    {
+                        Console.WriteLine("Warning: Duplicate TAE found for ID " + ID + ": " + taeName);
+                        animBinder.Files.RemoveAt(ID);
+                        anibndindex.Remove(ID);
+                    }
                     BinderFile addition = new(flags, ID, binderFilename, File.ReadAllBytes(taeFile));
                     anibndindex.Add(ID, addition);
                     animBinder.Files.Add(addition);
