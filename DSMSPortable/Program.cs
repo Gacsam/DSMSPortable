@@ -245,6 +245,15 @@ namespace DSMSPortable
                 Environment.Exit(3);
             }
             LoadParams();
+            if(verbose)
+            {
+                Console.Out.WriteLine("Vanilla Param Version:   " + ParamBank.VanillaBank.ParamVersion);
+                Console.Out.WriteLine("Specified Param Version: " + ParamBank.PrimaryBank.ParamVersion);
+                if(ParamBank.VanillaBank.ParamVersion != ParamBank.PrimaryBank.ParamVersion)
+                {
+                    Console.Error.WriteLine("WARNING: Game version does not match versioning of specified param file");
+                }
+            }
             // Perform Param Upgrade
             if (upgradeRefParamFile != null)
             {
