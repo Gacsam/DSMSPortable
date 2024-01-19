@@ -16,7 +16,7 @@ namespace DSMSPortable
     /// </summary>
     class DSMSPortable
     {
-        static readonly string VERSION = "1.8.5";
+        static readonly string VERSION = "1.8.6";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -1594,10 +1594,22 @@ namespace DSMSPortable
                 }
                 srcEmevd = destEmevd;
             }
+            // Check for duplicates
+            Dictionary<long, EMEVD.Event> eventDict = new();
+            foreach (EMEVD.Event destEvent in new List<EMEVD.Event>(destEmevd.Events))
+            {
+                if(eventDict.ContainsKey(destEvent.ID))
+                {
+                    Console.Error.WriteLine("Warning: Duplicate function ID: " + destEvent.ID);
+                    destEmevd.Events.Remove(eventDict[destEvent.ID]);
+                    eventDict[destEvent.ID] = destEvent;
+                }
+                else eventDict.Add(destEvent.ID, destEvent);
+            }
             foreach (EMEVD.Event srcEvent in srcEmevd.Events)
             {
                 bool match = false;
-                foreach (EMEVD.Event destEvent in new List<EMEVD.Event>(destEmevd.Events))
+                foreach (EMEVD.Event destEvent in eventDict.Values)
                 {
                     if (srcEvent.ID == destEvent.ID)
                     {
@@ -2795,7 +2807,7 @@ namespace DSMSPortable
                             }
                             if (inputFile != null)
                             {
-                                Console.Error.WriteLine("Multiple input files specified at once: " + inputFile + " and " + param);
+                                Console.Error.WriteLine("ERROR: Multiple input files specified at once: " + inputFile + " and " + param);
                                 Environment.Exit(4);
                             }
                             inputFile = param;
