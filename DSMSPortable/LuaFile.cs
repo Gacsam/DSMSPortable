@@ -4,7 +4,7 @@ namespace DSMSPortable
 {
     public class LuaFile
     {
-        readonly string pattern = @$"(?<![-\t ])function (.[^()]*)\((.*)\).*((\n[-\t ]+.*)*\nend)";
+        readonly string pattern = @$"(?<![-\t ])function (.[^(]*)\(([^)]*)\).*((\n[-\t ]+.*)*\nend)";
         public Regex parse;
         public List<LuaString> source;
         public Dictionary<string, LuaFunction> functions;
