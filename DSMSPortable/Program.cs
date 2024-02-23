@@ -303,7 +303,7 @@ namespace DSMSPortable
             if (changesMade)
             {
                 Console.Out.WriteLine("Saving param file...");
-                ParamBank.PrimaryBank.LoadParamDefaultNames(null, true);
+                ParamBank.PrimaryBank.LoadParamDefaultNames(null, true).Execute();
                 SaveParamFile();
             }
             // Perform diff and convert changes to massedit, if a file to compare against was specified
