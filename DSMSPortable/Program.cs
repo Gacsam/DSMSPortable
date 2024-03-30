@@ -865,27 +865,27 @@ namespace DSMSPortable
                 // We got a matching binder file name
                 if (!destFile.Bytes.SequenceEqual(srcFile.Bytes))
                 {
-                    if (destFile.Name.EndsWith(".layout"))
+                    if (destFile.Name.ToLower().EndsWith(".layout"))
                     {
                         verboseOutput.AddRange(LayoutMerge(destFile, srcFile, ignoreConflicts, sort, false));
                     }
-                    else if (destFile.Name.EndsWith(".ffxreslist"))
+                    else if (destFile.Name.ToLower().EndsWith(".ffxreslist"))
                     {
                         verboseOutput.AddRange(PlaintextMerge(destFile, srcFile, sort, false));
                     }
-                    else if (destFile.Name.EndsWith(".tpf"))
+                    else if (destFile.Name.ToLower().EndsWith(".tpf"))
                     {
                         verboseOutput.AddRange(TextureMerge(destFile, srcFile, ignoreConflicts, false));
                     }
-                    else if (destFile.Name.EndsWith(".tae"))
+                    else if (destFile.Name.ToLower().EndsWith(".tae"))
                     {
                         verboseOutput.AddRange(AnimationMerge(destFile, srcFile, ignoreConflicts, null, true));
                     }
-                    else if (destFile.Name.EndsWith(".fmg"))
+                    else if (destFile.Name.ToLower().EndsWith(".fmg"))
                     {
                         verboseOutput.AddRange(FmgMerge(destFile, srcFile, ignoreConflicts, false));
                     }
-                    else if (destFile.Name.EndsWith("bnd"))
+                    else if (destFile.Name.ToLower().EndsWith("bnd"))
                     {   // boy can this get hairy
                         if (destbnd is BND3) verboseOutput.AddRange(BndMerge(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes), ignoreConflicts, sort, destFile.Name.ToLower().Contains(".ffxbnd")));
                         else if (destbnd is BND4) verboseOutput.AddRange(BndMerge(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), ignoreConflicts, sort, destFile.Name.ToLower().Contains(".ffxbnd")));
@@ -929,27 +929,27 @@ namespace DSMSPortable
                 // We got a matching binder file
                 if (!destFile.Bytes.SequenceEqual(srcFile.Bytes))
                 {
-                    if (destFile.Name.EndsWith(".layout"))
+                    if (destFile.Name.ToLower().EndsWith(".layout"))
                     {
                         verboseOutput.AddRange(LayoutMerge(destFile, srcFile, false, true, true));
                     }
-                    else if (destFile.Name.EndsWith(".ffxreslist"))
+                    else if (destFile.Name.ToLower().EndsWith(".ffxreslist"))
                     {
                         verboseOutput.AddRange(PlaintextMerge(destFile, srcFile, false, true));
                     }
-                    else if (destFile.Name.EndsWith(".tpf"))
+                    else if (destFile.Name.ToLower().EndsWith(".tpf"))
                     {
                         verboseOutput.AddRange(TextureMerge(destFile, srcFile, false, true));
                     }
-                    else if (destFile.Name.EndsWith(".tae"))
+                    else if (destFile.Name.ToLower().EndsWith(".tae"))
                     {
                         verboseOutput.AddRange(AnimationMerge(destFile, srcFile, false, destFile.Name, true));
                     }
-                    else if (destFile.Name.EndsWith(".fmg"))
+                    else if (destFile.Name.ToLower().EndsWith(".fmg"))
                     {
                         verboseOutput.AddRange(FmgMerge(destFile, srcFile, false, true));
                     }
-                    else if (destFile.Name.EndsWith("bnd"))
+                    else if (destFile.Name.ToLower().EndsWith("bnd"))
                     {   // boy can this get hairy
                         if (destbnd is BND3) verboseOutput.AddRange(BndDiff(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes)));
                         else if (destbnd is BND4) verboseOutput.AddRange(BndDiff(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes)));
