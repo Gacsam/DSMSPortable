@@ -16,7 +16,7 @@ namespace DSMSPortable
     /// </summary>
     class DSMSPortable
     {
-        static readonly string VERSION = "1.8.7";
+        static readonly string VERSION = "1.8.8";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -78,6 +78,7 @@ namespace DSMSPortable
         static bool folderMimic = false;
         static bool changesMade = false;
         static bool ignoreConflicts = false;
+        static bool resaveFLVER = false;
         static bool verbose = false;
         static bool sort = false;
         /// <summary>
@@ -205,7 +206,7 @@ namespace DSMSPortable
             {
                 if (bndDiffmode) Console.Out.Write("Creating partial bnd from diffs to " + srcbndFile + "...");
                 else Console.Out.Write("Performing BND merge for " + destbndFile + "...");
-                List<string> verboseOutput = BndMerge(destbndFile, srcbndFile, ignoreConflicts, sort, bndDiffmode);
+                List<string> verboseOutput = BndMerge(destbndFile, srcbndFile, ignoreConflicts, sort, bndDiffmode, resaveFLVER);
                 if (verboseOutput == null)
                     Console.Out.WriteLine("No changes detected.");
                 else
@@ -789,7 +790,7 @@ namespace DSMSPortable
             }
             return verboseOutput;
         }
-        private static List<string> BndMerge(IBinder destbnd, IBinder srcbnd, bool ignoreConflicts, bool sort, bool ffxbnd)
+        private static List<string> BndMerge(IBinder destbnd, IBinder srcbnd, bool ignoreConflicts, bool sort, bool ffxbnd, bool resaveFLVER)
         {
             List<string> verboseOutput = new();
             if (destbnd == null || srcbnd == null) return verboseOutput;
@@ -887,8 +888,12 @@ namespace DSMSPortable
                     }
                     else if (destFile.Name.ToLower().EndsWith("bnd"))
                     {   // boy can this get hairy
-                        if (destbnd is BND3) verboseOutput.AddRange(BndMerge(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes), ignoreConflicts, sort, destFile.Name.ToLower().Contains(".ffxbnd")));
-                        else if (destbnd is BND4) verboseOutput.AddRange(BndMerge(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), ignoreConflicts, sort, destFile.Name.ToLower().Contains(".ffxbnd")));
+                        if (destbnd is BND3)
+                            verboseOutput.AddRange(BndMerge(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes), 
+                                ignoreConflicts, sort, destFile.Name.ToLower().Contains(".ffxbnd"), resaveFLVER));
+                        else if (destbnd is BND4)
+                            verboseOutput.AddRange(BndMerge(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), 
+                                ignoreConflicts, sort, destFile.Name.ToLower().Contains(".ffxbnd"), resaveFLVER));
                     }
                     else if (!ignoreConflicts)
                     {
@@ -897,9 +902,32 @@ namespace DSMSPortable
                     }
                 }
             }
+            if(resaveFLVER)
+            {
+                foreach (BinderFile destFile in destbnd.Files)
+                {
+                    if (destFile.Bytes.Length == 0) continue;
+                    if (destFile.Name.ToLower().EndsWith(".flver"))
+                    {
+                        try
+                        {
+                            byte[] resavedFLVER = FLVER2.Read(destFile.Bytes).Write();
+                            if(!destFile.Bytes.SequenceEqual(resavedFLVER))
+                            {
+                                destFile.Bytes = resavedFLVER;
+                                verboseOutput.Add($@"Successfully Validated {destFile.Name}");
+                            }
+                        }
+                        catch(Exception e)
+                        {
+                            Console.Out.WriteLine("Warning: Failed to validate " + destFile.Name + ": " + e.Message + "\n" + e.StackTrace);
+                        }
+                    }
+                }
+            }
             return verboseOutput;
         }
-        private static List<string> BndDiff(IBinder destbnd, IBinder srcbnd)
+        private static List<string> BndDiff(IBinder destbnd, IBinder srcbnd, bool resaveFLVER)
         {
             List<string> verboseOutput = new();
             if (destbnd == null || srcbnd == null) return verboseOutput;
@@ -951,14 +979,37 @@ namespace DSMSPortable
                     }
                     else if (destFile.Name.ToLower().EndsWith("bnd"))
                     {   // boy can this get hairy
-                        if (destbnd is BND3) verboseOutput.AddRange(BndDiff(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes)));
-                        else if (destbnd is BND4) verboseOutput.AddRange(BndDiff(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes)));
+                        if (destbnd is BND3) verboseOutput.AddRange(BndDiff(BND3.Read(destFile.Bytes), BND3.Read(srcFile.Bytes), resaveFLVER));
+                        else if (destbnd is BND4) verboseOutput.AddRange(BndDiff(BND4.Read(destFile.Bytes), BND4.Read(srcFile.Bytes), resaveFLVER));
                     }
                 }
                 else
                 {   // These merge perfectly, so don't bother stripping them out
                     destbnd.Files.Remove(destFile);
                     verboseOutput.Add($@"Removed {destFile.Name} from {Path.GetFileName(destbndFile)}");
+                }
+            }
+            if (resaveFLVER)
+            {
+                foreach (BinderFile destFile in destbnd.Files)
+                {
+                    if (destFile.Bytes.Length == 0) continue;
+                    if (destFile.Name.ToLower().EndsWith(".flver"))
+                    {
+                        try
+                        {
+                            byte[] resavedFLVER = FLVER2.Read(destFile.Bytes).Write();
+                            if (!destFile.Bytes.SequenceEqual(resavedFLVER))
+                            {
+                                destFile.Bytes = resavedFLVER;
+                                verboseOutput.Add($@"Successfully Validated {destFile.Name}");
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Console.Out.WriteLine("Warning: Failed to validate " + destFile.Name + ": " + e.Message + "\n" + e.StackTrace);
+                        }
+                    }
                 }
             }
             return verboseOutput;
@@ -973,9 +1024,9 @@ namespace DSMSPortable
         /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
         /// <remarks>Application will exit and return error code 16 if either bnd file cannot be opened, or other error codes pending file types contained in the bnd file.
         /// If destbndFile is not a valid file, a copy of srcbndFile will be created instead.</remarks>
-        public static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts, bool sort)
+        public static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts, bool sort, bool resaveFLVER)
         {
-            return BndMerge(destbndFile, srcbndFile, ignoreConflicts, sort, false);
+            return BndMerge(destbndFile, srcbndFile, ignoreConflicts, sort, false, resaveFLVER);
         }
         /// <summary>
         /// Creates a partial bnd file containing differences between two bnd files.
@@ -984,11 +1035,11 @@ namespace DSMSPortable
         /// <param name="srcbndFile">Path to a bnd or bnd.dcd file to use as a base for taking diffs</param>
         /// <returns>A verbose list of all operations performed, or <c>null</c> if there were no changes.</returns>
         /// <remarks>Application will exit and return error code 16 if either bnd file cannot be opened, or other error codes pending file types contained in the bnd file.</remarks>
-        public static List<string> BndDiff(string destbndFile, string srcbndFile)
+        public static List<string> BndDiff(string destbndFile, string srcbndFile, bool resaveFLVER)
         {
-            return BndMerge(destbndFile, srcbndFile, false, false, true);
+            return BndMerge(destbndFile, srcbndFile, false, false, true, resaveFLVER);
         }
-        private static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts, bool sort, bool diffmode)
+        private static List<string> BndMerge(string destbndFile, string srcbndFile, bool ignoreConflicts, bool sort, bool diffmode, bool resaveFLVER)
         {
             if (destbndFile == null || srcbndFile == null) return null;
             List<string> verboseOutput = new();
@@ -1024,8 +1075,8 @@ namespace DSMSPortable
                 destbnd = srcbnd;
                 verboseOutput.Add($@"Copied {srcbndFile} to {destbndFile}");
             }
-            if (!diffmode) verboseOutput.AddRange(BndMerge(destbnd, srcbnd, ignoreConflicts, sort, destbndFile.ToLower().Contains(".ffxbnd")));
-            else verboseOutput.AddRange(BndDiff(destbnd, srcbnd));
+            if (!diffmode) verboseOutput.AddRange(BndMerge(destbnd, srcbnd, ignoreConflicts, sort, destbndFile.ToLower().Contains(".ffxbnd"), resaveFLVER));
+            else verboseOutput.AddRange(BndDiff(destbnd, srcbnd, resaveFLVER));
             if (verboseOutput.Count == 0) return null;
             // If changes were detected, save the binder
             string savePath;
@@ -2372,6 +2423,9 @@ namespace DSMSPortable
                         case 'I':
                             ignoreConflicts = true;
                             break;
+                        case 'F':
+                            resaveFLVER = true;
+                            break;
                         case 'H':
                         case '?':
                             Help(false);
@@ -2914,12 +2968,14 @@ namespace DSMSPortable
             Console.Out.WriteLine("  --texturemerge [tpffile] [ddsfile1 ddsfile2 ...] [-I] [-V]");
             Console.Out.WriteLine("             Separate operation mode for merging DDS textures into a TPF file. -P and -O still apply.");
             Console.Out.WriteLine("             Same format as other merge operations, but can only merge whole DDS files.");
-            Console.Out.WriteLine("  --bndmerge [destbndfile] [srcbndfile] [-I] [-V] [-S]");
+            Console.Out.WriteLine("  --bndmerge [destbndfile] [srcbndfile] [-I] [-V] [-S] [-F]");
             Console.Out.WriteLine("             Generic operation mode for merging two binder files. -G, -P, and -O still apply");
             Console.Out.WriteLine("             Any files in srcbndfile not found in destbndfile will be added to destbndfile.");
-            Console.Out.WriteLine("  --bnddiff [destbndfile] [srcbndfile] [-V]");
+            Console.Out.WriteLine("             The -F flag will validate any FLVER files in the binder to fix issues introduced in ER 1.09");
+            Console.Out.WriteLine("  --bnddiff [destbndfile] [srcbndfile] [-V] [-F]");
             Console.Out.WriteLine("             Strips all matching files with srcbndfile out of destbndfile and creates a partial BND file for");
             Console.Out.WriteLine("             more precise BND merging with --bndmerge. -G, -P, and -O still apply");
+            Console.Out.WriteLine("             The -F flag will validate any FLVER files in the binder to fix issues introduced in ER 1.09");
             Console.Out.WriteLine("  --hksmerge [hksfile] [luafile1 luafile2 ...] [-I] [-V]");
             Console.Out.WriteLine("             Merges given lua functions into a decompiled hks file. Will overwrite any overloaded functions.");
             Console.Out.WriteLine("  --emevdmerge [destemevdfile] [srcemevdfile] [-I] [-V] [-S] [-R eventID]");
