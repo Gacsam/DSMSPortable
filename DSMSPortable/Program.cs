@@ -2077,7 +2077,7 @@ namespace DSMSPortable
                 // Check for param name
                 foreach (string p in ParamBank.PrimaryBank.Params.Keys)
                 {   // We want to allow for filenames like bullet_new.csv so go with the longest paramname that matches
-                    if (c2mNameNoExt.ToLower().StartsWith(p.ToLower()) && p.Length > len)
+                    if (c2mNameNoExt.ToLower().Contains(p.ToLower()) && p.Length > len)
                     {
                         paramName = p;
                         len = p.Length;
@@ -2138,7 +2138,7 @@ namespace DSMSPortable
                 // Check for param name
                 foreach (string p in ParamBank.PrimaryBank.Params.Keys)
                 {   // We want to allow for filenames like bullet_new.csv so go with the longest paramname that matches
-                    if (paramNameNoExt.ToLower().StartsWith(p.ToLower()) && p.Length > len)
+                    if (paramNameNoExt.ToLower().Contains(p.ToLower()) && p.Length > len)
                     {
                         paramName = p;
                         len = p.Length;
