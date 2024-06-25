@@ -7,7 +7,6 @@ using StudioCore;
 using StudioCore.Editor;
 using StudioCore.ParamEditor;
 using StudioCore.TextEditor;
-using Veldrid.Utilities;
 
 namespace DSMSPortable
 {
@@ -16,7 +15,7 @@ namespace DSMSPortable
     /// </summary>
     class DSMSPortable
     {
-        static readonly string VERSION = "1.8.8";
+        static readonly string VERSION = "1.9";
         // Check this file locally for the full gamepath
         static readonly string GAMEPATH_FILE = "gamepath.txt";
         static readonly string DEFAULT_ER_GAMEPATH = "Steam\\steamapps\\common\\ELDEN RING\\Game";
@@ -2299,6 +2298,9 @@ namespace DSMSPortable
                 case GameType.DarkSoulsPTDE:
                     gameDisplayName = "Dark Souls Prepare to Die Edition";
                     break;
+                case GameType.ArmoredCoreVI:
+                    gameDisplayName = "Armored Core 6";
+                    break;
             }
             Console.Out.WriteLine(gameDisplayName);
             Console.Out.WriteLine("ParamfileName:\t" + paramFileName);
@@ -2590,6 +2592,10 @@ namespace DSMSPortable
                                 case "ds2s":
                                 case "darksouls2":
                                     gameType = GameType.DarkSoulsIISOTFS;
+                                    break;
+                                case "ac6":
+                                case "acvi":
+                                    gameType = GameType.ArmoredCoreVI;
                                     break;
                                 default:
                                     gameType = GameType.Undefined;
