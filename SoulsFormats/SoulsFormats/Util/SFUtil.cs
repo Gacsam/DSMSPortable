@@ -5,8 +5,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
+using ZstdNet;
 
 namespace SoulsFormats
 {
@@ -106,7 +106,8 @@ namespace SoulsFormats
                     ext = ".esd";
                 else if (magic == "EVD\0")
                     ext = ".evd";
-                else if (br.Length >= 3 && br.GetASCII(0, 3) == "FEV" || br.Length >= 0x10 && br.GetASCII(8, 8) == "FEV FMT ")
+                else if (br.Length >= 3 && br.GetASCII(0, 3) == "FEV" ||
+                         br.Length >= 0x10 && br.GetASCII(8, 8) == "FEV FMT ")
                     ext = ".fev";
                 else if (br.Length >= 6 && br.GetASCII(0, 6) == "FLVER\0")
                     ext = ".flver";
@@ -141,7 +142,8 @@ namespace SoulsFormats
                 else if (br.Length >= 5 && br.GetASCII(0, 5) == "<?xml")
                     ext = ".xml";
                 // This is pretty sketchy
-                else if (br.Length >= 0xC && br.GetByte(0) == 0 && br.GetByte(3) == 0 && br.GetInt32(4) == br.Length && br.GetInt16(0xA) == 0)
+                else if (br.Length >= 0xC && br.GetByte(0) == 0 && br.GetByte(3) == 0 && br.GetInt32(4) == br.Length &&
+                         br.GetInt16(0xA) == 0)
                     ext = ".fmg";
             }
 
@@ -318,6 +320,37 @@ namespace SoulsFormats
             {
                 using (var compressedStream = new MemoryStream(compressed))
                 using (var deflateStream = new DeflateStream(compressedStream, CompressionMode.Decompress, true))
+                {
+                    deflateStream.CopyTo(decompressedStream);
+                }
+                return decompressedStream.ToArray();
+            }
+        }
+
+        public static int WriteZstd(BinaryWriterEx bw, byte compressionLevel, Span<byte> input)
+        {
+            long start = bw.Position;
+
+            using var compressor = new Compressor(new CompressionOptions(compressionLevel));
+            var compressedData = compressor.Wrap(input);
+
+            var data = input.ToArray();
+            using (var deflateStream = new DeflateStream(bw.Stream, CompressionMode.Compress, true))
+            {
+                deflateStream.Write(data, 0, input.Length);
+            }
+
+            return (int)(bw.Position - start);
+        }
+
+        public static byte[] ReadZstd(BinaryReaderEx br, int compressedSize)
+        {
+            byte[] compressed = br.ReadBytes(compressedSize);
+
+            using (var decompressedStream = new MemoryStream())
+            {
+                using (var compressedStream = new MemoryStream(compressed))
+                using (var deflateStream = new DecompressionStream(compressedStream))
                 {
                     deflateStream.CopyTo(decompressedStream);
                 }
@@ -523,9 +556,23 @@ namespace SoulsFormats
         public static BND4 DecryptERRegulation(string path)
         {
             byte[] bytes = File.ReadAllBytes(path);
-            if (BND4.IsRead(bytes, out BND4 bnd4)) 
-                return bnd4; 
+            if (BND4.IsRead(bytes, out BND4 bnd4))
+                return bnd4;
             bytes = DecryptByteArray(erRegulationKey, bytes);
+            return BND4.Read(bytes);
+        }
+
+        private static readonly byte[] ac6RegulationKey = ParseHexString("10 CE ED 47 7B 7C D9 D7 E6 93 8E 11 47 13 E7 87 D5 39 13 B1 D 31 8E C1 35 E4 BE 50 50 4E E 10");
+
+        /// <summary>
+        /// Decrypts and unpacks ER's regulation BND4 from the specified path.
+        /// </summary>
+        public static BND4 DecryptAC6Regulation(string path)
+        {
+            byte[] bytes = File.ReadAllBytes(path);
+            if (BND4.IsRead(bytes, out BND4 bnd4))
+                return bnd4;
+            bytes = DecryptByteArray(ac6RegulationKey, bytes);
             return BND4.Read(bytes);
         }
 
@@ -536,6 +583,17 @@ namespace SoulsFormats
         {
             byte[] bytes = bnd.Write();
             bytes = EncryptByteArray(erRegulationKey, bytes);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            File.WriteAllBytes(path, bytes);
+        }
+
+        /// <summary>
+        /// Repacks and encrypts ER's regulation BND4 to the specified path.
+        /// </summary>
+        public static void EncryptAC6Regulation(string path, BND4 bnd)
+        {
+            byte[] bytes = bnd.Write();
+            bytes = EncryptByteArray(ac6RegulationKey, bytes);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllBytes(path, bytes);
         }
