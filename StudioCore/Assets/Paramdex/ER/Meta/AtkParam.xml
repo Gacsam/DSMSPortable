@@ -42,13 +42,15 @@
       <Option Value="112" Name="Skill Attack" />
       <Option Value="113" Name="Ranged Skill Attack" />
       <Option Value="114" Name="Vapor Attack" />
-      <Option Value="116" Name="Unknown Attack" />
+      <Option Value="116" Name="Shriek of Milos" />
       <Option Value="117" Name="Wraith Attack" />
       <Option Value="118" Name="Ammunition On-Hit Attack" />
     </Enum>
     <Enum Name="ATK_PARAM_HIT_TYPE" type="u8">
-        <Option Value="0" Name="Ignore Collision" />
-        <Option Value="2" Name="Invoke Collision" />
+        <Option Value="0" Name="Normal (tip)" />
+        <Option Value="1" Name="Middle" />
+        <Option Value="2" Name="Root" />
+        <Option Value="3" Name="Map Collision Detection" />
     </Enum>
     <Enum Name="ATKPARAM_REP_DMGTYPE_UINT" type="u8">
         <Option Value="0" Name="None" />
@@ -66,15 +68,18 @@
         <Option Value="12" Name="Stagger Backwards" />
     </Enum>
     <Enum Name="ATK_PARAM_MAP_HIT" type="u8">
-        <Option Value="0" Name="Default" />
-        <Option Value="1" Name="Projectile" />
-        <Option Value="2" Name="Hazard" />
+        <Option Value="0" Name="Normal" />
+        <Option Value="1" Name="Precision" />
+        <Option Value="2" Name="Not on the map" />
+        <Option Value="3" Name="Map, not an asset" />
     </Enum>
     <Enum Name="ATKPARAM_ATKATTR_TYPE" type="u8">
         <Option Value="0" Name="Slash" />
         <Option Value="1" Name="Strike" />
         <Option Value="2" Name="Thrust" />
         <Option Value="3" Name="Standard" />
+        <Option Value="253" Name="Refers to EquipParamWeapon atkAttribute2 field" />
+        <Option Value="254" Name="Refers to EquipParamWeapon atkAttribute field" />
     </Enum>
     <Enum Name="ATKPARAM_SPATTR_TYPE" type="u8">
         <Option Value="0" Name="None" />
@@ -164,43 +169,79 @@
         <Option Value="255" Name="Type 255" />
     </Enum>
     <Enum Name="ATK_PARAM_HIT_SOURCE" type="u8">
-        <Option Value="0" Name="Type 0" />
-        <Option Value="1" Name="Type 1" />
+        <Option Value="0" Name="Weapon" />
+        <Option Value="1" Name="Body" />
+        <Option Value="2" Name="Part 0" />
+        <Option Value="3" Name="Part 1" />
+        <Option Value="4" Name="Part 2" />
+        <Option Value="5" Name="Part 3" />
+        <Option Value="6" Name="Part 4" />
+        <Option Value="7" Name="Part 5" />
+        <Option Value="8" Name="Part 6" />
+        <Option Value="9" Name="Part 7" />
+        <Option Value="10" Name="Part 8" />
+        <Option Value="11" Name="Part 9" />
+        <Option Value="12" Name="Part 10" />
+        <Option Value="13" Name="Part 11" />
+        <Option Value="14" Name="Part 12" />
+        <Option Value="15" Name="Part 13" />
+        <Option Value="16" Name="Part 14" />
+        <Option Value="17" Name="Part 15" />
+        <Option Value="18" Name="Part 16" />
+        <Option Value="19" Name="Part 17" />
+        <Option Value="20" Name="Part 18" />
+        <Option Value="21" Name="Part 19" />
+        <Option Value="22" Name="Part 20" />
+        <Option Value="23" Name="Part 21" />
+        <Option Value="24" Name="Part 22" />
+        <Option Value="25" Name="Part 23" />
+        <Option Value="26" Name="Part 24" />
+        <Option Value="27" Name="Part 25" />
+        <Option Value="28" Name="Part 26" />
+        <Option Value="29" Name="Part 27" />
+        <Option Value="30" Name="Part 28" />
+        <Option Value="31" Name="Part 29" />
+        <Option Value="32" Name="Part 30" />
+        <Option Value="33" Name="Part 31" />
     </Enum>
     <Enum Name="ATK_PATAM_THROWFLAG_TYPE" type="u8">
-        <Option Value="0" Name="Type 0" />
-        <Option Value="1" Name="Type 1" />
-        <Option Value="2" Name="Type 2" />
-        <Option Value="3" Name="Type 3" />
+        <Option Value="0" Name="None" />
+        <Option Value="1" Name="Throw transition" />
+        <Option Value="2" Name="Throw" />
+        <Option Value="3" Name="Throw transition (with dmgLevel" />
     </Enum>
     <Enum Name="ATKPARAM_SFX_ATK_POW" type="s8">
-        <Option Value="0" Name="Power 0" />
-        <Option Value="1" Name="Power 1" />
-        <Option Value="2" Name="Power 2" />
-        <Option Value="4" Name="Power 4" />
+        <Option Value="0" Name="Small" />
+        <Option Value="1" Name="Medium" />
+        <Option Value="2" Name="Large" />
+        <Option Value="3" Name="Extra Large" />
+        <Option Value="4" Name="Very Large" />
     </Enum>
     <Enum Name="ATKPARAM_SFX_ATK_DIR" type="s8">
-        <Option Value="0" Name="Dir 0" />
-        <Option Value="1" Name="Dir 1" />
-        <Option Value="2" Name="Dir 2" />
-        <Option Value="3" Name="Dir 3" />
-        <Option Value="4" Name="Dir 4" />
+        <Option Value="0" Name="Front" />
+        <Option Value="1" Name="Top" />
+        <Option Value="2" Name="Bottom" />
+        <Option Value="3" Name="Left" />
+        <Option Value="4" Name="Right" />
     </Enum>
     <Enum Name="ATKPARAM_BEHAVIOR_ID" type="u8">
-        <Option Value="0" Name="Type 0" />
-        <Option Value="1" Name="Type 1" />
-        <Option Value="2" Name="Type 2" />
-        <Option Value="3" Name="Type 3" />
-        <Option Value="4" Name="Type 4" />
-        <Option Value="5" Name="Type 5" />
-        <Option Value="6" Name="Type 6" />
-        <Option Value="7" Name="Type 7" />
-        <Option Value="8" Name="Type 8" />
-        <Option Value="9" Name="Type 9" />
+        <Option Value="0" Name="None" />
+        <Option Value="1" Name="Continuous Attack" />
+        <Option Value="2" Name="Super huge blowout" />
+        <Option Value="3" Name="Delayed damage reaction" />
+        <Option Value="4" Name="Damage only FE" />
+        <Option Value="5" Name="Small stagger guarantee" />
+        <Option Value="6" Name="Unknown" />
+        <Option Value="7" Name="Unknown" />
+        <Option Value="8" Name="Unknown" />
+        <Option Value="9" Name="Unknown" />
+        <Option Value="10" Name="Start Grab" />
+        <Option Value="11" Name="Finish Grab" />
     </Enum>
     <Enum Name="ATKPARAM_SE_ATK_POW" type="s8">
-        <Option Value="0" Name="Power 0" />
-        <Option Value="1" Name="Power 1" />
+        <Option Value="0" Name="Small" />
+        <Option Value="1" Name="Large" />
+        <Option Value="2" Name="Extra Large" />
     </Enum>
     <Enum Name="WEP_MATERIAL_DEF_SFX" type="u16">
         <Option Value="0" Name="Type 0" />
@@ -257,7 +298,7 @@
         <Option Value="255" Name="Type 255" />
     </Enum>
     <Enum Name="ATKPARAM_REP_DMGTYPE" type="s8">
-        <Option Value="0" Name="None" />
+        <Option Value="0" Name="Default" />
         <Option Value="1" Name="No Stagger" />
         <Option Value="2" Name="Short Stagger" />
         <Option Value="3" Name="Long Stagger" />
@@ -305,8 +346,8 @@
     <guardAtkRateCorrection AltName="Attack Correction: Guard Attack Rate" Wiki="PC only. 1 only" />
     <guardBreakCorrection AltName="Attack Correction: Guard Break" Wiki="PC only. Multiplying the base value by the repelling of the attack" />
     <atkThrowEscapeCorrection AltName="Attack Correction: Throw Escape" Wiki="Weapon correction value for throw-through attacks" />
-    <subCategory1 AltName="Conditional Category [1]" Wiki="Subcategory 1" Enum="ATK_SUB_CATEGORY" />
-    <subCategory2 AltName="Conditional Category [2]" Wiki="Subcategory 2" Enum="ATK_SUB_CATEGORY" />
+    <subCategory1 AltName="Conditional Category [1]" Wiki="Subcategory 1" Enum="ATK_SUB_CATEGORY" VRef="MagicSubCategory" />
+    <subCategory2 AltName="Conditional Category [2]" Wiki="Subcategory 2" Enum="ATK_SUB_CATEGORY" VRef="MagicSubCategory" />
     <atkPhys AltName="Damage: Physical" Wiki="NPCs only. Basic damage of physical attack" />
     <atkMag AltName="Damage: Magic" Wiki="NPCs only. Additional damage from magic attacks" />
     <atkFire AltName="Damage: Fire" Wiki="NPCs only. Additional damage from fire attacks" />
@@ -314,7 +355,7 @@
     <atkStam AltName="Damage: Stamina" Wiki="NPCs only. Amount of damage to enemy (player) stamina" />
     <guardAtkRate AltName="Damage: Guard Attack Rate" Wiki="NPCs only. Flick value" />
     <guardBreakRate AltName="Damage: Guard Break Rate" Wiki="NPCs only. Value used to determine if an attack is repelled" />
-    <pad6 AltName=""/>
+    <pad6 AltName="" IsHidden=""/>
     <isEnableCalcDamageForBushesObj AltName="Is Considered Special Attack for Asset Destruction" Wiki="Do you want to calculate damage for assets that are Break due to bush damage? To set. : Calculate, : Do not calculate (that is, you cannot inflict damage) [GR] SEQ20617" IsBool="" />
     <atkThrowEscape AltName="Damage: Throw Escape" Wiki="Throw-through attack power" />
     <atkObj AltName="Damage: Object" Wiki="Attack power against OBJ" />
@@ -357,7 +398,7 @@
     <isVsRideAtk AltName="Is Ride Special Attack" Wiki="If you hit the target of the riding special attack while riding, the SA damage will be multiplied by the multiplier." IsBool="" />
     <isAddBaseAtk AltName="Is Base Attack Added" Wiki="Do you refer to the additional attack power even in weapon attacks?" IsBool="" />
     <excludeThreatLvNotify AltName="Is Excluded from Threat Level Notification" Wiki="Is it excluded from threat level notification?" IsBool="" />
-    <pad1 AltName=""/>
+    <pad1 AltName="" IsHidden=""/>
     <atkBehaviorId AltName="Attack Behavior ID" Wiki="Behavior identification value: Extra large damage transition" Enum="ATKPARAM_BEHAVIOR_ID" />
     <atkPow_forSe AltName="Attack Power - SE Effect" Wiki="Attack strength [SE]" Enum="ATKPARAM_SE_ATK_POW" />
     <atkSuperArmor AltName="Damage: Poise" Wiki="NPCs only. Value used for SA break calculation formula" />
@@ -369,28 +410,28 @@
     <HitRumbleIdByNormal AltName="Hit Rumble ID - Normal" Wiki="Vibration ID at the time of hit when hitting the tip (-1 invalid)" />
     <HitRumbleIdByMiddle AltName="Hit Rumble ID - Middle" Wiki="Vibration ID at the time of hit when hit in the middle (-1 invalid)" />
     <HitRumbleIdByRoot AltName="Hit Rumble ID - Root" Wiki="Vibration ID at the time of hit when hitting the root (-1 invalid)" />
-    <traceSfxId0 AltName="Trace SFX ID [0]" Wiki="Sword flash SfxID_0 (-1 invalid)" />
+    <traceSfxId0 AltName="Trace SFX ID [0]" Wiki="Sword flash SfxID_0 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead0 AltName="Trace SFX ID [0] - Head Dummy Poly" Wiki="Sword flash root Damipoli ID_0 (-1 invalid)" />
     <traceDmyIdTail0 AltName="Trace SFX ID [0] - Tail Dummy Poly" Wiki="Sword Flash Sword Tip Damipoli ID_0" />
-    <traceSfxId1 AltName="Trace SFX ID [1]" Wiki="Sword flash SfxID_1 (-1 invalid)" />
+    <traceSfxId1 AltName="Trace SFX ID [1]" Wiki="Sword flash SfxID_1 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead1 AltName="Trace SFX ID [1] - Head Dummy Poly" Wiki="Sword Flash Root Damipoli ID_1 (-1 invalid)" />
     <traceDmyIdTail1 AltName="Trace SFX ID [1] - Tail Dummy Poly" Wiki="Sword Flash Sword Tip Damipoli ID_1" />
-    <traceSfxId2 AltName="Trace SFX ID [2]" Wiki="Sword flash SfxID_2 (-1 invalid)" />
+    <traceSfxId2 AltName="Trace SFX ID [2]" Wiki="Sword flash SfxID_2 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead2 AltName="Trace SFX ID [2] - Head Dummy Poly" Wiki="Sword Flash Root Damipoli ID_2 (-1 invalid)" />
     <traceDmyIdTail2 AltName="Trace SFX ID [2] - Tail Dummy Poly" Wiki="Sword Flash Sword Tip Damipoli ID_2" />
-    <traceSfxId3 AltName="Trace SFX ID [3]" Wiki="Sword Flash SfxID_3 (-1 invalid)" />
+    <traceSfxId3 AltName="Trace SFX ID [3]" Wiki="Sword Flash SfxID_3 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead3 AltName="Trace SFX ID [3] - Head Dummy Poly" Wiki="Sword flash root Damipoli ID_3 (-1 invalid)" />
     <traceDmyIdTail3 AltName="Trace SFX ID [3] - Tail Dummy Poly" Wiki="Sword Flash Sword Tip Damipoli ID_3" />
-    <traceSfxId4 AltName="Trace SFX ID [4]" Wiki="Sword Flash SfxID_4 (-1 invalid)" />
+    <traceSfxId4 AltName="Trace SFX ID [4]" Wiki="Sword Flash SfxID_4 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead4 AltName="Trace SFX ID [4] - Head Dummy Poly" Wiki="Sword flash root Damipoli ID_4 (-1 invalid)" />
     <traceDmyIdTail4 AltName="Trace SFX ID [4] - Tail Dummy Poly" Wiki="Sword Flash Sword Tip Damipoli ID_4" />
-    <traceSfxId5 AltName="Trace SFX ID [5]" Wiki="Sword Flash SfxID_5 (-1 invalid)" />
+    <traceSfxId5 AltName="Trace SFX ID [5]" Wiki="Sword Flash SfxID_5 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead5 AltName="Trace SFX ID [5] - Head Dummy Poly" Wiki="Sword Flash Root Damipoli ID_5 (-1 invalid)" />
     <traceDmyIdTail5 AltName="Trace SFX ID [5] - Tail Dummy Poly" Wiki="Sword Flash Sword Tip Damipoli ID_5" />
-    <traceSfxId6 AltName="Trace SFX ID [6]" Wiki="Sword Flash SfxID_6 (-1 invalid)" />
+    <traceSfxId6 AltName="Trace SFX ID [6]" Wiki="Sword Flash SfxID_6 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr"/>
     <traceDmyIdHead6 AltName="Trace SFX ID [6] - Head Dummy Poly" Wiki="Sword Flash Root Damipoli ID_6 (-1 invalid)" />
     <traceDmyIdTail6 AltName="Trace SFX ID [6] - Tail Dummy Poly" Wiki="Sword Flash Sword Tip Damipoli ID_6" />
-    <traceSfxId7 AltName="Trace SFX ID [7]" Wiki="Sword Flash SfxID_7 (-1 invalid)" />
+    <traceSfxId7 AltName="Trace SFX ID [7]" Wiki="Sword Flash SfxID_7 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead7 AltName="Trace SFX ID [7] - Head Dummy Poly" Wiki="Sword Flash Root Damipoli ID_7 (-1 invalid)" />
     <traceDmyIdTail7 AltName="Trace SFX ID [7] - Tail Dummy Poly" Wiki="Sword Flash Sword Tip Damipoli ID_7" />
     <hit4_Radius AltName="Hit 4: Radius" Wiki="Sphere, capsule radius" />
@@ -458,11 +499,11 @@
     <defSfxMaterial2 AltName="Defence SFX Material [2]" Wiki="Used for SFX when guarding. 2" Enum="WEP_MATERIAL_DEF_SFX" />
     <atkDarkCorrection AltName="Attack Correction: Holy" Wiki="PC only. Multiply the dark attack power (in the case of a bow, correct the missile)" />
     <atkDark AltName="Damage: Holy" Wiki="NPCs only. Additional damage from dark attacks" />
-    <pad5 AltName=""/>
+    <pad5 AltName="" IsHidden=""/>
     <isDisableParry AltName="Is Disable Parry" Wiki="This is a flag to disable the new parry control. A process that determines that the damage on the attacking side has been parried when it comes into contact with a character in the parry state on the defending side." IsBool="" />
     <isDisableBothHandsAtkBonus AltName="Is Disable 2H ATK Bonus" Wiki="Avoid using the 1.5x growth status adaptation with both hands" IsBool="" />
     <isInvalidatedByNoDamageInAir AltName="Is Invalidated by No Damage in Air" Wiki="If Do you want to penetrate invincibility is , this setting will be ignored." IsBool="" />
-    <pad2 AltName=""/>
+    <pad2 AltName="" IsHidden=""/>
     <dmgLevel_vsPlayer AltName="Damage Level - Vs. Player" Wiki="Damage level to the player. If it is 0 (default), it is not used. The meaning of the range other than 0 (default) is the same as Damage level." Enum="ATKPARAM_REP_DMGTYPE" />
     <statusAilmentAtkPowerCorrectRate AltName="Status Ailment Correction" Wiki="Magnification correction is performed for the abnormal state attack power of special effects." />
     <spEffectAtkPowerCorrectRate_byPoint AltName="Attack Correction - By SpEffect Point" Wiki="Magnification correction is performed for the special effect ~ ~ attack power [point]." />
@@ -471,7 +512,7 @@
     <atkBehaviorId_2 AltName="Attack Behavior ID [2]" Wiki="Behavior identification value: Plays damage motion only at specific times" Enum="ATKPARAM_BEHAVIOR_ID" />
     <throwDamageAttribute AltName="Throw Damage Attribute" Wiki="Attribute of throw damage of attack judgment. Corresponding special effects will be applied. It works only when the attack ATK_PATAM_THROWFLAG_TYPE is 2: Throw." Enum="ATKPARAM_THROWATTR_TYPE" />
     <statusAilmentAtkPowerCorrectRate_byPoint AltName="Status Ailment Correction - By Point" Wiki="Magnification correction is performed for the special effect Whether to apply the abnormal state attack power magnification correction." />
-    <overwriteAttackElementCorrectId AltName="Attack Element Correct ID" Wiki="For overwriting the ID of the parameter that corrects the attack attribute" />
+    <overwriteAttackElementCorrectId AltName="Attack Element Correct ID" Wiki="For overwriting the ID of the parameter that corrects the attack attribute" Refs="AttackElementCorrectParam" />
     <decalBaseId1 AltName="Decal Base ID [1]" Wiki="Decal identifier 1 (3 digits)" />
     <decalBaseId2 AltName="Decal Base ID [2]" Wiki="Decal identifier 2 (3 digits)" />
     <wepRegainHpScale AltName="Weapon HP Regain Amount Scale" Wiki="Weapon regain amount correction value" />
@@ -484,7 +525,7 @@
     <atkSuperArmorCorrection AltName="Attack Correction: Poise" Wiki="PC only. Correction value to be applied to the [basic value] set for the weapon" />
     <defSfxMaterialVariationValue AltName="Defence SFX Material Variation Offset" Wiki="A value to have variations of damage SFX and SE in combination with defense material 1 or 2 used when guarding. (SEQ16473)" />
     <finalDamageRateId AltName="Final Damage % ID" Refs="FinalDamageRateParam" />
-    <pad4 AltName=""/>
+    <pad4 AltName="" IsHidden=""/>
   </Field>
   <Self Wiki="Governs hitboxes and damage of attacks" AlternativeOrder="
 hit0_Radius,hit1_Radius,hit2_Radius,hit3_Radius,

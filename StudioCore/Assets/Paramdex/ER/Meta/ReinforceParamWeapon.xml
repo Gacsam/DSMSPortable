@@ -38,10 +38,10 @@
     <reinforcePriceRate AltName="Reinforce Price Rate" Wiki="Correction value to multiply the enhancement price of the weapon parameter" />
     <baseChangePriceRate AltName="Base Change Price Rate" Wiki="Correction value to multiply the evolution price of the weapon parameter" />
     <enableGemRank AltName="Ash of War Rank" Wiki="Mountable magic stone rank" IsBool="" />
-    <pad2 AltName=""/>
+    <pad2 AltName="" IsHidden=""/>
     <sleepGuardDefRate AltName="Guard Absorption %: Sleep" Wiki="Correction value of sleep attack cut rate when guarding" />
     <madnessGuardDefRate AltName="Guard Absorption %: Madness" Wiki="Correction value of mad attack cut rate when guarding" />
-    <baseAtkRate AltName="Base Damage %: Overall" Wiki="Additional attack power multiplier" />
+    <baseAtkRate AltName="Damage %: BaseAtk" Wiki="Damage multiplier for attacks with isAddBaseAtk in AtkParam, typically used with Ash of Wars." />
   </Field>
   <Self ConsecutiveIDs="" Wiki="Defines upgrades of weapons, include stat changes and upgrade cost (EquipMtrlSetParam id offset)" AlternativeOrder="materialSetId,maxReinforceLevel,reinforcePriceRate,baseChangePriceRate,enableGemRank,-,
 baseAtkRate,physicsAtkRate,magicAtkRate,fireAtkRate,thunderAtkRate,darkAtkRate,-,

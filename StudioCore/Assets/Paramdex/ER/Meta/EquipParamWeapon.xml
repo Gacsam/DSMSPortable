@@ -410,8 +410,8 @@
   </Enums>
   <Field>
     <disableParam_NT AltName="Disable Param - Network Test" Wiki="Parameters marked with  are excluded in the NT version package." IsBool="" />
-    <disableParamReserve1 AltName=""/>
-    <disableParamReserve2 AltName=""/>
+    <disableParamReserve1 AltName="" IsHidden=""/>
+    <disableParamReserve2 AltName="" IsHidden=""/>
     <behaviorVariationId AltName="Behavior Variation ID" Wiki="Used when determining the action parameter ID to be referenced during an attack" VRef="behaviorVariation" />
     <sortId AltName="Sort ID" Wiki="Sort ID (-1: Do not collect) (7 digits is the limit in s32 to add the enhancement level in the program)" />
     <wanderingEquipId AltName="Wandering Equip ID" Wiki="Replacement equipment ID for wandering ghosts." />
@@ -459,7 +459,7 @@
     <madnessGuardResist_MaxCorrect AltName="Max Correction: Madness Guard Resist" Wiki="Maximum value of cut rate correction value for attack power against madness (set as special effect parameter)" />
     <saWeaponDamage AltName="Poise Damage" Wiki="Super Armor Basic Attack Power" />
     <equipModelId AltName="Equip Model ID" Wiki="Equipment model number." />
-    <iconId AltName="Icon ID" Wiki="Menu icon ID." />
+    <iconId AltName="Icon ID" Wiki="Menu icon ID." TextureRef="Direct/01_common/SB_Icon_00/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_01/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_02/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_02_A/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_02_B/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_03/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_03_A/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_04/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_05/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_06/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_07_dlc/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_07_dlc_A/iconId/MENU_ItemIcon_,Direct/01_common/SB_Icon_08_dlc/iconId/MENU_ItemIcon_" /> />
     <durability AltName="Durability" Wiki="Initial durability." />
     <durabilityMax AltName="Max Durability" Wiki="New durability." />
     <attackThrowEscape AltName="Throw Escape Damage" Wiki="Basic value of throw-through attack power" />
@@ -507,7 +507,7 @@
     <diseaseGuardResist AltName="Guard Resist: Scarlet Rot" Wiki="How much to cut the attack power (set as a special effect parameter) to make it a plague" />
     <bloodGuardResist AltName="Guard Resist: Hemorrhage" Wiki="How much to cut the attack power (set as a special effect parameter) to make bleeding" />
     <curseGuardResist AltName="Guard Resist: Blight" Wiki="How much to cut the attack power (set as a special effect parameter) to curse" />
-    <atkAttribute AltName="Attack Attribute" Wiki="Physical attribute 1" Enum="ATKPARAM_ATKATTR_TYPE" />
+    <atkAttribute AltName="Attack Attribute [1]" Wiki="Physical attribute 1" Enum="ATKPARAM_ATKATTR_TYPE" />
     <rightHandEquipable AltName="Can wield in Right Hand" Wiki="Is it possible to equip it with the right hand?" IsBool="" />
     <leftHandEquipable AltName="Can wield in Left Hand" Wiki="Is it possible to equip it with the left hand?" IsBool="" />
     <bothHandEquipable AltName="Can wield in Both Hands" Wiki="Is it possible to equip with both hands?" IsBool="" />
@@ -547,40 +547,40 @@
     <wepCollidableType1 AltName="Weapon Collidable Type [1]" Wiki="Weapon 1 collaborative setting" Enum="WEP_COLLIDABLE_TYPE" />
     <postureControlId_Right AltName="Posture Control ID - Weapon Right" Wiki="Attitude control ID (right hand)" Refs="PostureControlParam_WepRight" />
     <postureControlId_Left AltName="Posture Control ID - Weapon Left" Wiki="Attitude control ID (left hand)" Refs="PostureControlParam_WepLeft" />
-    <traceSfxId0 AltName="Trace SFX ID [0]" Wiki="Sword flash SfxID_0 (-1 invalid)" />
+    <traceSfxId0 AltName="Trace SFX ID [0]" Wiki="Sword flash SfxID_0 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead0 AltName="Trace SFX ID [0] - Dummy Poly ID - Head" Wiki="Sword flash root Damipoli ID_0 (-1 invalid)" />
     <traceDmyIdTail0 AltName="Trace SFX ID [0] - Dummy Poly ID - Tail" Wiki="Sword Flash Sword Tip Damipoli ID_0" />
-    <traceSfxId1 AltName="Trace SFX ID [1]" Wiki="Sword flash SfxID_1 (-1 invalid)" />
+    <traceSfxId1 AltName="Trace SFX ID [1]" Wiki="Sword flash SfxID_1 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead1 AltName="Trace SFX ID [1] - Dummy Poly ID - Head" Wiki="Sword Flash Root Damipoli ID_1 (-1 invalid)" />
     <traceDmyIdTail1 AltName="Trace SFX ID [1] - Dummy Poly ID - Tail" Wiki="Sword Flash Sword Tip Damipoli ID_1" />
-    <traceSfxId2 AltName="Trace SFX ID [2]" Wiki="Sword flash SfxID_2 (-1 invalid)" />
+    <traceSfxId2 AltName="Trace SFX ID [2]" Wiki="Sword flash SfxID_2 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead2 AltName="Trace SFX ID [2] - Dummy Poly ID - Head" Wiki="Sword Flash Root Damipoli ID_2 (-1 invalid)" />
     <traceDmyIdTail2 AltName="Trace SFX ID [2] - Dummy Poly ID - Tail" Wiki="Sword Flash Sword Tip Damipoli ID_2" />
-    <traceSfxId3 AltName="Trace SFX ID [3]" Wiki="Sword Flash SfxID_3 (-1 invalid)" />
+    <traceSfxId3 AltName="Trace SFX ID [3]" Wiki="Sword Flash SfxID_3 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead3 AltName="Trace SFX ID [3] - Dummy Poly ID - Head" Wiki="Sword flash root Damipoli ID_3 (-1 invalid)" />
     <traceDmyIdTail3 AltName="Trace SFX ID [3] - Dummy Poly ID - Tail" Wiki="Sword Flash Sword Tip Damipoli ID_3" />
-    <traceSfxId4 AltName="Trace SFX ID [4]" Wiki="Sword Flash SfxID_4 (-1 invalid)" />
+    <traceSfxId4 AltName="Trace SFX ID [4]" Wiki="Sword Flash SfxID_4 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead4 AltName="Trace SFX ID [4] - Dummy Poly ID - Head" Wiki="Sword flash root Damipoli ID_4 (-1 invalid)" />
     <traceDmyIdTail4 AltName="Trace SFX ID [4] - Dummy Poly ID - Tail" Wiki="Sword Flash Sword Tip Damipoli ID_4" />
-    <traceSfxId5 AltName="Trace SFX ID [5]" Wiki="Sword Flash SfxID_5 (-1 invalid)" />
+    <traceSfxId5 AltName="Trace SFX ID [5]" Wiki="Sword Flash SfxID_5 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead5 AltName="Trace SFX ID [5] - Dummy Poly ID - Head" Wiki="Sword Flash Root Damipoli ID_5 (-1 invalid)" />
     <traceDmyIdTail5 AltName="Trace SFX ID [5] - Dummy Poly ID - Tail" Wiki="Sword Flash Sword Tip Damipoli ID_5" />
-    <traceSfxId6 AltName="Trace SFX ID [6]" Wiki="Sword Flash SfxID_6 (-1 invalid)" />
+    <traceSfxId6 AltName="Trace SFX ID [6]" Wiki="Sword Flash SfxID_6 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead6 AltName="Trace SFX ID [6] - Dummy Poly ID - Head" Wiki="Sword Flash Root Damipoli ID_6 (-1 invalid)" />
     <traceDmyIdTail6 AltName="Trace SFX ID [6] - Dummy Poly ID - Tail" Wiki="Sword Flash Sword Tip Damipoli ID_6" />
-    <traceSfxId7 AltName="Trace SFX ID [7]" Wiki="Sword Flash SfxID_7 (-1 invalid)" />
+    <traceSfxId7 AltName="Trace SFX ID [7]" Wiki="Sword Flash SfxID_7 (-1 invalid)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <traceDmyIdHead7 AltName="Trace SFX ID [7] - Dummy Poly ID - Head" Wiki="Sword Flash Root Damipoli ID_7 (-1 invalid)" />
     <traceDmyIdTail7 AltName="Trace SFX ID [7] - Dummy Poly ID - Tail" Wiki="Sword Flash Sword Tip Damipoli ID_7" />
     <defSfxMaterial2 AltName="Defence SFX Material [2]" Wiki="Defensive SFX material used from attack para 2" Enum="WEP_MATERIAL_DEF_SFX" />
     <defSeMaterial2 AltName="Defence SE Material [2]" Wiki="Defense SE material used from attack para 2" Enum="WEP_MATERIAL_DEF" />
-    <absorpParamId AltName="Weapon Sheath Position ID" Wiki="Weapon adsorption position parameter Id. This value determines the position where the weapon is attracted (-1: Refer to the value written directly in the old source code)." />
+    <absorpParamId AltName="Weapon Sheath Position ID" Wiki="Weapon adsorption position parameter Id. This value determines the position where the weapon is attracted (-1: Refer to the value written directly in the old source code)." Refs="WepAbsorpPosParam" />
     <toughnessCorrectRate AltName="Toughness Correction" Wiki="It is a magnification that corrects the basic value of toughness." />
     <isValidTough_ProtSADmg AltName="Is Toughness Perfomed if Poise is Initial Value" Wiki="Whether the toughness calculation is performed even if the armor SA is the initial value. Check the toughness specification .xlsx for details" IsBool="" />
     <isDualBlade AltName="Is Dual Weapon" Wiki="Is this weapon a twin sword?" IsBool="" />
     <isAutoEquip AltName="Is Auto Equipped" Wiki="Only valid for arrows and bolts. Whether to automatically equip this weapon if the target equipment slot is empty when picking up this weapon" IsBool="" />
     <isEnableEmergencyStep AltName="Is Emergency Avoidance Possible" Wiki="Is it an emergency avoidable weapon? Pass it to the behavior script." IsBool="" />
     <invisibleOnRemo AltName="Is Hidden in Cutscene" Wiki="Is it hidden during cutscenes?" IsBool="" />
-    <pad2 AltName=""/>
+    <pad2 AltName="" IsHidden=""/>
     <correctType_Magic AltName="Correction Type: Magic" Wiki="Determining the type of magic attack power correction graph with primary parameters" Refs="CalcCorrectGraph" />
     <correctType_Fire AltName="Correction Type: Fire" Wiki="Determine the type of flame attack power correction graph with primary parameters" Refs="CalcCorrectGraph" />
     <correctType_Thunder AltName="Correction Type: Lightning" Wiki="Determine the type of lightning attack power correction graph with primary parameters" Refs="CalcCorrectGraph" />
@@ -591,7 +591,7 @@
     <correctType_Dark AltName="Correction Type: Holy" Wiki="Determine the type of darkness attack power correction graph with primary parameters" Refs="CalcCorrectGraph" />
     <correctType_Poison AltName="Correction Type: Poison" Wiki="Determining the type of poison attack power correction graph with primary parameters" Refs="CalcCorrectGraph" />
     <sortGroupId AltName="Sort Group ID" Wiki="Sort item type ID. In the sort Item type order, the same ID is displayed together as the same group." Enum="DISPLAY_CATEGORY_ID" />
-    <atkAttribute2 AltName="Attack Attribute [2]" Wiki="Physical attribute 2" Enum="ATKPARAM_ATKATTR_TYPE" />
+    <atkAttribute2 AltName="Attack Attribute [2]" Wiki="Physical attribute referred to in the AtkParam" Enum="ATKPARAM_ATKATTR_TYPE" />
     <sleepGuardResist AltName="Guard Resist: Sleep" Wiki="How much to cut the attack power (set as a special effect parameter) to sleep" />
     <madnessGuardResist AltName="Guard Resist: Madness" Wiki="How much to cut the attack power (set to the special effect parameter) that makes you go mad" />
     <correctType_Blood AltName="Correction Type: Hemorrhage" Wiki="Determine the type of bleeding attack power correction graph with primary parameters" Refs="CalcCorrectGraph" />
@@ -615,10 +615,10 @@
     <curseGuardResist_MaxCorrect AltName="Max Correction: Blight Guard Absorption" Wiki="Maximum value of cut rate correction value for attack power against curse (set as special effect parameter)" />
     <freezeGuardResist_MaxCorrect AltName="Max Correction: Frostbite Guard Absorption" Wiki="Maximum value of cut rate correction value for attack power against cold air (set as special effect parameter)" />
     <staminaGuardDef_MaxCorrect AltName="Max Correction: Guard Stability" Wiki="When the guard is successful, the maximum value of the defense power correction value against the enemy's stamina attack" />
-    <residentSfxId_1 AltName="Resident SFX [1]" Wiki="Resident SfxId1" />
-    <residentSfxId_2 AltName="Resident SFX [2]" Wiki="Resident SfxId2" />
-    <residentSfxId_3 AltName="Resident SFX [3]" Wiki="Resident SfxId3" />
-    <residentSfxId_4 AltName="Resident SFX [4]" Wiki="Resident SfxId4" />
+    <residentSfxId_1 AltName="Resident SFX [1]" Wiki="Resident SfxId1" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
+    <residentSfxId_2 AltName="Resident SFX [2]" Wiki="Resident SfxId2" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
+    <residentSfxId_3 AltName="Resident SFX [3]" Wiki="Resident SfxId3" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
+    <residentSfxId_4 AltName="Resident SFX [4]" Wiki="Resident SfxId4" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <residentSfx_DmyId_1 AltName="Resident SFX - Dummy Poly [1]" Wiki="Resident Sfx Damipoli Id1" />
     <residentSfx_DmyId_2 AltName="Resident SFX - Dummy Poly [2]" Wiki="Resident Sfx Damipoli Id2" />
     <residentSfx_DmyId_3 AltName="Resident SFX - Dummy Poly [3]" Wiki="Resident Sfx Damipoli Id3" />
@@ -678,7 +678,7 @@
     <stealthAtkRate AltName="Stealth Attack Multiplier" Wiki="Stealth attack power multiplier" />
     <vsPlayerDmgCorrectRate_Disease AltName="Vs. Player - Scarlet Rot Damage %" Wiki="Only attacks on the player will correct the damage done." />
     <vsPlayerDmgCorrectRate_Curse AltName="Vs. Player - Blight Damage %" Wiki="Only attacks on the player will correct the damage done." />
-    <pad AltName=""/>
+    <pad AltName="" IsHidden=""/>
   </Field>
   <Self Wiki="Defines weapon types and each affinity.\nIncludes arrows and bolts. Responsible for scaling shown on certain consumables.\nIDs not ending in a multiple of 100 are ignored.\nPermitting affinities on a weapon without affinity rows at the correct IDs will result in the nearest 10000 being used.\nSpEffects specified here can be modified by upgrades in ReinforceParamWeapon." OffsetSize="100" AlternativeOrder="sortId,trophySGradeId,-,
 behaviorVariationId,swordArtsParamId,wepmotionCategory,guardmotionCategory,wepmotionOneHandId,wepmotionBothHandId,-,

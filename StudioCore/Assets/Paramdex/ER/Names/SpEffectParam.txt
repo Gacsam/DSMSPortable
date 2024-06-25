@@ -3,12 +3,14 @@
 10 Duelist's Furled Finger - Create Invasion Sign
 11 Bloody Finger - Attempt Invasion
 16 Festering/Recusant Finger - Attempt Invasion
+23 Animation Offset +10k - Unknown
 26 Stake of Marika
 30 HKS - Unk Throw Def Invalid
-32 HKS - Unk Jump Throw Def Invalid
 31 Behavior - Counter Frames
+32 HKS - Unk Jump Throw Def Invalid
 45 TAE - Counter Frames
 70 Blight Effect
+79 PLAN_SP_EFFECT_FALL_FROM_HORSE_START
 81 Spectral Steed Whistle
 89 HKS - Unk Toughness Increase
 98 HKS - Unk Is Jump Attacking
@@ -47,8 +49,13 @@
 175 HKS - Unk Guard Break & Block Animation Resist
 176 HKS - Unk Guard Block Animation Resist
 183 Spiritspring - In Range
+184 Spirit Spring - Fall Immune (Torrent)
 185 Spiritspring - Fall Immune
 186 Spiritspring - Is Jumping
+210 PLAN_SP_EFFECT_BUDDY_ORDER_GO
+211 PLAN_SP_EFFECT_BUDDY_ORDER_COME
+212 PLAN_SP_EFFECT_BUDDY_ORDER_UNSUMMON
+220 PLAN_SP_EFFECT_BUDDY_ORDER_TRIGGER
 415 Torch Effect
 416 Sentry's Torch - Effect
 420 Oil Pot
@@ -255,8 +262,8 @@
 1792 Eclipse Shotel
 1793 Eclipse Shotel - Holy/Blight Buff
 1794 Eclipse Shotel - Blight
-1800 Hoarfrost Stomp - Frost 
-1801 Hoarfrost Stomp - Frost 
+1800 Hoarfrost Stomp - Frost
+1801 Hoarfrost Stomp - Frost
 1805 Ruinous Ghostflame
 1806 Ruinous Ghostflame - Frost/Magic Buff
 1807 Ruinous Ghostflame
@@ -449,7 +456,7 @@
 3375 Holy Water Grease - Right
 3376 Holy Water Grease - Left
 3380 Cursed-Blood Pot
-3381 Cursed-Blood Pot
+3381 Cursed-Blood Pot - PLAN_SP_EFFECT_BUDDY_AGGRESSIVE
 3382 Cursed-Blood Pot
 3383 Cursed-Blood Pot
 3450 Rune Arc
@@ -548,20 +555,40 @@
 4282 Disable Grace Warp
 4286 Disable Grace Warp (Trap)
 4288 Disable Grace Warp
-4301 Enemy: Fade after death
+4300 Enemy: Fade after death
 4301 Enemy: Fade after death (boss)
 4302 Enemy: Fade after death (blue)
+4460 PLAN_SP_EFFECT_SPIRIT_CANDLE
+4600 Wet (Rain)
+5010 PLAN_SP_EFFECT_HORSE_RIDE
+5012 PLAN_SP_EFFECT_FACILITY_RIDE
+5020 PLAN_SP_EFFECT_PATROL_ANIME
+5070 PLAN_SP_EFFECT_NATURAL_SLEEP
+5071 PLAN_SP_EFFECT_NATURAL_SLEEP_MORNING
+5072 PLAN_SP_EFFECT_NATURAL_SLEEP_DAYTIME
+5079 PLAN_SP_EFFECT_NATURAL_SLEEP_GUARD
+5081 PLAN_SP_EFFECT_INITIAL_STANDBY
+5085 PLAN_SP_EFFECT_RETURN_INITIAL_STANDBY
+5090 PLAN_SP_EFFECT_RETURN_INITIAL_STANDBY_WITHANIM
+5110 PLAN_SP_EFFECT_ANIME_SLEEPING
+5111 PLAN_SP_EFFECT_ANIME_COLLECTSLEEPING
+5130 PLAN_SP_EFFECT_BEAST_REPELLENT_UNDAMAGED
+5190 PLAN_SP_EFFECT_DETECT_ANIM_COOLTIME
+5195 PLAN_SP_EFFECT_FINDSHOOT_STEP_ON_FAILED_PATHGOAL
+5230 PLAN_SP_EFFECT_BARISTA_RIDE
+5231 PLAN_SP_EFFECT_L_BARISTA_RIDE
+5232 PLAN_SP_EFFECT_FLAMETHROWER_RIDE
 5250 Enemy: Golden Eyes (Bonus Runes)
 5255 Enemy: Golden Eyes Failed (No Reroll)
-5269 Enemy: Golden Eyes Chance (Guaranteed)
-5268 Enemy: Golden Eyes Chance (50%)
-5267 Enemy: Golden Eyes Chance (30%)
-5266 Enemy: Golden Eyes Chance (10%)
-5265 Enemy: Golden Eyes Chance (5%)
-5264 Enemy: Golden Eyes Chance (3%)
-5263 Enemy: Golden Eyes Chance (2%)
-5262 Enemy: Golden Eyes Chance (1%)
 5261 Enemy: Golden Eyes Chance (0.5%)
+5262 Enemy: Golden Eyes Chance (1%)
+5263 Enemy: Golden Eyes Chance (2%)
+5264 Enemy: Golden Eyes Chance (3%)
+5265 Enemy: Golden Eyes Chance (5%)
+5266 Enemy: Golden Eyes Chance (10%)
+5267 Enemy: Golden Eyes Chance (30%)
+5268 Enemy: Golden Eyes Chance (50%)
+5269 Enemy: Golden Eyes Chance (Guaranteed)
 5300 No Stag
 5301 NPC: Damage Level Override
 5302 NPC: Damage Level Override
@@ -610,9 +637,16 @@
 5372 Med Stag 4 XL Hits [Armor]
 5373 Med Stag 4 XL Hits + Light 4 Large [Armor]
 5374 Light Stag 4 XL Hits [Armor]
+5401 Animation Offset +1m - Generic
+5402 Animation Offset +2m - Generic
+5403 Animation Offset +3m - Generic
+5404 Animation Offset +4m - Generic
+5405 Animation Offset +5m - Generic
+5410 Animation Offset +3m - Unknown
+5420 Animation Offset +3m - Unknown
 5600 NPC: Infinite FP
-5635 Sword Arts Dodge Unk
 5601 NPC: Faster Stamina Recovery
+5635 Sword Arts Dodge Unk
 5740 Damaged by Healing Incantations
 5836 Undead Enemy
 5837 Undead Enemy
@@ -686,6 +720,8 @@
 6805 Blight - Type 1 - Special 6
 6845 Black Knife - Bullet
 6850 Destined Death - (DoT Main)
+6860 Destined Death - (Max HP Debuff)
+6865 Destined Death - (Max HP Debuff)
 6910 Enemy - Crystal Dart Confusion
 6915 Enemy - Crystal Dart Confusion - Visual
 6920 Enemy - Crystal Dart Confusion - Border A
@@ -694,35 +730,36 @@
 6930 Enemy - Crystal Dart Confusion - Point A
 6931 Enemy - Crystal Dart Confusion - Point B
 6932 Enemy - Crystal Dart Confusion - Point C
-7000 Area Scaling - Tier 1 (Tutorial Tunnel)
-7010 Area Scaling - Tier 2 (Limgrave Exploration)
-7020 Area Scaling - Tier 3 (South Limgrave Exploration)
-7030 Area Scaling - Tier 4 (North Limgrave Exploration + Bosses)
-7040 Area Scaling - Tier 5 (Stormveil Castle Boss)
-7050 Area Scaling - Tier 6 (Siofra River)
-7060 Area Scaling - Tier 7 (South Liurnia Exploration  + Archives)
-7070 Area Scaling - Tier 8 (North Liurnia Exploration + Archives Latter)
-7080 Area Scaling - Tier 9 (Below Mt. Gelmir + Ainsel River)
-7090 Area Scaling - Tier 10 (Entering Mt. Gelmir + Entering Caelid)
-7100 Area Scaling - Tier 11 (Altus Plateua + Southeast Caelid)
-7110 Area Scaling - Tier 12 (Leyndell + Nokstella)
-7120 Area Scaling - Tier 13 (Volcano Manor + North Caelid)
-7130 Area Scaling - Tier 22 (Leyndell Sewers)
-7140 Area Scaling - Tier 23 (Giant Mountaintops + Farum Azula Weak)
-7150 Area Scaling - Tier 24 (Farum Azula Latter)
-7160 Area Scaling - Tier 25 (Leyndell Ashen + Snowfields)
-7170 Area Scaling - Tier 26 (Final Battle)
-7180 Area Scaling - Tier 27 (Haligtree + Mohgwyn Palace)
-7190 Area Scaling - Tier 28 (Elphael)
-7200 Area Scaling - Tier 29 (Haligtree Roots)
-7210 Area Scaling - Tier 14 (Unusued)
-7220 Area Scaling - Tier 15 (Unusued)
-7230 Area Scaling - Tier 16 (Unusued)
-7240 Area Scaling - Tier 17 (Unusued)
-7250 Area Scaling - Tier 18 (Unusued)
-7260 Area Scaling - Tier 19 (Unusued)
-7270 Area Scaling - Tier 20 (Unusued)
-7280 Area Scaling - Tier 21 (Unusued)
+6992 PLAN_SP_EFFECT_TRUNK_COLLAPSE
+7000 Area Scaling - Tier 01 (Stranded Graveyard)
+7010 Area Scaling - Tier 02 (Limgrave)
+7020 Area Scaling - Tier 03 (Weeping Peninsula)
+7030 Area Scaling - Tier 04 (Stormveil Castle)
+7040 Area Scaling - Tier 05 (Misc. Limgrave)
+7050 Area Scaling - Tier 06 (Ainsel River)
+7060 Area Scaling - Tier 07 (Liurnia / Caria Manor / Academy)
+7070 Area Scaling - Tier 08 (Caelid)
+7080 Area Scaling - Tier 09 (Altus Plateau)
+7090 Area Scaling - Tier 10 (Mt. Gelmir / Capital Outskirts / Nokron)
+7100 Area Scaling - Tier 11 (Leyndell / SE Caelid)
+7110 Area Scaling - Tier 12 (Volcano Manor / Deeproot Depths / Nokstella)
+7120 Area Scaling - Tier 13 (Mountaintops)
+7130 Area Scaling - Tier 14 (Moonlight Altar / Leyndell Sewers)
+7140 Area Scaling - Tier 15 (Farum Azula)
+7150 Area Scaling - Tier 16 (Dragonbarrow / Ashen Capital)
+7160 Area Scaling - Tier 17 (Consecrated Snowfield)
+7170 Area Scaling - Tier 18 (Mohgwyn Palace)
+7180 Area Scaling - Tier 19 (Haligtree Roots)
+7190 Area Scaling - Tier 20 (Elphael)
+7200 Area Scaling - Tier 21 (Malenia)
+7210 Area Scaling - (Unused)
+7220 Area Scaling - (Unused)
+7230 Area Scaling - (Unused)
+7240 Area Scaling - (Unused)
+7250 Area Scaling - (Unused)
+7260 Area Scaling - (Unused)
+7270 Area Scaling - (Unused)
+7280 Area Scaling - (Unused)
 7400 NG+ Scaling -
 7410 NG+ Scaling -
 7420 NG+ Scaling -
@@ -753,6 +790,59 @@
 7670 NG+ Scaling -
 7680 NG+ Scaling -
 8001 HKS - Is Stealth
+8970 PLAN_SP_EFFECT_STRAGGLER_DEACT
+8971 PLAN_SP_EFFECT_STRAGGLER_ACT
+8972 PLAN_SP_EFFECT_STRAGGLER_ACT_HOSTILE
+9540 Spirit Summon Active
+9560 Spirit Summon Disappeared
+9630 Lipsync
+9631 Lipsync (Subtle)
+9820 Animation Offset - Unk
+9821 Animation Offset - Unk
+9822 Animation Offset - Unk
+9823 Animation Offset - Unk
+9824 Animation Offset - Unk
+9825 Animation Offset - Unk
+9826 Animation Offset - Unk
+9827 Animation Offset - Unk
+9828 Animation Offset - Unk
+9829 Animation Offset - Unk
+9830 Animation Offset - Unk
+9831 Animation Offset - Unk
+9832 Animation Offset - Unk
+9833 Animation Offset - Unk
+9834 Animation Offset - Unk
+9835 Animation Offset - Unk
+9837 Animation Offset - Unk
+9838 Animation Offset - Unk
+9839 Animation Offset - Unk
+9840 Animation Offset - Unk
+9841 Animation Offset - Unk
+9842 Animation Offset - Unk
+9843 Animation Offset - Unk
+9844 Animation Offset - Unk
+9845 Animation Offset - Unk
+9846 Animation Offset - Unk
+9847 Animation Offset - Unk
+9848 Animation Offset - Unk
+9849 Animation Offset - Unk
+9850 Animation Offset - Unk
+9851 Animation Offset - Unk
+9852 Animation Offset - Unk
+9853 Animation Offset - Unk
+9854 Animation Offset - Unk
+9855 Animation Offset - Unk
+9856 Animation Offset - Unk
+9857 Animation Offset - Unk
+9858 Animation Offset - Unk
+9859 Animation Offset - Unk
+9860 Animation Offset - Unk
+9861 Animation Offset - Unk
+9862 Animation Offset - Unk
+9863 Animation Offset - Unk
+9864 Animation Offset - Unk
+9865 Animation Offset - Unk
+9866 Animation Offset - Unk
 10000 Exile Soldier - Bullet
 10001 Dog - Bullet
 10002 Demi-human - Bullet
@@ -764,20 +854,29 @@
 10165 Dragon-faced Flamethrower - Bullet
 10317 Fallen Hawks Soldier - Bullet
 10318 Fallen Hawks Soldier - Bullet [Chain]
+10535 PLAN_SP_EFFECT_BUDDY_AGGRESSIVE_DEMIHUMAN
+10631 Mohg Phase 2 - Animation Offset +1m
 10665 HKS - Unk Event 6001 Event Action Not Possible
 10690 Mohg - Bullet
 10691 Mohg - Bullet [Cycle]
+10700 Animation Offset +1m - Unknown
 10945 Warhawk - Bullet
 11010 Tarnished's Furled Finger
 11030 Duelist's Furled Finger
+11100 Commander Phase 2 - Animation Offset +1m
 11140 Commander - Glory Attack
 11141 Commander - Glory Defend
+11199 Animation Offset +1m - Unknown
 11657 Nox Swordstress
 11691 Nox Swordstress/Silver Tear - Bullet
-11954 Writhing Mass - Bullet
+11701 Animation Offset +1m - Unknown
+11901 Rykard Phase 2/3 - Animation Offset +1m
+11902 Rykard Phase 2/3 - Animation Offset +1m
+11954 God Devouring Serpent / Rykard Lord of Blasphemy - Bullet
 11971 Vulgar Militia - Bullet
 12000 Large Fingercreeper - Bullet
 12018 Giant Fingercreeper
+12290 Godfrey/Hoarah Loux Phase 2 - VFX
 13020 Wolf - Bullet
 13025 Wolf
 13067 Castle Soldier
@@ -789,21 +888,22 @@
 13164 Ancestral Follower
 13175 Ancestral Follower - Winged Greathorn
 13191 Ancestral Follower - HP Restore
-13258 Mad Pumpkin Head/Grinning Torturer - Bullet
+13258 Mad Pumpkin Head/Mad Pumpkin Head (Thin) - Bullet
 13296 Castle Soldier
 13462 Putrid Corpse - Explosion
 13617 Ancestor Spirit - Drain Attack
+13631 Ancestor Spirit Phase 2 - Animation Offset +1m
 13780 Tree Sentinel - Sacred Vow Self
 13782 Tree Sentinel - Sacred Vow Ally
 13855 Cleanrot Knight - Bullet - Buff
 13856 Cleanrot Knight - Bullet - Buff
-14016 Monstrous Crow - Bullet
-14028 Monstrous Dog - Bullet
+14016 Giant Crow - Bullet
+14028 Giant Dog - Bullet
 14351 [Rennala]
 14352 [Rennala]
 14353 [Rennala]
 14354 [Rennala]
-14386 Rennala Student - Main Target
+14386 Juvenile Scholar - Main Target
 14405 Depraved Perfumer - Shield Bullet
 14406 Depraved Perfumer - Bullet
 14435 Depraved Perfumer
@@ -817,10 +917,13 @@
 15452 Godskin Apostle - Sleep Awake
 15467 Godskin Apostle - Lifedrain
 15511 Godskin Noble
+16230 Morgott Phase 2 - Animation Offset +1m
 16316 Spirit Summon - Fade In
 16414 Elemer of the Briar
 16482 Fallingstar Beast - Ground AoE Alert
 16488 Fallingstar Beast
+16513 Omen Phase 2 - Animation Offset +1m
+16514 Omen Phase 2 - Animation Offset +1m
 17171 Imp
 17654 Death Rite Bird - Bullet
 18400 Malenia: HP Recovery on ?
@@ -844,8 +947,11 @@
 18432 Malenia: Rot 120
 18433 Malenia: Rot 60
 18454 Malenia - Bullet
-18699 Spirit Summon - Phantom Color
+18699 Unknown FFX
 18731 Melina - HP Recovery
+19981 Priestess Heart
+19985 Verdigris Discus
+19990 Sharpshot Talisman
 20000 NPC: Poison
 20001 NPC: Poison
 20002 NPC: Poison
@@ -1104,7 +1210,11 @@
 90161 NPC: Ignore Fake Targets - Animal
 90162 NPC: Ignore Fake Targets - Undead and Animal
 90200 NPC: Enable Charm
-100002 HKS - Sword Arts - Dashing
+99002 Animation Offset +1m - Unknown
+99402 Animation Offset +1m - Unknown
+100000 HKS - Slow Walk
+100001 HKS - Walking
+100002 HKS - Dashing
 100020 HKS - Out of Stamina
 100050 HKS - Sword Arts - One Shot Combo End
 100051 HKS - Sword Arts - One Shot Combo End
@@ -1130,7 +1240,6 @@
 100500 HKS - Sword Arts - Raptor Dodge
 100530 HKS - Sword Arts - Unk Charge or Right 90 Attack
 100540 HKS - Sword Arts - 180 Attack
-100550 HKS - Sword Arts - Left 90 Attack
 100600 HKS - Magic - Right Combo Window 1
 100601 HKS - Magic - Right Combo Window 2
 100605 HKS - Magic - Left Combo Window 1
@@ -1142,6 +1251,7 @@
 100640 HKS - Unk Toughness Increase
 100660 HKS - Sword Arts - Loop
 100670 HKS - Sword Arts - Loop
+100690 Resting at Grace
 100700 HKS - Sword Arts - Half Loop
 100710 HKS - Sword Arts Rolling Self Trans
 100720 HKS - Rolling Damage Count Unk
@@ -1150,6 +1260,34 @@
 100901 HKS - Torrent - Unk Can Dash
 100902 HKS - Torrent - Is Jumping
 100903 HKS - Torrent - Is Galloping
+102000 Deflecting Hardtear
+102001 Deflecting Hardtear
+102002 Deflecting Hardtear
+102003 Deflecting Hardtear
+102004 Deflecting Hardtear
+102005 Deflecting Hardtear
+102006 Deflecting Hardtear
+102007 Deflecting Hardtear
+102008 Deflecting Hardtear
+102009 Deflecting Hardtear
+102310 Eternal Sleep Grease - Right
+102311 Eternal Sleep Grease - Right [Attack]
+102312 Drawstring Eternal Sleep Grease - Right
+102313 Drawstring Eternal Sleep Grease - Right [Attack]
+102314 Eternal Sleep Grease - Left
+102315 Eternal Sleep Grease - Left [Attack]
+102316 Drawstring Eternal Sleep Grease - Left
+102317 Drawstring Eternal Sleep Grease - Left [Attack]
+102360 Viridian Hidden Tear
+102361 Viridian Hidden Tear
+102362 Viridian Hidden Tear
+102363 Viridian Hidden Tear
+102364 Viridian Hidden Tear
+102365 Viridian Hidden Tear
+102366 Viridian Hidden Tear
+102367 Viridian Hidden Tear
+102368 Viridian Hidden Tear
+102369 Viridian Hidden Tear
 105000 Hemorrhage - Low - Addition +0
 105001 Hemorrhage - Low - Addition +1
 105002 Hemorrhage - Low - Addition +2
@@ -2845,6 +2983,8 @@
 290208 Spirit Summon Adjustment - Mimic Tear +8
 290209 Spirit Summon Adjustment - Mimic Tear +9
 290210 Spirit Summon Adjustment - Mimic Tear +10
+295000 Spirit Summon - Color
+295200 Spirit Summon - Color (Puppet)
 295900 Spirit Summon -
 295901 Spirit Summon -
 295902 Spirit Summon -
@@ -2859,11 +2999,11 @@
 296156 Spirit Summon - Damage/Absorption Setup
 296159 Spirit Summon - Damage/Absorption Setup
 297000 Spirit Summon - Follow & Warp to Player
-297100 Spirit Summon -
-297101 Spirit Summon -
-297102 Spirit Summon -
-297103 Spirit Summon -
-297200 Spirit Summon -
+297100 Spirit Summon - PLAN_SP_EFFECT_BUDDY_WALK_FOLLOW
+297101 Spirit Summon - PLAN_SP_EFFECT_BUDDY_REAR_FOLLOW
+297102 Spirit Summon - PLAN_SP_EFFECT_BUDDY_FLY_FOLLOW
+297103 Spirit Summon - PLAN_SP_EFFECT_BUDDY_NO_FOLLOW
+297200 Spirit Summon - PLAN_SP_EFFECT_BUDDY_INTERCEPT_LONGRANGE
 297800 Spirit Summon -
 297810 Spirit Summon -
 297811 Spirit Summon -
@@ -2959,6 +3099,7 @@
 321701 Kindred of Rot's Exultation [Cycle]
 321800 Claw Talisman
 321900 Roar Medallion
+321901 Roar Medallion
 322000 Curved Sword Talisman
 322100 Companion Jar
 322200 Perfumer's Talisman
@@ -3131,10 +3272,10 @@
 503320 Scriptstone
 503321 Scriptstone [Cycle]
 503350 Bewitching Branch
-503355 Baldachin's Blessing
-503356 Baldachin's Blessing [Cycle]
-503361 Radiant Baldachin's Blessing
-503362 Radiant Baldachin's Blessing [Cycle]
+503355 Baldachin's Blessing - Used
+503356 Baldachin's Blessing - Used [Cycle]
+503359 Baldachin's Blessing - Remove Held Debuff
+503360 Baldachin's Blessing - Held Debuff
 503500 Uplifting Aromatic
 503501 Uplifting Aromatic
 503520 Ironjar Aromatic
@@ -3173,6 +3314,8 @@
 511079 Ruptured Crystal Tear [Chain]
 511080 Ruptured Crystal Tear [Chain]
 511081 Ruptured Crystal Tear [Chain]
+530007 HKS - Goods Stamina Cost (Throwing Knife, Wraith Calling Bell)
+530012 HKS - Goods Stamina Cost (Throw, Aromatics, others)
 1413000 [Sorcery] Terra Magicus
 1414000 [Sorcery] Starlight
 1436000 [Sorcery] Rennala's Full Moon
@@ -3400,3 +3543,636 @@
 5321400 Icon Shield - Grant HP Restoration
 5322200 Ant's Skull Plate - Raise Immunity
 5322400 Eclipse Crest Greatshield - Raise Immunity Robustness and Focus
+6012000 Alberich's Pointed Hat
+6012010 Alberich's Robe
+6012020 Alberich's Bracers
+6013000 Spellblade's Pointed Hat
+6013010 Spellblade's Traveling Attire
+6013020 Spellblade's Gloves
+6013030 Spellblade's Trousers
+6013110 Spellblade's Traveling Attire (Altered)
+6018010 Black Knife Armor
+6021000 Briar Helm
+6021010 Briar Armor
+6021020 Briar Gauntlets
+6021030 Briar Greaves
+6021110 Briar Armor (Altered)
+6030100 Shining Horned Headband
+6031000 Duelist Helm
+6031030 Duelist Greaves
+6031110 Gravekeeper Cloak (Altered)
+6033010 Guardian Garb (Full Bloom)
+6044000 Pumpkin Helm
+6051000 Queen's Crescent Crown
+6053010 Godskin Noble Robe
+6057000 Crucible Axe Helm
+6057010 Crucible Axe Armor
+6057020 Crucible Gauntlets
+6057030 Crucible Greaves
+6057100 Crucible Tree Helm
+6057110 Crucible Tree Armor
+6057210 Crucible Axe Armor (Altered)
+6057310 Crucible Tree Armor (Altered)
+6058000 Lusat's Glintstone Crown
+6058001 Lusat's Glintstone Crown
+6058100 Azur's Glintstone Crown
+6058101 Azur's Glintstone Crown
+6068000 White Mask
+6068001 White Mask - Effect
+6069000 Royal Remains Helm
+6069010 Royal Remains Armor
+6069020 Royal Remains Gauntlets
+6069030 Royal Remains Greaves
+6074000 Crimson Hood
+6074100 Navy Hood
+6081010 Commoner's Garb
+6082000 Envoy Crown
+6083000 Twinsage Glintstone Crown
+6083001 Twinsage Glintstone Crown
+6083100 Olivinus Glintstone Crown
+6083101 Olivinus Glintstone Crown
+6083200 Lazuli Glintstone Crown
+6083201 Lazuli Glintstone Crown
+6083202 Lazuli Glintstone Crown
+6083300 Karolos Glintstone Crown
+6083301 Karolos Glintstone Crown
+6083400 Witch's Glintstone Crown
+6083401 Witch's Glintstone Crown
+6087200 Okina Mask
+6087201 Okina Mask
+6091000 Preceptor's Big Hat
+6091001 Preceptor's Big Hat
+6091100 Mask of Confidence
+6093010 Raptor's Black Feathers
+6096000 Consort's Mask
+6096100 Ruler's Mask
+6096300 Marais Mask
+6097000 Omen Helm
+6097001 Omen Helm
+6097010 Omen Armor
+6097011 Omen Armor
+6097020 Omen Gauntlets
+6097021 Omen Gauntlets
+6097030 Omen Greaves
+6097031 Omen Greaves
+6099000 Hierodas Glintstone Crown
+6099001 Hierodas Glintstone Crown
+6100000 Haima Glintstone Crown
+6100001 Haima Glintstone Crown
+6101000 Snow Witch Hat
+6104000 Radiant Gold Mask
+6106000 Albinauric Mask
+6106001 Albinauric Mask
+6108000 Imp Head (Cat)
+6108100 Imp Head (Fanged)
+6108200 Imp Head (Long-Tongued)
+6108300 Imp Head (Corpse)
+6108400 Imp Head (Wolf)
+6108500 Imp Head (Elder)
+6109000 Silver Tear Mask
+6109001 Silver Tear Mask
+6112000 Jar
+6160000 Greathood
+6160001 Greathood
+6175000 Haligtree Helm
+6182000 Haligtree Knight Helm
+6188000 Sacred Crown Helm
+6189000 Omensmirk Mask
+6190000 Ash-of-War Scarab
+6190001 Ash-of-War Scarab
+6190100 Incantation Scarab
+6190101 Incantation Scarab
+6190200 Glintstone Scarab
+6190201 Glintstone Scarab
+6191000 Crimson Tear Scarab
+6191001 Crimson Tear Scarab
+6192000 Cerulean Tear Scarab
+6192001 Cerulean Tear Scarab
+6193010 Deathbed Dress
+6193011 Deathbed Dress
+6193012 Deathbed Dress - Heal
+6200000 Rotten Duelist Helm
+6200030 Rotten Duelist Greaves
+6200110 Rotten Gravekeeper Cloak (Altered)
+6201000 Mushroom Crown
+6201001 Mushroom Crown
+6202000 Black Dumpling
+6202001 Black Dumpling
+20000100 Scadutree Fragment: 0
+20000101 Scadutree Fragment: 1
+20000102 Scadutree Fragment: 2
+20000103 Scadutree Fragment: 3
+20000104 Scadutree Fragment: 4
+20000105 Scadutree Fragment: 5
+20000106 Scadutree Fragment: 6
+20000107 Scadutree Fragment: 7
+20000108 Scadutree Fragment: 8
+20000109 Scadutree Fragment: 9
+20000110 Scadutree Fragment: 10
+20000111 Scadutree Fragment: 11
+20000112 Scadutree Fragment: 12
+20000113 Scadutree Fragment: 13
+20000114 Scadutree Fragment: 14
+20000115 Scadutree Fragment: 15
+20000116 Scadutree Fragment: 16
+20000117 Scadutree Fragment: 17
+20000118 Scadutree Fragment: 18
+20000119 Scadutree Fragment: 19
+20000120 Scadutree Fragment: 20
+20000200 Revered Spirit Ash: 0
+20000201 Revered Spirit Ash: 1
+20000202 Revered Spirit Ash: 2
+20000203 Revered Spirit Ash: 3
+20000204 Revered Spirit Ash: 4
+20000205 Revered Spirit Ash: 5
+20000206 Revered Spirit Ash: 6
+20000207 Revered Spirit Ash: 7
+20000208 Revered Spirit Ash: 8
+20000209 Revered Spirit Ash: 9
+20000210 Revered Spirit Ash: 10
+20007000 SOTE - Level Scaling:
+20007010 SOTE - Level Scaling:
+20007020 SOTE - Level Scaling:
+20007030 SOTE - Level Scaling:
+20007040 SOTE - Level Scaling:
+20007050 SOTE - Level Scaling:
+20007060 SOTE - Level Scaling:
+20007070 SOTE - Level Scaling:
+20007080 SOTE - Level Scaling:
+20007090 SOTE - Level Scaling:
+20007100 SOTE - Level Scaling:
+20007110 SOTE - Level Scaling:
+20007120 SOTE - Level Scaling:
+20007130 SOTE - Level Scaling:
+20007140 SOTE - Level Scaling:
+20007150 SOTE - Level Scaling:
+20007200 SOTE - Human-NPC Level Scaling:
+20007210 SOTE - Human-NPC Level Scaling:
+20007220 SOTE - Human-NPC Level Scaling:
+20007230 SOTE - Human-NPC Level Scaling:
+20007240 SOTE - Human-NPC Level Scaling:
+20007250 SOTE - Human-NPC Level Scaling:
+20007260 SOTE - Human-NPC Level Scaling:
+20007270 SOTE - Human-NPC Level Scaling:
+20007280 SOTE - Human-NPC Level Scaling:
+20007290 SOTE - Human-NPC Level Scaling:
+20007300 SOTE - Human-NPC Level Scaling:
+20007310 SOTE - Human-NPC Level Scaling:
+20007320 SOTE - Human-NPC Level Scaling:
+20007330 SOTE - Human-NPC Level Scaling:
+20007340 SOTE - Human-NPC Level Scaling:
+20007350 SOTE - Human-NPC Level Scaling:
+20007400 SOTE - NG+ Scaling:
+20007410 SOTE - NG+ Scaling:
+20007420 SOTE - NG+ Scaling:
+20007430 SOTE - NG+ Scaling:
+20007440 SOTE - NG+ Scaling:
+20007450 SOTE - NG+ Scaling:
+20007460 SOTE - NG+ Scaling:
+20007470 SOTE - NG+ Scaling:
+20007480 SOTE - NG+ Scaling:
+20007490 SOTE - NG+ Scaling:
+20007500 SOTE - NG+ Scaling:
+20007510 SOTE - NG+ Scaling:
+20007520 SOTE - NG+ Scaling:
+20007530 SOTE - NG+ Scaling:
+20007540 SOTE - NG+ Scaling:
+20007550 SOTE - NG+ Scaling:
+20007600 SOTE - Human-NPC NG+ Scaling:
+20007610 SOTE - Human-NPC NG+ Scaling:
+20007620 SOTE - Human-NPC NG+ Scaling:
+20007630 SOTE - Human-NPC NG+ Scaling:
+20007640 SOTE - Human-NPC NG+ Scaling:
+20007650 SOTE - Human-NPC NG+ Scaling:
+20007660 SOTE - Human-NPC NG+ Scaling:
+20007670 SOTE - Human-NPC NG+ Scaling:
+20007680 SOTE - Human-NPC NG+ Scaling:
+20007690 SOTE - Human-NPC NG+ Scaling:
+20007700 SOTE - Human-NPC NG+ Scaling:
+20007710 SOTE - Human-NPC NG+ Scaling:
+20007720 SOTE - Human-NPC NG+ Scaling:
+20007730 SOTE - Human-NPC NG+ Scaling:
+20007740 SOTE - Human-NPC NG+ Scaling:
+20007750 SOTE - Human-NPC NG+ Scaling:
+20200000 Curseblade Meera
+20200001 Curseblade Meera +1
+20200002 Curseblade Meera +2
+20200003 Curseblade Meera +3
+20200004 Curseblade Meera +4
+20200005 Curseblade Meera +5
+20200006 Curseblade Meera +6
+20200007 Curseblade Meera +7
+20200008 Curseblade Meera +8
+20200009 Curseblade Meera +9
+20200010 Curseblade Meera +10
+20201000 Bloodfiend Hexer's Ashes
+20201001 Bloodfiend Hexer's Ashes +1
+20201002 Bloodfiend Hexer's Ashes +2
+20201003 Bloodfiend Hexer's Ashes +3
+20201004 Bloodfiend Hexer's Ashes +4
+20201005 Bloodfiend Hexer's Ashes +5
+20201006 Bloodfiend Hexer's Ashes +6
+20201007 Bloodfiend Hexer's Ashes +7
+20201008 Bloodfiend Hexer's Ashes +8
+20201009 Bloodfiend Hexer's Ashes +9
+20201010 Bloodfiend Hexer's Ashes +10
+20202000 Gravebird Ashes
+20202001 Gravebird Ashes +1
+20202002 Gravebird Ashes +2
+20202003 Gravebird Ashes +3
+20202004 Gravebird Ashes +4
+20202005 Gravebird Ashes +5
+20202006 Gravebird Ashes +6
+20202007 Gravebird Ashes +7
+20202008 Gravebird Ashes +8
+20202009 Gravebird Ashes +9
+20202010 Gravebird Ashes +10
+20203000 Fire Knight Hilde
+20203001 Fire Knight Hilde +1
+20203002 Fire Knight Hilde +2
+20203003 Fire Knight Hilde +3
+20203004 Fire Knight Hilde +4
+20203005 Fire Knight Hilde +5
+20203006 Fire Knight Hilde +6
+20203007 Fire Knight Hilde +7
+20203008 Fire Knight Hilde +8
+20203009 Fire Knight Hilde +9
+20203010 Fire Knight Hilde +10
+20204000 Spider Scorpion Ashes
+20204001 Spider Scorpion Ashes +1
+20204002 Spider Scorpion Ashes +2
+20204003 Spider Scorpion Ashes +3
+20204004 Spider Scorpion Ashes +4
+20204005 Spider Scorpion Ashes +5
+20204006 Spider Scorpion Ashes +6
+20204007 Spider Scorpion Ashes +7
+20204008 Spider Scorpion Ashes +8
+20204009 Spider Scorpion Ashes +9
+20204010 Spider Scorpion Ashes +10
+20205000 Inquisitor Ashes
+20205001 Inquisitor Ashes +1
+20205002 Inquisitor Ashes +2
+20205003 Inquisitor Ashes +3
+20205004 Inquisitor Ashes +4
+20205005 Inquisitor Ashes +5
+20205006 Inquisitor Ashes +6
+20205007 Inquisitor Ashes +7
+20205008 Inquisitor Ashes +8
+20205009 Inquisitor Ashes +9
+20205010 Inquisitor Ashes +10
+20206000 Demi-Human Swordsman Yosh
+20206001 Demi-Human Swordsman Yosh +1
+20206002 Demi-Human Swordsman Yosh +2
+20206003 Demi-Human Swordsman Yosh +3
+20206004 Demi-Human Swordsman Yosh +4
+20206005 Demi-Human Swordsman Yosh +5
+20206006 Demi-Human Swordsman Yosh +6
+20206007 Demi-Human Swordsman Yosh +7
+20206008 Demi-Human Swordsman Yosh +8
+20206009 Demi-Human Swordsman Yosh +9
+20206010 Demi-Human Swordsman Yosh +10
+20207000 Messmer Soldier Ashes
+20207001 Messmer Soldier Ashes +1
+20207002 Messmer Soldier Ashes +2
+20207003 Messmer Soldier Ashes +3
+20207004 Messmer Soldier Ashes +4
+20207005 Messmer Soldier Ashes +5
+20207006 Messmer Soldier Ashes +6
+20207007 Messmer Soldier Ashes +7
+20207008 Messmer Soldier Ashes +8
+20207009 Messmer Soldier Ashes +9
+20207010 Messmer Soldier Ashes +10
+20208000 Black Knight Commander Andreas
+20208001 Black Knight Commander Andreas +1
+20208002 Black Knight Commander Andreas +2
+20208003 Black Knight Commander Andreas +3
+20208004 Black Knight Commander Andreas +4
+20208005 Black Knight Commander Andreas +5
+20208006 Black Knight Commander Andreas +6
+20208007 Black Knight Commander Andreas +7
+20208008 Black Knight Commander Andreas +8
+20208009 Black Knight Commander Andreas +9
+20208010 Black Knight Commander Andreas +10
+20209000 Black Knight Captain Huw
+20209001 Black Knight Captain Huw +1
+20209002 Black Knight Captain Huw +2
+20209003 Black Knight Captain Huw +3
+20209004 Black Knight Captain Huw +4
+20209005 Black Knight Captain Huw +5
+20209006 Black Knight Captain Huw +6
+20209007 Black Knight Captain Huw +7
+20209008 Black Knight Captain Huw +8
+20209009 Black Knight Captain Huw +9
+20209010 Black Knight Captain Huw +10
+20210000 Bigmouth Imp Ashes
+20210001 Bigmouth Imp Ashes +1
+20210002 Bigmouth Imp Ashes +2
+20210003 Bigmouth Imp Ashes +3
+20210004 Bigmouth Imp Ashes +4
+20210005 Bigmouth Imp Ashes +5
+20210006 Bigmouth Imp Ashes +6
+20210007 Bigmouth Imp Ashes +7
+20210008 Bigmouth Imp Ashes +8
+20210009 Bigmouth Imp Ashes +9
+20210010 Bigmouth Imp Ashes +10
+20211000 Man-Fly Ashes
+20211001 Man-Fly Ashes +1
+20211002 Man-Fly Ashes +2
+20211003 Man-Fly Ashes +3
+20211004 Man-Fly Ashes +4
+20211005 Man-Fly Ashes +5
+20211006 Man-Fly Ashes +6
+20211007 Man-Fly Ashes +7
+20211008 Man-Fly Ashes +8
+20211009 Man-Fly Ashes +9
+20211010 Man-Fly Ashes +10
+20212000 Taylew the Golem Smith
+20212001 Taylew the Golem Smith +1
+20212002 Taylew the Golem Smith +2
+20212003 Taylew the Golem Smith +3
+20212004 Taylew the Golem Smith +4
+20212005 Taylew the Golem Smith +5
+20212006 Taylew the Golem Smith +6
+20212007 Taylew the Golem Smith +7
+20212008 Taylew the Golem Smith +8
+20212009 Taylew the Golem Smith +9
+20212010 Taylew the Golem Smith +10
+20213000 Divine Bird Warrior Ornis
+20213001 Divine Bird Warrior Ornis +1
+20213002 Divine Bird Warrior Ornis +2
+20213003 Divine Bird Warrior Ornis +3
+20213004 Divine Bird Warrior Ornis +4
+20213005 Divine Bird Warrior Ornis +5
+20213006 Divine Bird Warrior Ornis +6
+20213007 Divine Bird Warrior Ornis +7
+20213008 Divine Bird Warrior Ornis +8
+20213009 Divine Bird Warrior Ornis +9
+20213010 Divine Bird Warrior Ornis +10
+20214000 Horned Warrior Ashes
+20214001 Horned Warrior Ashes +1
+20214002 Horned Warrior Ashes +2
+20214003 Horned Warrior Ashes +3
+20214004 Horned Warrior Ashes +4
+20214005 Horned Warrior Ashes +5
+20214006 Horned Warrior Ashes +6
+20214007 Horned Warrior Ashes +7
+20214008 Horned Warrior Ashes +8
+20214009 Horned Warrior Ashes +9
+20214010 Horned Warrior Ashes +10
+20215000 Ancient Dragon Florissax
+20215001 Ancient Dragon Florissax +1
+20215002 Ancient Dragon Florissax +2
+20215003 Ancient Dragon Florissax +3
+20215004 Ancient Dragon Florissax +4
+20215005 Ancient Dragon Florissax +5
+20215006 Ancient Dragon Florissax +6
+20215007 Ancient Dragon Florissax +7
+20215008 Ancient Dragon Florissax +8
+20215009 Ancient Dragon Florissax +9
+20215010 Ancient Dragon Florissax +10
+20217000 Fingercreeper Ashes
+20217001 Fingercreeper Ashes +1
+20217002 Fingercreeper Ashes +2
+20217003 Fingercreeper Ashes +3
+20217004 Fingercreeper Ashes +4
+20217005 Fingercreeper Ashes +5
+20217006 Fingercreeper Ashes +6
+20217007 Fingercreeper Ashes +7
+20217008 Fingercreeper Ashes +8
+20217009 Fingercreeper Ashes +9
+20217010 Fingercreeper Ashes +10
+20218000 Fire Knight Queelign
+20218001 Fire Knight Queelign +1
+20218002 Fire Knight Queelign +2
+20218003 Fire Knight Queelign +3
+20218004 Fire Knight Queelign +4
+20218005 Fire Knight Queelign +5
+20218006 Fire Knight Queelign +6
+20218007 Fire Knight Queelign +7
+20218008 Fire Knight Queelign +8
+20218009 Fire Knight Queelign +9
+20218010 Fire Knight Queelign +10
+20219000 Swordhand of Night Jolán
+20219001 Swordhand of Night Jolán +1
+20219002 Swordhand of Night Jolán +2
+20219003 Swordhand of Night Jolán +3
+20219004 Swordhand of Night Jolán +4
+20219005 Swordhand of Night Jolán +5
+20219006 Swordhand of Night Jolán +6
+20219007 Swordhand of Night Jolán +7
+20219008 Swordhand of Night Jolán +8
+20219009 Swordhand of Night Jolán +9
+20219010 Swordhand of Night Jolán +10
+20220000 Jolán and Anna
+20220001 Jolán and Anna +1
+20220002 Jolán and Anna +2
+20220003 Jolán and Anna +3
+20220004 Jolán and Anna +4
+20220005 Jolán and Anna +5
+20220006 Jolán and Anna +6
+20220007 Jolán and Anna +7
+20220008 Jolán and Anna +8
+20220009 Jolán and Anna +9
+20220010 Jolán and Anna +10
+20370000 Crimson Amber Medallion +3
+20370100 Cerulean Amber Medallion +3
+20370200 Viridian Amber Medallion +3
+20370300 Two-Headed Turtle Talisman
+20370400 Stalwart Horn Charm +2
+20370500 Immunizing Horn Charm +2
+20370600 Clarifying Horn Charm +2
+20370800 Mottled Necklace +2
+20370900 Spelldrake Talisman +3
+20371000 Flamedrake Talisman +3
+20371100 Boltdrake Talisman +3
+20371200 Golden Braid
+20371300 Pearldrake Talisman +3
+20371400 Crimson Seed Talisman +1
+20371500 Cerulean Seed Talisman +1
+20380000 Blessed Blue Dew Talisman
+20380100 Fine Crucible Feather Talisman
+20380200 Outer God Heirloom
+20380300 Shattered Stone Talisman
+20380400 Two-Handed Sword Talisman
+20380500 Crusade Insignia
+20380501 Crusade Insignia - On Kill
+20380600 Aged One's Exultation
+20380601 Aged One's Exultation - On Kill
+20380700 Arrow's Soaring Sting Talisman
+20380701 Arrow's Soaring Sting Talisman - On Kill
+20380900 Pearl Shield Talisman
+20380901 Pearl Shield Talisman [Cycle]
+20380902 Pearl Shield Talisman [Cycle]
+20381000 Dried Bouquet
+20381001 Dried Bouquet
+20381100 Smithing Talisman
+20381200 Ailment Talisman
+20381201 Ailment Talisman
+20381202 Ailment Talisman
+20381203 Ailment Talisman
+20381204 Ailment Talisman
+20381205 Ailment Talisman
+20381206 Ailment Talisman
+20381207 Ailment Talisman
+20381211 Ailment Talisman
+20381212 Ailment Talisman
+20381213 Ailment Talisman
+20381214 Ailment Talisman
+20381215 Ailment Talisman
+20381216 Ailment Talisman
+20381221 Ailment Talisman
+20381222 Ailment Talisman
+20381223 Ailment Talisman
+20381224 Ailment Talisman
+20381225 Ailment Talisman
+20381226 Ailment Talisman
+20381231 Ailment Talisman
+20381232 Ailment Talisman
+20381233 Ailment Talisman
+20381234 Ailment Talisman
+20381235 Ailment Talisman
+20381236 Ailment Talisman
+20381241 Ailment Talisman
+20381242 Ailment Talisman
+20381243 Ailment Talisman
+20381244 Ailment Talisman
+20381245 Ailment Talisman
+20381246 Ailment Talisman
+20381251 Ailment Talisman
+20381252 Ailment Talisman
+20381253 Ailment Talisman
+20381254 Ailment Talisman
+20381255 Ailment Talisman
+20381256 Ailment Talisman
+20381300 Retaliatory Crossed-Tree
+20381400 Lacerating Crossed-Tree
+20381600 St. Trina's Smile
+20381601 St. Trina's Smile
+20381700 Talisman of the Dread
+20381800 Enraged Divine Beast
+20381900 Beloved Stardust
+20381901 Beloved Stardust
+20382000 Talisman of Lord's Bestowal
+20382003 Talisman of Lord's Bestowal
+20382004 Talisman of Lord's Bestowal
+20382010 Talisman of Lord's Bestowal
+20382011 Talisman of Lord's Bestowal
+20382015 Talisman of Lord's Bestowal
+20382016 Talisman of Lord's Bestowal
+20382200 Rellana's Cameo
+20382201 Rellana's Cameo
+20382202 Rellana's Cameo
+20382203 Rellana's Cameo
+20382204 Rellana's Cameo
+20382205 Rellana's Cameo
+20382206 Rellana's Cameo
+20382300 Blade of Mercy
+20382301 Blade of Mercy
+20382302 Blade of Mercy
+20382400 Talisman of All Crucibles
+20382401 Talisman of All Crucibles
+20382402 Talisman of All Crucibles
+20382403 Talisman of All Crucibles
+20382404 Talisman of All Crucibles
+20382405 Fine Crucible Feather Talisman [Cycle]
+20383000 Companion Jar
+20500330 Poison: Hefty Fetid Pot
+20500331 Poison: Hefty Fetid Pot [Shooter]
+20500360 Frost: Hefty Freezing Pot
+20500370 Poison: Hefty Poison Pot
+20500380 Oil: Hefty Oil Pot
+20500620 Madness: Hefty Frenzied Flame Pot
+20500670 Scarlet Rot: Hefty Rot Pot
+20500680 Hefty Furnace Pot
+20500681 Hefty Fire Pot
+20500690 Hefty Red Lightning Pot
+20500691 Hefty Red Lightning Pot [Chain]
+20500700 Red Lightning Pot
+20500701 Red Lightning Pot [Chain]
+20500710 Frenzied Flame Pot
+20500740 Eternal Sleep Pot
+20500800 Spirit Raisin
+20500801 Spirit Raisin
+20500900 Blessing of Marika
+20500901 Blessing of Marika
+20500902 Blessing of Marika
+20500903 Blessing of Marika
+20500904 Blessing of Marika
+20500905 Blessing of Marika
+20500906 Blessing of Marika
+20500907 Blessing of Marika
+20500908 Blessing of Marika
+20500910 Lulling Branch
+20500911 Lulling Branch
+20500912 Lulling Branch
+20500913 Lulling Branch
+20500914 Lulling Branch
+20500915 Lulling Branch
+20500916 Lulling Branch
+20500917 Lulling Branch
+20500918 Lulling Branch
+20501100 Dragon Communion Flesh
+20501101 Dragon Communion Flesh
+20501102 Dragon Communion Flesh
+20501103 Dragon Communion Flesh
+20501105 Dragonscale Flesh
+20501106 Dragonscale Flesh
+20501110 Fingerprint Nostrum
+20501111 Fingerprint Nostrum
+20501112 Fingerprint Nostrum
+20501120 Spellproof Pickled Liver
+20501130 Fireproof Pickled Liver
+20501140 Lightningproof Pickled Liver
+20501150 Holyproof Pickled Liver
+20501160 Opaline Pickled Liver
+20501170 Well-Pickled Turtle Neck
+20501200 Scorpion Stew
+20501201 Scorpion Stew
+20501202 Scorpion Stew
+20501205 Gourmet Scorpion Stew
+20501206 Gourmet Scorpion Stew
+20501207 Gourmet Scorpion Stew
+20501210 Sacred Bloody Flesh
+20501211 Sacred Bloody Flesh
+20501212 Sacred Bloody Flesh
+20501213 Sacred Bloody Flesh
+20501220 Silver Horn Tender
+20501230 Golden Horn Tender
+20501400 Messmerfire Grease - Right
+20501401 Drawstring Messmerfire Grease - Right
+20501402 Messmerfire Grease - Left
+20501403 Drawstring Messmerfire Grease - Left
+20501410 Dragonbolt Grease - Right
+20501411 Drawstring Dragonbolt Grease - Right
+20501412 Dragonbolt Grease - Left
+20501413 Drawstring Dragonbolt Grease - Left
+20501420 Royal Magic Grease - Right
+20501421 Drawstring Royal Magic Grease - Right
+20501422 Royal Magic Grease - Left
+20501423 Drawstring Royal Magic Grease - Left
+20501430 Golden Grease - Right
+20501431 Drawstring Golden Grease - Right
+20501432 Golden Grease - Left
+20501433 Drawstring Golden Grease - Left
+20501480 Dragon Communion Grease - Right
+20501481 Dragon Communion Grease - Left
+20501620 Festive Grease - Right
+20501622 Festive Grease - Left
+20511010 Crimsonburst Dried Tear
+20511011 Crimsonburst Dried Tear
+20511012 Crimsonburst Dried Tear
+20511020 Crimson-Sapping Cracked Tear
+20511021 Crimson-Sapping Cracked Tear
+20511022 Crimson-Sapping Cracked Tear
+20511023 Crimson-Sapping Cracked Tear
+20511030 Cerulean-Sapping Cracked Tear
+20511031 Cerulean-Sapping Cracked Tear
+20511032 Cerulean-Sapping Cracked Tear
+20511033 Cerulean-Sapping Cracked Tear
+20511040 Oil-Soaked Tear
+20511041 Oil-Soaked Tear
+20511042 Oil-Soaked Tear
+20511050 Bloodsucking Cracked Tear
+20511051 Bloodsucking Cracked Tear
+20511060 Glovewort Crystal Tear
+20511061 Glovewort Crystal Tear

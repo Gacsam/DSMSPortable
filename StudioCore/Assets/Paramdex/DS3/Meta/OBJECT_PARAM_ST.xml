@@ -19,10 +19,10 @@
     <isCamHit AltName="Is Camera Hit" Wiki="Does the camera hit (0 not hit, 1 hit)" IsBool="" />
     <isBreakByPlayerCollide AltName="Is Broken by Player Collision" Wiki="Broken when the player touches (0 no, 1)" IsBool="" />
     <isAnimBreak AltName="Is Animated Destruction" Wiki="Is it animation destruction (0 physical destruction, 1 animation destruction)" IsBool="" />
-    <isPenetrationBulletHit AltName="Is Penetrated by Bullet" Wiki="Will the penetrating bullet hit (0 not hit, 1 hit)" IsBool="" />
+    <isPenetrationBulletHit AltName="Is Hit by Penetrating Bullets" Wiki="Will the penetrating bullet hit (0 not hit, 1 hit)" IsBool="" />
     <isChrHit AltName="Is Character Hit" Wiki="Does the character win (0 not hit, 1 hit)" IsBool="" />
     <isAttackBacklash AltName="Cause Weapon Bounce" Wiki="Do you play the attack (0 do not play, 1 play)" IsBool="" />
-    <isDisableBreakForFirstAppear AltName="Is Disable Destruction on First Apperance" Wiki="Broken at the initial appearance of the player (0 ru, 1 no)" IsBool="" />
+    <isDisableBreakForFirstAppear AltName="Is Disable Destruction on First Appearance" Wiki="Broken at the initial appearance of the player (0 ru, 1 no)" IsBool="" />
     <isLadder AltName="Is Ladder" Wiki="Is it a ladder (0 different, 1 yes)" IsBool="" />
     <isAnimPauseOnRemoPlay AltName="Is Animation Paused in Cutscene" Wiki="Do you want to stop the animation during the poly play (0 not, 1 do)" IsBool="" />
     <isDamageNoHit AltName="Is Damage No Hit" Wiki="No damage (0 hit, 1 not hit)" IsBool="" />
@@ -69,14 +69,14 @@
 	<BreakAiSoundID AltName="Destruction AI Sound ID" Wiki="AI sound ID generated at the time of destruction" Refs="AiSoundParam" />
     <FragmentInvisibleWaitTime AltName="Debris Fragments - Wait Time" Wiki="Material ID of debris (-1 Do not hide)" />
     <FragmentInvisibleTime AltName="Debris Fragments - Invisibility Time" Wiki="Time to hide debris (seconds)" />
-    <pad_3 AltName="" />
+    <pad_3 AltName="" IsHidden=""/>
 	<RigidPenetrationScale_Soft AltName="Rigid Body Collision - Soft" Wiki="Rigid body soft contact setting Collision point distance coefficient [soft]" />
     <RigidPenetrationScale_Normal AltName="Rigid Body Collision - Normal" Wiki="Rigid soft contact setting Collision point distance coefficient [Normal]" />
     <RigidPenetrationScale_Hard AltName="Rigid Body Collision - Hard" Wiki="Rigid soft contact setting Collision point distance coefficient [hard]" />
     <LandTouchSfxId AltName="Land Touch - SFX ID" Wiki="SFX ID at terrain contact (-1 offset by terrain material)" />
     
     <isDamageCover AltName="Is Damage blocked after Passing Through" Wiki="Whether to pass the damage to the other side when receiving damage (0 pass, 1 do not pass)" IsBool="" />
-    <pad_4 AltName=""/>
+    <pad_4 AltName="" IsHidden=""/>
     
 	<paintDecalTargetTextureSize AltName="Paint Decal Size" Wiki="Paint decal target size (only powers of 0 to 4096 2 allowed)" />
     <lifeTime_forDC AltName="Dynamic Object Duration" Wiki="Time until dynamically generated Obj disappears after generation (0 does not disappear)" />
@@ -84,7 +84,7 @@
 	<contactSeId AltName="Player Touch - SE ID" Wiki="SE ID to play when touched by a local player operated by you (-1 Do not play)" />
 	<breakLandingSfxId AltName="Landing Destruction - SFX ID" Wiki="Object material-dependent SFX identifier that regenerates when first landing after being destroyed (-1 does not occur)" />
     
-    <pad1 AltName=""/>
+    <pad1 AltName="" IsHidden=""/>
   </Field>
   <Self Wiki="Object destruction data" AlternativeOrder="hp,defense,-,
 defaultLodParamId,extRefTexId,materialId,LandTouchSfxId,contactSeId,-,

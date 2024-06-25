@@ -1,0 +1,564 @@
+{
+    "list": [
+        {
+            "id": "m10_00",
+            "name": "Stormveil Castle",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m10_01",
+            "name": "Chapel of Anticipation",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m11_00",
+            "name": "Leyndell, Royal Capital",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m11_05",
+            "name": "Leyndell, Ashen Capital",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m11_10",
+            "name": "Roundtable Hold",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m11_71",
+            "name": "Ending Cutscenes",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m12_01",
+            "name": "Ainsel River",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m12_02",
+            "name": "Siofra River",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m12_03",
+            "name": "Deeproot Depths",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m12_04",
+            "name": "Ainsel River - Boss",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m12_05",
+            "name": "Mohgwyn Palace",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m12_07",
+            "name": "Siofra River Start",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m12_08",
+            "name": "Siofra River - Boss",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m12_09",
+            "name": "Nokron, Eternal City - Boss",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m13_00",
+            "name": "Crumbling Farum Azula",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m14_00",
+            "name": "Academy of Raya Lucaria",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m15_00",
+            "name": "Miquella's Haligtree",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m16_00",
+            "name": "Volcano Manor",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m18_00",
+            "name": "Stranded Graveyard",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m19_00",
+            "name": "Stone Platform",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_00",
+            "name": "Tombsward Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_01",
+            "name": "Impaler's Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_02",
+            "name": "Stormfoot Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_03",
+            "name": "Road's End Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_04",
+            "name": "Murkwater Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_05",
+            "name": "Black Knife Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_06",
+            "name": "Cliffbottom Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_07",
+            "name": "Wyndham Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_08",
+            "name": "Sainted Hero's Grave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_09",
+            "name": "Gelmir Hero's Grave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_10",
+            "name": "Auriza Hero's Grave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_11",
+            "name": "Deathtouched Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_12",
+            "name": "Unsightly Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_13",
+            "name": "Auriza Side Tomb",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_14",
+            "name": "Minor Erdtree Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_15",
+            "name": "Caelid Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_16",
+            "name": "War-Dead Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_17",
+            "name": "Giant-Conquering Hero's Grave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_18",
+            "name": "Giants' Mountaintop Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_19",
+            "name": "Consecrated Snowfield Catacombs",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m30_20",
+            "name": "Hidden Path to the Haligtree",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_00",
+            "name": "Murkwater Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_01",
+            "name": "Earthbore Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_02",
+            "name": "Tombsward Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_03",
+            "name": "Groveside Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_04",
+            "name": "Stillwater Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_05",
+            "name": "Lakeside Crystal Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_06",
+            "name": "Academy Crystal Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_07",
+            "name": "Seethewater Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_09",
+            "name": "Volcano Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_10",
+            "name": "Dragonbarrow Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_11",
+            "name": "Sellia Hideaway",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_12",
+            "name": "Cave of the Forlorn",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_15",
+            "name": "Coastal Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_17",
+            "name": "Highroad Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_18",
+            "name": "Perfumer's Grotto",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_19",
+            "name": "Sage's Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_20",
+            "name": "Abandoned Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_21",
+            "name": "Gaol Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m31_22",
+            "name": "Spiritcaller Cave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m32_00",
+            "name": "Morne Tunnel",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m32_01",
+            "name": "Limgrave Tunnels",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m32_02",
+            "name": "Raya Lucaria Crystal Tunnel",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m32_04",
+            "name": "Old Altus Tunnel",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m32_05",
+            "name": "Altus Tunnel",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m32_07",
+            "name": "Gael Tunnel",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m32_08",
+            "name": "Sellia Crystal Tunnel",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m32_11",
+            "name": "Yelough Anix Tunnel",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m34_10",
+            "name": "Divine Tower of Limgrave",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m34_11",
+            "name": "Divine Tower of Liurnia",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m34_12",
+            "name": "Divine Tower of West Altus",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m34_13",
+            "name": "Divine Tower of Caelid",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m34_14",
+            "name": "Divine Tower of East Altus",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m34_15",
+            "name": "Isolated Divine Tower",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m35_00",
+            "name": "Subterranean Shunning-Grounds",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m39_20",
+            "name": "Ruin-Strewn Precipice",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m45_00",
+            "name": "Royal Colosseum",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m45_01",
+            "name": "Caelid Colosseum",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m45_02",
+            "name": "Limgrave Colosseum",
+            "tags": [
+                ""
+            ]
+        },
+        {
+            "id": "m60_00",
+            "name": "Overworld",
+            "tags": [
+                ""
+            ]
+        }
+    ]
+}

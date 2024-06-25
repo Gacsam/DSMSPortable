@@ -12,11 +12,12 @@
     <behaviorJudgeId />
     <ezStateBehaviorType_old />
     <refType Enum="ReferenceType" />
-    <refId Refs="AtkParam_Pc,AtkParam_Npc,Bullet,SpEffectParam" />
+    <refId Refs="AtkParam_Pc(refType=0),AtkParam_Npc(refType=0),Bullet(refType=1),SpEffectParam(refType=2)" />
     <sfxVariationId />
     <stamina />
     <mp />
     <category />
     <heroPoint />
   </Field>
+  <Self Row0Dummy="" />
 </PARAMMETA>

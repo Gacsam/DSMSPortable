@@ -2,9 +2,9 @@
 <PARAMMETA XmlVersion="0">
   <Enums>
     <Enum Name="ASSET_HIT_CREATE_TYPE_ENUM" type="s8">
-        <Option Value="0" Name="Type 0" />
-        <Option Value="1" Name="Type 1" />
-        <Option Value="2" Name="Type 2" />
+      <Option Value="0" Name="LO Only" />
+      <Option Value="1" Name="HI Only" />
+      <Option Value="2" Name="None" />
     </Enum>
     <Enum Name="ASSET_BEHAVIOR_TYPE" type="u8">
         <Option Value="0" Name="Dynamic" />
@@ -12,18 +12,27 @@
         <Option Value="2" Name="Partial Static" />
     </Enum>
     <Enum Name="ASSET_COLLISION_TYPE" type="u8">
-        <Option Value="0" Name="Type 0" />
-        <Option Value="11" Name="Type 11" />
-        <Option Value="12" Name="Type 12" />
-        <Option Value="13" Name="Type 13" />
-        <Option Value="14" Name="Type 14" />
-        <Option Value="15" Name="Type 15" />
-        <Option Value="16" Name="Type 16" />
+      <Option Value="0" Name="Default" />
+      <Option Value="2" Name="Ignore Large Enemy Hit" />
+      <Option Value="3" Name="Ignore Boss Hit" />
+      <Option Value="11" Name="Type 11" />
+      <Option Value="12" Name="Type 12" />
+      <Option Value="13" Name="Type 13" />
+      <Option Value="14" Name="Type 14" />
+      <Option Value="15" Name="Type 15" />
+      <Option Value="16" Name="Type 16" />
+      <Option Value="51" Name="Ignore Camera Hit" />
+      <Option Value="52" Name="Ignore Camera and Damage Hit" />
+      <Option Value="53" Name="Only Camera Hit" />
+      <Option Value="54" Name="Only Damage Hit" />
+      <Option Value="55" Name="Only Boss Hit" />
+      <Option Value="56" Name="Only Character Hit" />
+      <Option Value="57" Name="Ignore Player and Camera Hit" />
     </Enum>
     <Enum Name="RAIN_BLOCKING_TYPE" type="u8">
-        <Option Value="0" Name="Type 0" />
-        <Option Value="1" Name="Type 1" />
-        <Option Value="2" Name="Type 2" />
+        <Option Value="0" Name="No cut-off" />
+        <Option Value="1" Name="Block short distance" />
+        <Option Value="2" Name="Block long distance" />
     </Enum>
     <Enum Name="ASSET_BREAK_ITEM_LOT_TYPE_ENUM" type="s8">
         <Option Value="0" Name="Type 0" />
@@ -35,30 +44,30 @@
         <Option Value="2" Name="Type 2" />
     </Enum>
     <Enum Name="ASSET_NAVIMESH_FLAG" type="u8">
-        <Option Value="0" Name="Flag 0" />
-        <Option Value="1" Name="Flag 1" />
-        <Option Value="2" Name="Flag 2" />
+        <Option Value="0" Name="None" />
+        <Option Value="1" Name="Obstacle" />
+        <Option Value="2" Name="Impassable" />
+        <Option Value="3" Name="High Cost" />
     </Enum>
     <Enum Name="ASSET_WIND_EFFECT_TYPE" type="u8">
-        <Option Value="0" Name="Type 0" />
-        <Option Value="1" Name="Type 1" />
-        <Option Value="2" Name="Type 2" />
+      <Option Value="0" Name="Disabled" />
+      <Option Value="1" Name="Enabled" />
+      <Option Value="2" Name="Valid (Individual Judgment)" />
     </Enum>
     <Enum Name="ASSET_CAM_NEAR_BEHAVIOR_TYPE" type="s8">
-        <Option Value="-1" Name="Type -1" />
-        <Option Value="0" Name="Type 0" />
-        <Option Value="1" Name="Type 1" />
-        <Option Value="2" Name="Type 2" />
+        <Option Value="0" Name="Never disappear" />
+        <Option Value="1" Name="Assets (higher than Player)" />
+        <Option Value="2" Name="Assets (lower than Player)" />
     </Enum>
     <Enum Name="ASSET_AUTO_DRAW_GROUP_BACKFACE_CHECK_TYPE" type="u8">
-        <Option Value="0" Name="Type 0" />
-        <Option Value="1" Name="Type 1" />
-        <Option Value="2" Name="Type 2" />
+        <Option Value="0" Name="Ignore dynamic asset" />
+        <Option Value="1" Name="No" />
+        <Option Value="2" Name="Yes" />
     </Enum>
     <Enum Name="ASSET_AUTO_DRAW_GROUP_DEPTH_WRITE_TYPE" type="u8">
-        <Option Value="0" Name="Type 0" />
-        <Option Value="1" Name="Type 1" />
-        <Option Value="2" Name="Type 2" />
+        <Option Value="0" Name="Only if destroyed" />
+        <Option Value="1" Name="No" />
+        <Option Value="2" Name="Yes" />
     </Enum>
     <Enum Name="ASSET_AUTO_DRAW_GROUP_SHADOW_TEST_TYPE" type="u8">
         <Option Value="0" Name="Type 0" />
@@ -103,9 +112,9 @@
     </Enum>
   </Enums>
   <Field>
-    <soundBankId AltName="Sound Bank ID" Wiki="Sound bank ID (-1: no bank, other: bank with specified ID)" />
+    <soundBankId AltName="Sound Bank ID" Wiki="Sound bank ID (-1: no bank, other: bank with specified ID)" ExtRefs="bnk,sound\aeg{0:000'_'000}.bnk" />
     <soundBreakSEId AltName="Sound Break SE ID" Wiki="Destruction sound SEID (9 digits) -1: Generated from assetId" />
-    <refDrawParamId AltName="Draw Param Reference ID" Wiki="Drawing parameter reference ID. The reference ID for the part drawing parameter .xlsm." />
+    <refDrawParamId AltName="Draw Param Reference ID" Wiki="Drawing parameter reference ID. The reference ID for the part drawing parameter .xlsm." Refs="PartsDrawParam" />
     <hitCreateType AltName="Hit Create Type" Wiki="Sets the hit build type for static assets. Ignored for dynamic assets." Enum="ASSET_HIT_CREATE_TYPE_ENUM" />
     <behaviorType AltName="Asset Behavior Type" Wiki="Dynamic (all asset features available), static (light assets with limited functionality treated as old maps), partially static (partially destroyed assets)" Enum="ASSET_BEHAVIOR_TYPE" />
     <collisionType AltName="Collision Detection Type" Wiki="Collision detection type. You can set what the asset will hit." Enum="ASSET_COLLISION_TYPE" />
@@ -113,9 +122,9 @@
     <hp AltName="HP" Wiki="Durability until destruction (-1: Indestructible)" />
     <defense AltName="Defence" Wiki="Attack power below this value is no damage" />
     <breakStopTime AltName="Destruction Stop Time" Wiki="Time from destruction to forced stop of rigid body (do not force stop at 0)" />
-    <breakSfxId AltName="Destruction SFX ID" Wiki="SFX ID on destruction (-1: default (810030))" />
+    <breakSfxId AltName="Destruction SFX ID" Wiki="SFX ID on destruction (-1: default (810030))" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <breakSfxCpId AltName="Destruction SFX Dummy Poly ID" Wiki="SFX generation position at the time of destruction Damipoly ID (-1: placement position)" />
-    <breakLandingSfxId AltName="Destruction Landing SFX ID" Wiki="Object material-dependent SFX identifier that regenerates when first landing after being destroyed (-1: does not occur)" />
+    <breakLandingSfxId AltName="Destruction Landing SFX ID" Wiki="Object material-dependent SFX identifier that regenerates when first landing after being destroyed (-1: does not occur)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <breakBulletBehaviorId AltName="Destruction Bullet Behavior ID" Wiki="Action parameter of [bullet] at the time of destruction (-1: does not occur). Please note that there is an offset specification due to laps. ([GR] SEQ35556)" />
     <breakBulletCpId AltName="Destruction Bullet Dummy Poly ID" Wiki="Location of [bullet] at the time of destruction Damipoli ID (-1: placement position)" />
     <FragmentInvisibleWaitTime AltName="Hidden Debris - Wait Time" Wiki="Hidden debris Waiting time (seconds)" />
@@ -131,7 +140,7 @@
     <isAnimBreak AltName="Is Animated Destruction" Wiki="Is it animation destruction (0: physical destruction, 1: animation destruction)" />
     <isDamageCover AltName="Is Damage Transferred" Wiki="Whether to pass the damage to the other side when receiving damage (0: pass, 1: do not pass)" />
     <isAttackBacklash AltName="Is Attack Backlash" Wiki="Do you play the attack (0: do not play, 1: play)" />
-    <Reserve_2 AltName=""/>
+    <Reserve_2 AltName="" IsHidden=""/>
     <isLadder AltName="Is Ladder" Wiki="Is it a ladder (0: different, 1: yes)" />
     <isMoveObj AltName="Is Moving Object" Wiki="Is it a moving object? It is a flag used for branching of movement processing at the time of multi (0: different, 1: yes)" />
     <isSkydomeFlag AltName="Is Celestial Sphere" Wiki="Processing that treats the celestial sphere (player tracking, etc.) is performed (0: different, 1: yes)" />
@@ -154,10 +163,10 @@
     <autoCreateOffsetHeight AltName="Automatic Generation Height Offset" Wiki="Height offset of how much it floats from where the raycast hits the map when it is automatically generated [m]" />
     <burnTime AltName="Burn Time" Wiki="Burning time (seconds) (continues to burn at 0)" />
     <burnBraekRate AltName="Burn Destroy Rate" Wiki="Burnup threshold for switching to the ruptured state" />
-    <burnSfxId AltName="Burn SFX ID [0]" Wiki="SFX ID at the time of combustion: 0 (-1: No SFX)" />
-    <burnSfxId_1 AltName="Burn SFX ID [1]" Wiki="SFX ID at the time of combustion: 1 (-1: No SFX)" />
-    <burnSfxId_2 AltName="Burn SFX ID [2]" Wiki="SFX ID at the time of combustion: 2 (-1: No SFX)" />
-    <burnSfxId_3 AltName="Burn SFX ID [3]" Wiki="SFX ID at the time of combustion: 3 (-1: No SFX)" />
+    <burnSfxId AltName="Burn SFX ID [0]" Wiki="SFX ID at the time of combustion: 0 (-1: No SFX)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
+    <burnSfxId_1 AltName="Burn SFX ID [1]" Wiki="SFX ID at the time of combustion: 1 (-1: No SFX)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
+    <burnSfxId_2 AltName="Burn SFX ID [2]" Wiki="SFX ID at the time of combustion: 2 (-1: No SFX)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
+    <burnSfxId_3 AltName="Burn SFX ID [3]" Wiki="SFX ID at the time of combustion: 3 (-1: No SFX)" ExtRefs="common sfxbnd,sfx\sfxbnd_commoneffects.ffxbnd.dcx,GR\data\INTERROOT_win64\sfx\effect\f{0:D9}.fxr" />
     <burnSfxDelayTimeMin AltName="Burn SFX Minimum Delay Time [0]" Wiki="SFX generation delay time during combustion Randomly determined between start and end times" />
     <burnSfxDelayTimeMin_1 AltName="Burn SFX Minimum Delay Time [1]" Wiki="SFX generation delay time during combustion Randomly determined between start and end times" />
     <burnSfxDelayTimeMin_2 AltName="Burn SFX Minimum Delay Time [2]" Wiki="SFX generation delay time during combustion Randomly determined between start and end times" />
@@ -186,22 +195,22 @@
     <navimeshFlagApply AltName="Navmesh Flag Apply Type" Wiki="Where to apply the navigation mesh flag set from the asset" Enum="ASSET_NAVIMESH_FLAG_APPLY_TYPE" />
     <navimeshFlagApply_after AltName="Navmesh Flag Apply Type - Destroyed" Wiki="Where to apply the navigation mesh flag set from the destroyed asset" Enum="ASSET_NAVIMESH_FLAG_APPLY_TYPE" />
     <autoDrawGroupPassPixelNum AltName="Auto Draw Group: Pass Pixel Number" Wiki="Automatic drawing group_Pass pixel (set to 0.0-1.0 to enlarge at the time of shooting)" />
-    <pickUpReplacementEventFlag AltName="Pickup Replacement - Event Flag" Wiki="When this event flag is ON, use the ID of the subsequent replacement 0: Do not always replace" />
+    <pickUpReplacementEventFlag AltName="Pickup Replacement - Event Flag" Wiki="When this event flag is ON, use the ID of the subsequent replacement 0: Do not always replace" FlagAlias="" />
     <pickUpReplacementAnimIdOffset AltName="Pickup Replacement - Anim ID Offset" Wiki="When Collecting_replacement flag condition is ON, play the uncollected / collected animation with the animation ID offset by this value." />
-    <pickUpReplacementActionButtonParamId AltName="Pickup Replacement - Action Button Param ID" Wiki="This action button ID is used when Collecting_replacement flag condition is ON." />
+    <pickUpReplacementActionButtonParamId AltName="Pickup Replacement - Action Button Param ID" Wiki="This action button ID is used when Collecting_replacement flag condition is ON." Refs="ActionButtonParam" />
     <pickUpReplacementItemLotParamId AltName="Pickup Replacement - Item Lot Param ID" Wiki="When Collecting_replacement flag condition is ON, this item lottery ID_map is used." Refs="ItemLotParam_map" />
     <slidingBulletHitType AltName="Sliding Bullet Hit Type" Wiki="When a bullet of the follow-up type Crawling on the ground even if it collides collides with an asset, does it bend in the direction along the landing point? Behavior" Enum="ASSET_SLIDING_BULLET_HIT_TYPE" />
     <isBushesForDamage AltName="Is Damaged by Special Attacks" Wiki=" Assets can only be damaged by damage to bushes  and object attack power> defense power attacks [GR] SEQ20617" IsBool="" />
     <penetrationBulletType AltName="Penetration Bullet Type" Wiki="Will the bullet hit and land? Which bullet para to refer to when deciding? The value that determines." Enum="ASSET_PENETRATION_BULLET_TYPE" />
-    <Reserve_3 AltName=""/>
-    <Reserve_4 AltName=""/>
+    <Reserve_3 AltName="" IsHidden=""/>
+    <Reserve_4 AltName="" IsHidden=""/>
     <soundBreakSECpId AltName="Destruction - Sound SE Dummy Poly ID" Wiki="Damipoli ID of the place where the destruction sound is played (-1: Placement position)" />
     <debug_HeightCheckCapacityMin AltName="Debug - Height Check Minimum" Wiki="Debug_Allowable ground height_Minimum [m] See SEQ07876 for details. Must be smaller than maximum" />
     <debug_HeightCheckCapacityMax AltName="Debug - Height Check Maximum" Wiki="Debug_Allowable ground height_Max [m] See SEQ07876 for details. Must be larger than minimum" />
-    <repickActionButtonParamId AltName="Repick - Action Button ID" Wiki="This action button ID is used when recollecting assets whose Is there a change at the time of recollection?" />
+    <repickActionButtonParamId AltName="Repick - Action Button ID" Wiki="This action button ID is used when recollecting assets whose Is there a change at the time of recollection?" Refs="ActionButtonParam" />
     <repickItemLotParamId AltName="Repick - Item Lot Param ID" Wiki="Assets with Is there a change at the time of recollection? Are used for this item lottery ID_map when recollecting in units of placement." Refs="ItemLotParam_map" />
     <repickReplacementAnimIdOffset AltName="Repick Replacement - Anim ID Offset" Wiki="Use this parameter instead of At the time of collection_replacement animation offset at the time of recollection for assets whose Is there a change at the time of recollection?" />
-    <repickReplacementActionButtonParamId AltName="Repick Replacement - Action Button Param ID" Wiki="Use this parameter instead of At the time of collection_replacement action button ID when recollecting assets whose Is there a change at the time of recollection?" />
+    <repickReplacementActionButtonParamId AltName="Repick Replacement - Action Button Param ID" Wiki="Use this parameter instead of At the time of collection_replacement action button ID when recollecting assets whose Is there a change at the time of recollection?" Refs="ActionButtonParam" />
     <repickReplacementItemLotParamId AltName="Repick Replacement - Item Lot ID" Wiki="Use this parameter instead of At the time of collection_Replacement item lottery ID_For map when recollecting assets whose Is there a change at the time of recollection?" Refs="ItemLotParam_map" />
     <noGenerateCarver AltName="Is Hit Carver Generation Blocked" Wiki="Asset with this set does not create Carver" IsBool="" />
     <noHitHugeAfterBreak AltName="Is Giant Enemy Hit by Destruction" Wiki="Overwrite the hit filter after destruction with a collision detection type that does not hit a huge enemy (static  dynamic )" IsBool="" />
@@ -211,7 +220,7 @@
     <isDisableBulletHitSfx AltName="Is Bullet Hit SFX Disabled" Wiki="In the case of , the landing SFX does not occur regardless of whether the hit bullet penetrates or lands." IsBool="" />
     <isEnableSignPreBreak AltName="Is Bloodstain/Sign Enabled before Destruction" Wiki="Set whether sign / blood character can be created when on the asset (before destruction) : Possible, : Impossible (Details: SEQ122568)" IsBool="" />
     <isEnableSignPostBreak AltName="Is Bloodstain/Sign Enabled after Destruction" Wiki="Set whether sign / blood character can be created when on the asset (after destruction) : Possible, : Impossible (Details: SEQ122568)" IsBool="" />
-    <Reserve_1 AltName=""/>
+    <Reserve_1 AltName="" IsHidden=""/>
     <generateMultiForbiddenRegion AltName="Multiplayer Forbidden Region Type" Wiki="Summoning prohibited / intrusion prohibited area generation (Damipoli)" Enum="MULTI_FORBIDDEN_REGION_GENERATE_ATTRIBUTE" />
     <residentSeId0 AltName="Resident SE ID [0]" Wiki="Sound ID 0 (9 digits) to be resident in the asset (-1: No resident)" />
     <residentSeId1 AltName="Resident SE ID [1]" Wiki="Sound ID 1 (9 digits) to be resident in the asset (-1: No resident)" />
@@ -225,7 +234,7 @@
     <excludeActivateRatio_Xboxone_Legacy AltName="Exclude Activate Ratio - Xbox One Legacy" Wiki="Legacy_XB1 exclusion rate [GR] SEQ25310" Enum="ASSET_EXCLUDE_ACTIVATE_RATIO_TYPE" />
     <excludeActivateRatio_PS4_Grid AltName="Exclude Activate Ratio - PS4 Grid" Wiki="Open_PS4 exclusion rate [GR] SEQ25310" Enum="ASSET_EXCLUDE_ACTIVATE_RATIO_TYPE" />
     <excludeActivateRatio_PS4_Legacy AltName="Exclude Activate Ratio - PS4 Legacy" Wiki="Legacy_PS4 exclusion rate [GR] SEQ25310" Enum="ASSET_EXCLUDE_ACTIVATE_RATIO_TYPE" />
-    <Reserve_0 AltName=""/>
+    <Reserve_0 AltName="" IsHidden=""/>
   </Field>
   <Self />
 </PARAMMETA>
