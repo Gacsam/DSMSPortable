@@ -458,6 +458,10 @@ namespace SoulsFormats
             bw.BigEndian = true;
             if (type == Type.Zlib)
                 SFUtil.WriteZlib(bw, 0xDA, data);
+            else if (type == Type.ZSTD)
+                // We don't want to compress back to ZSTD until we know ME2 can read it
+                //CompressDCXZSTD(data, bw);
+                CompressDCPDFLT(data, bw);
             else if (type == Type.DCP_DFLT)
                 CompressDCPDFLT(data, bw);
             else if (type == Type.DCX_EDGE)
