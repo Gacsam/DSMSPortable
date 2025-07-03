@@ -180,13 +180,13 @@ namespace SoulsFormats
             br.AssertInt32(0x4C);
 
             br.AssertASCII("DCS\0");
-            int uncompressedSize = br.ReadInt32();
+            br.ReadInt32(); // uncompressed size
             int compressedSize = br.ReadInt32();
 
             br.AssertASCII("DCP\0");
             br.AssertASCII("ZSTD");
             br.AssertInt32(0x20);
-            br.AssertByte(0x15);
+            br.ReadByte(); // compression level
             br.AssertByte(0);
             br.AssertByte(0);
             br.AssertByte(0);
